@@ -1,0 +1,45 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:unified="sap.ui.unified">
+  <Dialog id="dialogAllegatiContratto" title="Allegati contratto" contentWidth="45rem">
+    <content>
+      <VBox class="sapUiSmallMargin">
+        <VBox class="app-card app-card-padded sapUiSmallMarginBottom">
+          <Label text="Aggiungi allegato" design="Bold" class="sapUiTinyMarginBottom" />
+          <unified:FileUploader id="nuovoAllegatoUploader" buttonText="Scegli file" placeholder="Nessun file selezionato (docx, pdf)" width="100%" change=".onNuovoAllegatoChange" />
+          <HBox class="sapUiSmallMarginTop" alignItems="Center" visible="{= !!${allegatiContratto>/nuovoAllegato} }">
+            <Label text="Tipo:" class="sapUiTinyMarginEnd" />
+            <Select selectedKey="{allegatiContratto>/nuovoAllegato/tipo}" items="{tipologie>/value}" width="16rem" class="sapUiTinyMarginEnd">
+              <core:Item key="{tipologie>codice}" text="{tipologie>label}" />
+            </Select>
+            <Text text="{path: 'allegatiContratto>/nuovoAllegato/confidenza', formatter: '.formatter.confidenzaText'}" class="sapUiTinyMarginEnd" />
+            <Button text="Salva allegato" icon="sap-icon://add" press=".onSalvaNuovoAllegato" />
+          </HBox>
+        </VBox>
+        <Table id="allegatiContrattoTable" items="{allegatiContratto>/allegati}" noDataText="Nessun allegato presente.">
+          <columns>
+            <Column><Text text="Nome file" /></Column>
+            <Column width="14rem"><Text text="Tipo documento" /></Column>
+            <Column width="7rem"><Text text="Confidenza" /></Column>
+            <Column width="6rem"><Text text="" /></Column>
+            <Column width="6rem"><Text text="" /></Column>
+            <Column width="3rem"><Text text="" /></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <Text text="{allegatiContratto>filename}" />
+                <Text text="{path: 'allegatiContratto>tipo', formatter: '.formatter.tipoAllegatoText'}" />
+                <Text text="{path: 'allegatiContratto>confidenza', formatter: '.formatter.confidenzaText'}" />
+                <ObjectStatus text="Anteprima" icon="sap-icon://search" press=".onAnteprimaAllegatoContratto" active="true" />
+                <Button text="Scarica" icon="sap-icon://download" press=".onScaricaAllegato" />
+                <Button icon="sap-icon://delete" tooltip="Elimina" press=".onEliminaAllegatoContratto" class="app-btn-danger-text" />
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+    </content>
+    <endButton>
+      <Button text="Chiudi" press=".onChiudiAllegatiContratto" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

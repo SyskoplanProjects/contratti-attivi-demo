@@ -1,0 +1,46 @@
+<core:FragmentDefinition controllerName="com.buyerui.buyerui.controller.MainPage" xmlns:core="sap.ui.core" xmlns="sap.m"
+	xmlns:html="http://www.w3.org/1999/xhtml">
+	<HBox fitContainer="true" alignItems="Start" justifyContent="Center">
+		<items>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin"
+				visible="false"
+				wrap="Wrap">
+				<items>
+					<Avatar src="sap-icon://supplier" displaySize="XL" showBorder="true" backgroundColor="Accent10" press="onPressSupplierApproval"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="{i18n>VendorManagement.SupplierApproval.cockpit.tile}" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin"
+				visible="false"
+				wrap="Wrap">
+				<items>
+					<Avatar src="sap-icon://message-information" displaySize="XL" showBorder="true" backgroundColor="Accent10" press="onPressInfoProvider"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="{i18n>VendorManagement.InfoProvider.cockpit.tile}" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin"
+			 	visible="false"
+				wrap="Wrap">
+				<items>
+					<Avatar src="sap-icon://it-host" displaySize="XL" showBorder="true" backgroundColor="Accent10" press="onPressSubcontractingReport"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="{i18n>VendorManagement.SubcontractingReport.cockpit.tile}" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin"
+				visible="false"
+				wrap="Wrap">
+				<items>
+					<Avatar src="sap-icon://simulate" displaySize="XL" showBorder="true" backgroundColor="Accent10" press="onPressResilienceCockpit"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="{i18n>VendorManagement.ResilienceCockpit.cockpit.tile}" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin" visible="false"
+				wrap="Wrap">
+				<items>
+					<Avatar src="sap-icon://course-program" displaySize="XL" showBorder="true" backgroundColor="Accent10" press="onPressDocumentManagement"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="{i18n>VendorManagement.DocumentManagementCockpit.cockpit.tile}" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+		</items>
+	</HBox>
+</core:FragmentDefinition>

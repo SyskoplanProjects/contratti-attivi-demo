@@ -1,0 +1,78 @@
+{
+  "_version": "1.65.0",
+  "sap.app": {
+    "id": "com.reply.contrattiattivi.app",
+    "type": "application",
+    "title": "Contratti Attivi",
+    "dataSources": {
+      "mainService": {
+        "uri": "/contratti/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      },
+      "agenteService": {
+        "uri": "/agente/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    }
+  },
+  "sap.ui": { "technology": "UI5" },
+  "sap.ui5": {
+    "resources": {
+      "css": [{ "uri": "css/style.css" }]
+    },
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": { "sap.m": {}, "sap.ui.core": {}, "sap.ui.layout": {}, "sap.ui.unified": {} }
+    },
+    "rootView": {
+      "viewName": "com.reply.contrattiattivi.app.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "app"
+    },
+    "resources": {
+      "css": [
+        { "uri": "css/style.css" }
+      ]
+    },
+    "models": {
+      "": {
+        "dataSource": "mainService",
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "groupId": "$direct"
+        }
+      }
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "com.reply.contrattiattivi.app.view",
+        "controlId": "app",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        { "pattern": "",                    "name": "main",           "target": "main"           },
+        { "pattern": "detail/{id}",         "name": "detail",         "target": "detail"         },
+        { "pattern": "template",            "name": "template",       "target": "template"       },
+        { "pattern": "templateDetail/{id}", "name": "templateDetail", "target": "templateDetail" },
+        { "pattern": "clausole",            "name": "clausole",       "target": "clausole"       },
+        { "pattern": "archiviati",          "name": "archiviati",     "target": "archiviati"     }
+      ],
+      "targets": {
+        "main":           { "viewName": "Main",           "viewLevel": 1 },
+        "detail":         { "viewName": "Detail",         "viewLevel": 2 },
+        "template":       { "viewName": "Template",       "viewLevel": 1 },
+        "templateDetail": { "viewName": "TemplateDetail", "viewLevel": 2 },
+        "clausole":       { "viewName": "Clausole",       "viewLevel": 1 },
+        "archiviati":     { "viewName": "Archiviati",     "viewLevel": 1 }
+      }
+    }
+  }
+}

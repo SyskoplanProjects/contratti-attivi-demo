@@ -1,0 +1,70 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.inserimento.controller.ImportPreview"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="{= ${preview>/mode} === 'coverage' ? 'Risultato copertura' : 'Verifica clausole' }" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="{= ${preview>/mode} === 'coverage' ? 'Conferma o modifica il risultato del confronto' : 'Controlla e modifica prima di importare'}" />
+        <ObjectHeader title="{preview>/coveragePercent}%" numberUnit="copertura"
+          visible="{= ${preview>/mode} === 'coverage'}" intro="Clausole matchate vs template" />
+
+        <HBox class="app-stepper">
+          <HBox class="app-step completed">
+            <Text class="app-step-number" text="1" />
+            <Text text="Carica" />
+          </HBox>
+          <Text class="app-step-line completed" text="" />
+          <HBox class="app-step completed">
+            <Text class="app-step-number" text="2" />
+            <Text text="Analizza" />
+          </HBox>
+          <Text class="app-step-line completed" text="" />
+          <HBox class="app-step active">
+            <Text class="app-step-number" text="3" />
+            <Text text="Conferma" />
+          </HBox>
+        </HBox>
+
+        <VBox class="app-table-wrap">
+          <Table id="previewTable" items="{preview>/clausole}">
+            <columns>
+              <Column width="2rem"><Text text="#" /></Column>
+              <Column><Text text="Titolo" /></Column>
+              <Column><Text text="Testo" /></Column>
+              <Column width="6rem"><Text text="Stato" /></Column>
+              <Column width="6rem"><Text text="Similarità" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{preview>numero}" />
+                  <Input value="{preview>titolo}" />
+                  <TextArea value="{preview>testo}" rows="2" width="100%" />
+                  <ObjectStatus text="{preview>stato}" state="{path: 'preview>stato', formatter: '.formatter.statoImportState'}" />
+                  <Text text="{path: 'preview>similarity', formatter: '.formatter.formatPercentuale'}" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.inserimento.fragment.AiPanel" type="XML" />
+    </content>
+    <footer>
+      <Toolbar class="app-action-bar" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : '100%' }">
+        <ToolbarSpacer />
+        <Button text="Annulla" press="onAnnulla" class="app-btn" />
+        <Button text="{= ${preview>/mode} === 'coverage' ? 'Conferma copertura' : 'Conferma import' }" press="onConferma" class="app-btn app-btn-primary" />
+      </Toolbar>
+    </footer>
+  </Page>
+</mvc:View>

@@ -1,0 +1,373 @@
+.app-gradient-header {
+  background: #008766 !important;
+  padding: 1.5rem 2rem;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 12px 12px;
+  margin: -1rem -1rem 1rem -1rem;
+}
+.app-header-title {
+  color: #fff !important;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  position: relative;
+  z-index: 1;
+}
+.app-header-subtitle {
+  color: rgba(255,255,255,.75) !important;
+  font-size: .75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+}
+/* Barra di navigazione reale (customHeader di ogni Page): sottile, verde piatta,
+   stessa identità del gesub-userBar di riferimento invece dell'header decorativo in-content. */
+.app-page-header {
+  background: #008766 !important;
+}
+.app-page-header .app-header-title {
+  font-size: 1rem;
+  letter-spacing: normal;
+}
+.text-white { color: #fff !important; }
+.app-toolbar-btn .sapMBtnInner {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+.app-toolbar-btn:hover .sapMBtnInner {
+  background: rgba(255,255,255,.14) !important;
+}
+.app-toolbar-btn .sapUiIcon { color: #fff !important; }
+.sapMBusyIndicator > img {
+  width: 10rem !important;
+  height: 10rem !important;
+  animation: none !important;
+  -webkit-animation: none !important;
+}
+.app-card {
+  background: #fff !important;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+  transition: all .25s cubic-bezier(.4,0,.2,1);
+}
+.app-card-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  border-color: rgba(0,135,102,.15);
+}
+.app-stat-grid {
+  display: flex; gap: .75rem; margin-bottom: 1rem;
+}
+.app-stat-box {
+  background: #fff !important;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  flex: 1;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  min-width: 0;
+}
+.app-stat-box .app-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.app-stat-box .app-stat-label {
+  font-size: .68rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-top: 2px;
+}
+.app-stat-box.stat-blue .app-stat-value { color: #008766; }
+.app-stat-box.stat-orange .app-stat-value { color: #e85d04; }
+.app-stat-box.stat-green .app-stat-value { color: #008766; }
+.app-stat-box.stat-purple .app-stat-value { color: #008766; }
+.app-badge {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.app-badge-warning { background: #fff3e0; color: #e85d04; }
+.app-badge-info { background: #e0f2ec; color: #008766; }
+.app-badge-success { background: #e0f2ec; color: #008766; }
+.app-badge-error { background: #fce4ec; color: #b71c1c; }
+.app-badge-error-solid { background: #e74c3c !important; color: #fff !important; }
+.app-badge-neutral { background: #eceff1; color: #607d8b; }
+
+/* Timeline "Storico versioni": colonna dedicata con pallino + connettore verticale reso come
+   controllo vero (non pseudo-elemento posizionato: gli item bindati vengono avvolti da UI5 in
+   un div flex-item proprio, che rompe qualsiasi positioning assoluto cross-sibling/::before
+   calcolato contro il "fratello logico" invece di quello DOM reale). */
+.app-timeline-row { margin-bottom: .5rem; }
+.app-timeline-dot-col {
+  display: flex; flex-direction: column; align-items: center;
+  width: 1.5rem;
+  flex-shrink: 0;
+}
+.app-timeline-connector { flex: 1 1 auto; width: 2px; min-height: .5rem; background: rgba(0,135,102,.25); margin-top: .3rem; }
+.app-timeline-dot { margin-top: .35rem; }
+.app-timeline-meta-icon { color: #7f8c8d; margin-right: .3rem; font-size: .85rem; }
+
+/* Righe "Dettaglio clausole" nel confronto versioni: bordo sinistro colorato per tipo modifica. */
+.app-diff-item {
+  display: flex; align-items: center; gap: .625rem;
+  padding: .625rem .875rem;
+  border-left: 3px solid rgba(0,0,0,.1);
+  background: #f8f9fa;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: .5rem;
+}
+.app-diff-item-added { border-left-color: #008766; }
+.app-diff-item-removed { border-left-color: #b71c1c; }
+.app-diff-item-modified { border-left-color: #e85d04; }
+.app-table-wrap {
+  background: #fff !important;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+}
+.app-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+.app-info-item {
+  background: #f8f9fa !important;
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+}
+.app-info-item .app-info-icon {
+  width: 36px; height: 36px;
+  background: #fff !important;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #008766;
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+.app-info-label {
+  font-size: .65rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.app-info-item .app-info-value {
+  font-size: .85rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+.app-btn-group {
+  display: flex; gap: .5rem; flex-wrap: wrap;
+}
+.app-btn {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all .2s ease !important;
+}
+.app-btn .sapMBtnInner {
+  border-radius: inherit !important;
+  font-weight: inherit !important;
+  transition: inherit !important;
+}
+.app-btn:not(.app-btn-primary):not(.app-btn-success):not(.app-btn-danger):not(.app-btn-outline):not(.app-btn-neutral):not(.app-btn-warning-outline):not(.app-btn-danger-text) .sapMBtnInner {
+  color: #008766 !important;
+  background: transparent !important;
+}
+.app-btn .sapMBtnInner:hover,
+.app-btn .sapMBtnInner:active {
+  background: rgba(0,0,0,.04) !important;
+}
+.app-btn:focus-visible {
+  outline-color: #1a1a1a !important;
+}
+.app-chat-list .sapMFeedListItemSender {
+  color: #1a1a1a !important;
+}
+.sapMColumnListItem .sapMNavArrow {
+  color: #1a1a1a !important;
+}
+.sapMColumnListItem:hover {
+  background: rgba(0,0,0,.03) !important;
+}
+.sapMColumnListItem.sapMSelected,
+.sapMColumnListItem.sapMLIBSelected {
+  background: rgba(0,135,102,.08) !important;
+}
+.sapMMenuItem:hover {
+  background: rgba(0,0,0,.04) !important;
+}
+.sapMMenuItem:focus-visible {
+  outline-color: #1a1a1a !important;
+}
+.sapMLIBFocus:focus,
+.sapMFocusable:focus-visible {
+  outline-color: #1a1a1a !important;
+}
+.app-btn-primary .sapMBtnInner {
+  background: #008766 !important;
+  border: none !important;
+  color: #fff !important;
+}
+.app-btn-outline .sapMBtnInner {
+  background: transparent !important;
+  border: 1.5px solid rgba(255,255,255,.3) !important;
+  color: #fff !important;
+}
+.app-btn-outline:hover .sapMBtnInner {
+  border-color: rgba(255,255,255,.6) !important;
+  background: rgba(255,255,255,.08) !important;
+}
+.app-action-bar {
+  background: #fff !important;
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  margin-bottom: 1rem;
+}
+.app-btn-neutral .sapMBtnInner { color: #008766 !important; border-color: #008766 !important; }
+.app-btn-warning-outline .sapMBtnInner { color: #e85d04 !important; border-color: #e85d04 !important; }
+.app-btn-success .sapMBtnInner { background: #008766 !important; color: #fff !important; border: none !important; }
+.app-btn-danger .sapMBtnInner { background: #b71c1c !important; color: #fff !important; border: none !important; }
+.app-btn-danger-text .sapMBtnInner { color: #b71c1c !important; }
+.app-btn-danger-text .sapMBtnInner .sapUiIcon { color: #b71c1c !important; }
+.app-icon-warning { color: #e85d04; }
+.sapMObjStatusInformation .sapMObjStatusText,
+.sapMObjStatusInformation .sapUiIcon { color: #5a6b7a !important; }
+.app-diff-added { background: #d4f4dd; color: #1b5e20; text-decoration: none; }
+.app-diff-removed { background: #fde0e0; color: #b71c1c; text-decoration: line-through; }
+.app-mt-sm { margin-top: .5rem; }
+.app-mt-md { margin-top: 1rem; }
+.app-mb-sm { margin-bottom: .75rem; }
+.app-card-padded { padding: 1.25rem; }
+.app-info-item-col { flex-direction: column; align-items: stretch; }
+.app-hint-text { font-size: .72rem; color: #7f8c8d; margin-bottom: .5rem; }
+.app-doc-icon { font-size: 1.5rem; color: #008766; }
+.app-uploader-rounded { border-radius: 8px; }
+.app-card-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: .75rem;
+  flex-shrink: 0;
+}
+.app-card-icon-purple { background: #008766 !important; }
+.app-card-icon-green { background: #008766 !important; }
+.app-card-icon-blue { background: #00a884 !important; }
+.app-card-icon-glyph { color: #fff; font-size: 1.2rem; }
+.app-card-title { font-size: .95rem; font-weight: 700; color: #1a1a1a; }
+.app-card-subtitle { font-size: .75rem; color: #7f8c8d; }
+.app-card-list-item { display: block; border-radius: 12px; margin: 0; padding: 1rem 1.25rem; }
+.app-chat-header { background: #008766 !important; border-radius: 0; margin: 0; padding: 1rem 1.25rem; flex-shrink: 0; }
+.app-chat-icon-badge {
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,.15) !important;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.app-chat-icon { color: #fff; font-size: 1rem; }
+.app-chat-header .sapUiIcon { color: #fff !important; }
+.app-info-icon .sapUiIcon { color: inherit !important; }
+.app-btn:not(.app-btn-danger-text):not(.app-btn-warning-outline) .sapMBtnInner .sapUiIcon { color: inherit !important; }
+.app-chat-title { font-size: 1rem; color: #fff; }
+.app-chat-btn-icon { padding: .25rem !important; min-width: 2rem !important; }
+.app-chat-scroll::-webkit-scrollbar { width: 6px; }
+.app-chat-scroll::-webkit-scrollbar-track { background: transparent; }
+.app-chat-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
+.app-chat-input { border-radius: 12px; border: 1.5px solid #e0e0e0; padding: .5rem .75rem; }
+.app-chat-send-btn { min-width: 2.5rem; margin-left: .5rem !important; border-radius: 12px !important; }
+/* Tab + pannello dell'assistente AI: sempre presente sul bordo destro di ogni pagina,
+   a scomparsa (non un dialog modale). */
+.app-ai-tab {
+  position: fixed !important;
+  bottom: 6rem;
+  right: 0;
+  z-index: 1000;
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  border-radius: 14px 0 0 14px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-right: none !important;
+  background: rgba(0,135,102,.9) !important;
+  box-shadow: 0 8px 28px rgba(0,135,102,.35) !important;
+  animation: app-ai-glow 3s ease-in-out infinite;
+}
+.app-ai-tab .sapMBtnInner {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+}
+.app-ai-tab:hover { transform: scale(1.05); animation: none; }
+
+@keyframes app-ai-glow {
+  0%, 100% { box-shadow: 0 8px 28px rgba(0,135,102,.28); }
+  50% { box-shadow: 0 8px 32px rgba(0,135,102,.45), 0 0 20px rgba(0,135,102,.25); }
+}
+.app-ai-panel {
+  position: fixed !important;
+  top: 0; right: 0; bottom: 0;
+  width: 380px;
+  max-width: 92vw;
+  background: #fff !important;
+  border-left: 1px solid rgba(0,0,0,.08);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1), box-shadow .3s ease;
+  pointer-events: none;
+  display: grid !important;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.app-ai-panel-open {
+  transform: translateX(0);
+  box-shadow: -8px 0 32px rgba(0,135,102,.15);
+  pointer-events: auto;
+}
+.app-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f5f6f8;
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+  margin-top: -.5rem;
+}
+.app-page-content {
+  transition: width .25s cubic-bezier(.4,0,.2,1);
+  box-sizing: border-box;
+}
+/* ID contratto badge nella tabella */
+.app-id-badge {
+  font-family: 'Courier New', Courier, monospace !important;
+  font-size: .78rem !important;
+  font-weight: 700 !important;
+  color: #006d57 !important;
+  background: #e6f5f1 !important;
+  border: 1px solid #b2ddd3 !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  letter-spacing: .04em !important;
+  display: inline-block !important;
+}
+

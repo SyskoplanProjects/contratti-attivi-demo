@@ -1,0 +1,28 @@
+<core:FragmentDefinition
+  xmlns:core="sap.ui.core"
+  xmlns="sap.m"
+  xmlns:u="sap.ui.unified">
+  <Popover
+    id="popoverUpload"
+    modal="true"
+    showArrow="true"
+    placement="VerticalPreferredTop"
+    showHeader="true"
+    title="Carica documento">
+    <VBox class="sapUiSmallMargin">
+      <u:FileUploader
+        id="fileUploader"
+        uploadUrl=""
+        change="onFileChange"
+        buttonText="Scegli file"
+        placeholder="Nessun file selezionato" />
+    </VBox>
+    <footer>
+      <Toolbar>
+        <Button text="Chiudi" press="onChiudiPopover" />
+        <ToolbarSpacer />
+        <Button type="Emphasized" text="Conferma" press="onConfermaUpload" />
+      </Toolbar>
+    </footer>
+  </Popover>
+</core:FragmentDefinition>

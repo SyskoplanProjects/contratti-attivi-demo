@@ -1,0 +1,69 @@
+{
+  "_version": "1.65.0",
+  "sap.app": {
+    "id": "com.reply.contrattiattivi.comparator",
+    "type": "application",
+    "title": "Contract Comparator",
+    "dataSources": {
+      "mainService": {
+        "uri": "/contratti/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      },
+      "comparatorService": {
+        "uri": "/comparator/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    }
+  },
+  "sap.ui": { "technology": "UI5" },
+  "sap.ui5": {
+    "rootView": "com.reply.contrattiattivi.comparator.view.App",
+    "resources": {
+      "css": [{ "uri": "css/style.css" }]
+    },
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": { "sap.m": {}, "sap.ui.core": {}, "sap.ui.layout": {}, "sap.ui.unified": {} }
+    },
+    "models": {
+      "": {
+        "dataSource": "mainService",
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "groupId": "$direct"
+        }
+      },
+      "comparator": {
+        "dataSource": "comparatorService",
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "groupId": "$direct"
+        }
+      }
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "com.reply.contrattiattivi.comparator.view",
+        "controlId": "app",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        { "pattern": "", "name": "home", "target": "home" },
+        { "pattern": "result/{previewID}", "name": "result", "target": "result" }
+      ],
+      "targets": {
+        "home": { "viewName": "ComparatorHome", "viewLevel": 1 },
+        "result": { "viewName": "ComparatorResult", "viewLevel": 2 }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m" xmlns:html="http://www.w3.org/1999/xhtml">
+	<Page visible="{= ${ExceptionPages>/noRoles} || ${ExceptionPages>/noSupportedBrowser}}">
+		<customHeader>
+			<Bar class="gesub-userBar">
+				<contentRight>
+					<core:Fragment fragmentName="com.buyerui.buyerui.view.fragments.HomeBar.UserInfoAndLogout" type="XML"/>
+				</contentRight>
+			</Bar>
+		</customHeader>
+		<content>
+			<MessagePage showHeader="false" icon="sap-icon://shield"
+				text="{parts: [{path: 'ExceptionPages>/noRoles'}, {path: 'ExceptionPages>/noSupportedBrowser'}], formatter: '.formatter.formatTextException'}"
+				description=""/>
+		</content>
+	</Page>
+</core:FragmentDefinition>

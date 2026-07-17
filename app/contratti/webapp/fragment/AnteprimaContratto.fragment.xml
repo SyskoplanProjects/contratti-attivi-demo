@@ -1,0 +1,60 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m" xmlns:form="sap.ui.layout.form">
+  <Dialog id="anteprimaContrattoDialog" title="{= 'Anteprima contratto: ' + (${anteprima>/intestatario} || '') }" contentWidth="45rem">
+    <content>
+      <Panel headerText="Testata" expandable="true" expanded="true">
+        <form:SimpleForm layout="ResponsiveGridLayout" labelSpanL="4" labelSpanM="4" emptySpanL="0" emptySpanM="0" columnsL="2" columnsM="1">
+          <form:content>
+            <Label text="Intestatario"/>
+            <Text text="{anteprima>/intestatario}"/>
+            <Label text="Stato"/>
+            <ObjectStatus text="{anteprima>/stato}" state="{path: 'anteprima>/stato', formatter: '.formatter.statoState'}"/>
+            <Label text="Responsabile"/>
+            <Text text="{anteprima>/responsabile}"/>
+            <Label text="Importo"/>
+            <Text text="{anteprima>/importo}"/>
+            <Label text="C.F."/>
+            <Text text="{anteprima>/codiceFiscale}"/>
+            <Label text="Data stipula"/>
+            <Text text="{anteprima>/dataStipula}"/>
+            <Label text="Società contraente"/>
+            <Text text="{anteprima>/societaContraente}"/>
+            <Label text="Responsabile controparte"/>
+            <Text text="{anteprima>/responsabileControparte}"/>
+            <Label text="Email controparte"/>
+            <Text text="{anteprima>/emailControparte}"/>
+            <Label text="Oggetto"/>
+            <Text text="{anteprima>/oggetto}"/>
+            <Label text="Decorrenza"/>
+            <Text text="{anteprima>/dataDecorrenza}"/>
+            <Label text="Scadenza"/>
+            <Text text="{anteprima>/dataScadenza}"/>
+            <Label text="Categoria"/>
+            <Text text="{path: 'anteprima>/categoria', formatter: '.formatter.categoriaText'}"/>
+          </form:content>
+        </form:SimpleForm>
+      </Panel>
+      <Panel headerText="Clausole" expandable="true" expanded="true" class="sapUiTinyMarginTop">
+        <Table items="{anteprima>/clausole}" noDataText="Nessuna clausola.">
+          <columns>
+            <Column width="3rem"><Text text="#" /></Column>
+            <Column><Text text="Clausola" /></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <Text text="{anteprima>ordine}" />
+                <VBox>
+                  <Text text="{= ${anteprima>clausola/codice} + ' — ' + ${anteprima>clausola/titolo} }" class="sapUiTinyMarginBottom" />
+                  <Text text="{anteprima>clausolaVersione/testo}" maxLines="3" />
+                </VBox>
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </Panel>
+    </content>
+    <endButton>
+      <Button text="Chiudi" press=".onChiudiAnteprimaContratto" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

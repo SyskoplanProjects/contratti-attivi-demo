@@ -1,0 +1,107 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.app.controller.Main"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Contratti Attivi" class="app-header-title" />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="Gestione contratti e clausole" />
+        <HBox class="app-stat-grid" id="statBox">
+          <VBox class="app-stat-box stat-blue">
+            <Text class="app-stat-value" text="{stat>/totale}" />
+            <Text class="app-stat-label" text="Totale" />
+          </VBox>
+          <VBox class="app-stat-box stat-orange">
+            <Text class="app-stat-value" text="{stat>/bozza}" />
+            <Text class="app-stat-label" text="Bozze" />
+          </VBox>
+          <VBox class="app-stat-box stat-blue">
+            <Text class="app-stat-value" text="{stat>/inRevisione}" />
+            <Text class="app-stat-label" text="In Revisione" />
+          </VBox>
+          <VBox class="app-stat-box stat-green">
+            <Text class="app-stat-value" text="{stat>/approvato}" />
+            <Text class="app-stat-label" text="Approvati" />
+          </VBox>
+        </HBox>
+        <HBox class="app-btn-group sapUiSmallMarginTop sapUiSmallMarginBottom">
+          <Button text="Crea Manualmente" press="onCreaManualmente" icon="sap-icon://add-document" type="Emphasized" class="app-btn app-btn-primary" visible="{roleModel>/isUtente}" />
+          <Button text="Crea da Template" press="onCreaDaTemplate" icon="sap-icon://duplicate" class="app-btn app-btn-neutral" visible="{roleModel>/isUtente}" />
+          <Button id="copiaContrattoBtn" text="Copia contratto" icon="sap-icon://copy" press="onCopiaContratto" enabled="{= !!${radioSelect>/selectedID} }" class="app-btn app-btn-neutral" />
+          <Button text="Archiviati" icon="sap-icon://folder" press="onVediArchiviati" class="app-btn app-btn-neutral" />
+        </HBox>
+        <HBox class="sapUiSmallMarginBottom" wrap="Wrap" alignItems="End">
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Intestatario" />
+            <SearchField id="filterIntestatario" placeholder="Filtra..." width="14rem" search="onFilter" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Stato" />
+            <Select id="filterStato" change="onFilter" width="12rem">
+              <core:Item key="" text="Tutti" />
+              <core:Item key="BOZZA" text="Bozza" />
+              <core:Item key="IN_REVISIONE" text="In Revisione" />
+              <core:Item key="APPROVATO" text="Approvato" />
+              <core:Item key="FIRMATO" text="Firmato" />
+            </Select>
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Responsabile" />
+            <SearchField id="filterResponsabile" placeholder="Filtra..." width="14rem" search="onFilter" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Data stipula da" />
+            <DatePicker id="filterDataDa" change="onFilter" width="12rem" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Data stipula a" />
+            <DatePicker id="filterDataA" change="onFilter" width="12rem" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="" />
+            <Button icon="sap-icon://reset" text="Reset filtri" press="onResetFiltri" tooltip="Reset filtri" class="app-btn app-btn-neutral" />
+          </VBox>
+        </HBox>
+        <VBox class="app-table-wrap">
+          <Table id="contrattiTable" items="{path: '/Contratto', filters: [{path: 'stato', operator: 'NE', value1: 'ARCHIVIATO'}]}" growing="true" growingThreshold="50" class="sapUiResponsiveMargin">
+            <columns>
+              <Column width="3rem" hAlign="Center"></Column>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="ID Contratto" /></Column>
+              <Column><Text text="Intestatario" /></Column>
+              <Column><Text text="Responsabile" /></Column>
+              <Column><Text text="Stato" /></Column>
+              <Column><Text text="Data Stipula" /></Column>
+              <Column width="4rem"><Text text="" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem type="Navigation" press="onSelectContratto" class="sapUiSmallMarginBottom">
+                <cells>
+                  <HBox justifyContent="Center" alignItems="Center">
+                    <RadioButton groupName="contrattoSelect" select="onRadioSelect" />
+                  </HBox>
+                  <Text text="{path: 'ID', formatter: '.formatter.shortID'}" class="app-id-badge" />
+                  <Text text="{intestatario}" />
+                  <Text text="{responsabile}" />
+                  <HBox>
+                    <ObjectStatus text="{stato}" state="{path: 'stato', formatter: '.formatter.statoState'}" />
+                  </HBox>
+                  <Text text="{dataStipula}" />
+                  <Button icon="sap-icon://delete" tooltip="Elimina" press="onEliminaContratto"
+                    visible="{path: 'stato', formatter: '.formatter.isStatoBozza', targetType: 'any'}" class="app-btn app-btn-danger-text" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

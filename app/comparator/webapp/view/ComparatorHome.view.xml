@@ -1,0 +1,56 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.comparator.controller.ComparatorHome"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:unified="sap.ui.unified"
+  xmlns:form="sap.ui.layout.form">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Contract Comparator" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="Analisi documenti e verifica compliance" />
+        <VBox id="contractInfoSection" class="sapUiSmallMarginTop">
+          <Text id="contractInfoHint" visible="false" class="app-contract-info sapUiSmallMarginBottom" />
+        </VBox>
+
+        <VBox class="app-card app-card-padded sapUiSmallMarginTop">
+          <Label text="Template di riferimento" />
+          <Select id="templateSelect" forceSelection="false" width="100%" class="sapUiSmallMarginTop">
+            <items>
+              <core:Item key="" text="-- Nessun template --" />
+            </items>
+          </Select>
+        </VBox>
+
+        <VBox id="fileUploadSection" class="app-card app-card-padded sapUiSmallMarginTop">
+          <Label text="File documento" class="sapUiSmallMarginBottom" />
+          <unified:FileUploader id="fileUploader" buttonText="Scegli file" placeholder="Nessun file selezionato (docx, xlsx, pdf)" width="100%" change="onFileChange" />
+          <Text id="fileNameText" class="sapUiTinyMarginTop" />
+        </VBox>
+
+        <VBox id="allegatiUploadSection" class="app-card app-card-padded sapUiSmallMarginTop">
+          <Label text="Allegati (opzionale)" class="sapUiSmallMarginBottom" />
+          <Text class="app-hint-text sapUiTinyMarginBottom" text="Appendici, DURC, DURF, visura camerale, ecc. Il tipo documento viene riconosciuto automaticamente." />
+          <unified:FileUploader id="allegatiUploader" buttonText="Scegli allegati" placeholder="Nessun allegato selezionato (docx, pdf)" width="100%" multiple="true" change="onAllegatiChange" />
+          <Text id="allegatiNameText" class="sapUiTinyMarginTop" />
+        </VBox>
+
+        <HBox class="app-btn-group">
+          <Button id="btnAvvia" text="Avvia analisi" type="Emphasized" press="onAvvia" class="app-btn app-btn-primary" />
+          <Button id="btnAvviaContratto" text="Avvia verifica contratto" type="Emphasized" press="onAvviaVerificaContratto" class="app-btn app-btn-primary" visible="false" />
+          <Button text="Annulla" press="onAnnulla" class="app-btn app-btn-neutral" />
+        </HBox>
+
+        <Text id="templateIDHint" visible="false" class="app-hint-text sapUiSmallMarginTop" />
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

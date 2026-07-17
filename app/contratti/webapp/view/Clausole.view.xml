@@ -1,0 +1,82 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.app.controller.Clausole"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Storico Clausole &amp; Gestione Template" class="app-header-title" />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <HBox class="sapUiSmallMarginBottom app-sticky-top" justifyContent="SpaceBetween">
+          <HBox class="app-btn-group">
+            <Button text="Nuova clausola" press="onNuovaClausola" icon="sap-icon://add" type="Emphasized" class="app-btn app-btn-primary" />
+            <Button text="Compara clausole" press="onComparaClausole" icon="sap-icon://compare" class="app-btn app-btn-neutral" />
+          </HBox>
+          <HBox class="app-btn-group">
+            <Button text="Importa template da Word" press="onCaricaDaTemplate" icon="sap-icon://upload" class="app-btn app-btn-neutral" />
+            <Button text="Elimina template" press="onEliminaTemplate" icon="sap-icon://less" class="app-btn app-btn-danger" />
+          </HBox>
+        </HBox>
+        <HBox class="sapUiSmallMarginBottom" wrap="Wrap" alignItems="End">
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="ID Clausola" />
+            <SearchField id="filterIDClausola" placeholder="Filtra..." width="10rem" search="onFilter" liveChange="onFilter" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Codice" />
+            <SearchField id="filterCodice" placeholder="Filtra..." width="10rem" search="onFilter" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Titolo" />
+            <SearchField id="filterTitolo" placeholder="Filtra..." width="18rem" search="onFilter" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Origine" />
+            <SearchField id="filterOrigine" placeholder="Filtra..." width="18rem" search="onFilter" liveChange="onFilter" />
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="" />
+            <Button icon="sap-icon://reset" text="Reset filtri" press="onResetFiltri" tooltip="Reset filtri" class="app-btn app-btn-neutral" />
+          </VBox>
+        </HBox>
+        <VBox class="app-table-wrap">
+          <Table id="tabellaAnagraficaClausole" items="{path: '/Clausola', parameters: {$expand: 'versioni($select=ID,numero),template', $select: 'ID,codice,titolo,origineDettaglio,origineTipo,origineNome,origineID', $orderby: 'codice asc'}}" growing="true" growingThreshold="50">
+            <columns>
+              <Column minScreenWidth="Tablet" demandPopin="true"><Text text="ID Clausola" /></Column>
+              <Column sortProperty="codice"><Text text="Codice" /></Column>
+              <Column><Text text="Titolo" /></Column>
+              <Column><Text text="Versione Corrente" /></Column>
+              <Column><Text text="Origine" /></Column>
+              <Column width="8rem"><Text text="Azioni" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{path: 'versioni', formatter: '.formatter.ultimaVersioneID', targetType: 'any'}" class="app-id-badge" />
+                  <Text text="{codice}" />
+                  <Text text="{titolo}" />
+                  <Text text="{= %{versioni} ? %{versioni}.length : 0 }" />
+                  <VBox>
+                    <Text text="{= %{origineTipo} ? 'Oggetto: ' + %{origineNome} : %{origineNome} }" />
+                    <Text text="{= %{origineID} ? 'ID: ' + %{origineID} : '' }" />
+                  </VBox>
+                  <HBox>
+                    <Button icon="sap-icon://history" tooltip="Storico" press="onStoricoClausola" class="app-btn" />
+                    <Button icon="sap-icon://group" tooltip="Contratti che usano questa clausola" press="onContrattiClausola" class="app-btn" />
+                    <Button icon="sap-icon://delete" tooltip="Elimina clausola" press="onEliminaClausola" class="app-btn app-btn-danger" />
+                  </HBox>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

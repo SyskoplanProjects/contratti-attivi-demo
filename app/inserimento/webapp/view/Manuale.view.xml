@@ -1,0 +1,97 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.inserimento.controller.Manuale"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns:core="sap.ui.core"
+  xmlns="sap.m">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Crea contratto manualmente" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="Componi clausole una per una" />
+
+        <HBox class="app-info-grid">
+          <VBox class="app-info-item app-info-item-col">
+            <Label text="Nome template" class="app-info-label" />
+            <Input id="inpNome" class="sapUiSmallMarginTop" />
+          </VBox>
+          <VBox class="app-info-item app-info-item-col">
+            <Label text="Tipo servizio" class="app-info-label" />
+            <Input id="inpTipoServizio" class="sapUiSmallMarginTop" />
+          </VBox>
+        </HBox>
+
+        <VBox class="app-info-item app-info-item-col app-mb-sm">
+          <Label text="Descrizione" class="app-info-label" />
+          <TextArea id="inpDescrizione" rows="2" width="100%" class="sapUiSmallMarginTop" />
+        </VBox>
+
+        <Panel headerText="Testata contratto" expandable="true" expanded="true" class="app-mb-sm">
+          <form:SimpleForm xmlns:form="sap.ui.layout.form" editable="true" layout="ResponsiveGridLayout" labelSpanL="3" labelSpanM="4" emptySpanL="0" emptySpanM="0" columnsL="2" columnsM="1">
+            <form:content>
+              <Label text="Intestatario"/>
+              <Input value="{manuale>/testata/intestatario}" />
+              <Label text="Importo"/>
+              <Input value="{manuale>/testata/importo}" type="Number" />
+              <Label text="C.F."/>
+              <Input value="{manuale>/testata/codiceFiscale}" />
+              <Label text="Data stipula"/>
+              <DatePicker value="{manuale>/testata/dataStipula}" />
+              <Label text="Società contraente"/>
+              <Input value="{manuale>/testata/societaContraente}" />
+              <Label text="Responsabile controparte"/>
+              <Input value="{manuale>/testata/responsabileControparte}" />
+              <Label text="Email controparte"/>
+              <Input value="{manuale>/testata/emailControparte}" />
+              <Label text="Oggetto"/>
+              <Input value="{manuale>/testata/oggetto}" />
+              <Label text="Decorrenza"/>
+              <DatePicker value="{manuale>/testata/dataDecorrenza}" />
+              <Label text="Scadenza"/>
+              <DatePicker value="{manuale>/testata/dataScadenza}" />
+              <Label text="Categoria"/>
+              <Select selectedKey="{manuale>/testata/categoria}" items="{categorie>/}">
+                <core:Item key="{categorie>}" text="{path: 'categorie>', formatter: '.formatter.categoriaText'}"/>
+              </Select>
+            </form:content>
+          </form:SimpleForm>
+        </Panel>
+
+        <VBox class="app-table-wrap">
+          <Table id="righeTable" items="{manuale>/righe}">
+            <columns>
+              <Column><Text text="Titolo" /></Column>
+              <Column><Text text="Testo" /></Column>
+              <Column width="3rem"><Text text="" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Input value="{manuale>titolo}" />
+                  <TextArea value="{manuale>testo}" rows="2" width="100%" />
+                  <Button icon="sap-icon://delete" press="onRimuoviRiga" class="app-btn app-btn-danger-text" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+        <HBox width="100%" class="app-btn-group sapUiSmallMarginTop">
+          <Button text="+ Aggiungi riga" press="onAggiungiRiga" class="app-btn app-btn-primary" />
+          <Button text="Aggiungi da archivio" press="onAggiungiDaArchivio" class="app-btn app-btn-neutral" />
+        </HBox>
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.inserimento.fragment.AiPanel" type="XML" />
+    </content>
+    <footer>
+      <Toolbar class="app-action-bar" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : '100%' }">
+        <ToolbarSpacer />
+        <Button text="Crea contratto" press="onSalva" class="app-btn app-btn-primary" />
+      </Toolbar>
+    </footer>
+  </Page>
+</mvc:View>

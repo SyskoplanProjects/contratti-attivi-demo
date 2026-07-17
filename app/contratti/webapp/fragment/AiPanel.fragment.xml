@@ -1,0 +1,45 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+  <Button icon="sap-icon://cloud" tooltip="Assistente AI" press=".onToggleAiPanel" class="app-ai-tab" visible="{= !${aiPanel>/expanded} }" />
+
+  <VBox id="aiPanel" class="app-ai-panel">
+    <VBox class="app-gradient-header app-chat-header">
+      <HBox alignItems="Center" justifyContent="SpaceBetween">
+        <HBox alignItems="Center" gap="0.625rem">
+          <HBox class="app-info-icon app-chat-icon-badge">
+            <core:Icon src="sap-icon://ai" class="app-chat-icon" />
+          </HBox>
+          <VBox>
+            <Text text="Assistente AI" class="app-header-title app-chat-title" />
+            <Text text="Contratti Attivi" class="app-header-subtitle" />
+          </VBox>
+        </HBox>
+        <HBox class="app-btn-group">
+          <Button icon="sap-icon://refresh" tooltip="Nuova conversazione" press=".onNuovaConversazione" class="app-btn app-btn-outline app-chat-btn-icon" />
+          <Button icon="sap-icon://slim-arrow-right" tooltip="Comprimi" press=".onToggleAiPanel" class="app-btn app-btn-outline app-chat-btn-icon" />
+        </HBox>
+      </HBox>
+    </VBox>
+    <ScrollContainer height="100%" width="100%" horizontal="false" vertical="true" class="app-chat-scroll">
+      <layoutData>
+        <FlexItemData growFactor="1" baseSize="0%" />
+      </layoutData>
+      <List id="chatMessageList" items="{chatMessages>/}" noDataText="Scrivi una domanda per iniziare." class="app-chat-list" growing="false" mode="None">
+        <items>
+          <FeedListItem
+            text="{chatMessages>text}"
+            sender="{chatMessages>role}"
+            convertLinksToAnchorTags="None"
+            iconDensityAware="false" />
+        </items>
+      </List>
+    </ScrollContainer>
+    <HBox class="sapUiSmallMargin" alignItems="Center">
+      <TextArea id="chatInput" width="100%" rows="4" placeholder="Scrivi una domanda... (es. quante versioni della clausola C1?)" class="sapUiSmallMarginBottom app-chat-input">
+        <layoutData>
+          <FlexItemData growFactor="1" baseSize="0%" />
+        </layoutData>
+      </TextArea>
+      <Button icon="sap-icon://paper-plane" press=".onInviaMessaggio" class="app-btn app-btn-primary app-chat-send-btn" />
+    </HBox>
+  </VBox>
+</core:FragmentDefinition>

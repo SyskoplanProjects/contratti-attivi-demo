@@ -1,0 +1,58 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.inserimento.controller.Import"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns:core="sap.ui.core"
+  xmlns="sap.m">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Importa da documento" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="Carica un file .docx o .xlsx" />
+
+        <HBox class="app-stepper">
+          <HBox class="app-step active" id="step1">
+            <Text class="app-step-number" text="1" />
+            <Text text="Carica" />
+          </HBox>
+          <Text class="app-step-line" text="" />
+          <HBox class="app-step" id="step2">
+            <Text class="app-step-number" text="2" />
+            <Text text="Analizza" />
+          </HBox>
+          <Text class="app-step-line" text="" />
+          <HBox class="app-step" id="step3">
+            <Text class="app-step-number" text="3" />
+            <Text text="Conferma" />
+          </HBox>
+        </HBox>
+
+        <VBox class="app-card app-card-padded">
+          <Label text="File caricato" class="app-info-label" />
+          <HBox alignItems="Center" class="sapUiSmallMarginTop">
+            <core:Icon src="sap-icon://document" class="app-doc-icon" />
+            <Text id="txtFileSelezionato" text="Nessun file selezionato" class="sapUiSmallMarginBegin" />
+          </HBox>
+          <Button id="btnCarica" text="Carica documento" press="onApriUpload" class="app-btn app-mt-sm" />
+        </VBox>
+
+        <VBox class="app-card app-card-padded">
+          <Label text="Template destinazione" class="app-info-label" />
+          <Text text="Lascia vuoto per creare un nuovo template" class="app-hint-text" />
+          <Select id="selTemplate" forceSelection="false" items="{/Template}" width="100%">
+            <core:Item key="{ID}" text="{nome}" />
+          </Select>
+        </VBox>
+
+        <Button text="Analizza documento (importa)" press="onAnalizza" class="app-btn" width="100%" />
+        <Button text="Confronta copertura" press="onConfrontaCopertura" class="app-btn app-btn-primary" width="100%" />
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.inserimento.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

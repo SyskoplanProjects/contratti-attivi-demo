@@ -1,0 +1,24 @@
+<core:FragmentDefinition controllerName="com.buyerui.buyerui.controller.MainPage" xmlns:core="sap.ui.core" xmlns="sap.m">
+	<HBox fitContainer="true" alignItems="Start" justifyContent="Center" wrap="Wrap">
+		<items>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin" wrap="Wrap" visible="{roleModel>/isUtente}">
+				<items>
+					<Avatar src="sap-icon://org-chart" displaySize="XL" showBorder="true" backgroundColor="Accent10" press="onPressTemplateClausole"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="Gestione Template/Clausole" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin" wrap="Wrap">
+				<items>
+					<Avatar src="sap-icon://document-text" displaySize="XL" showBorder="true" backgroundColor="Accent6" press="onPressContratti"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="Gestione Contratto" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+			<VBox width="10rem" fitContainer="true" alignItems="Center" justifyContent="Center" class="sapUiMediumMargin" wrap="Wrap" visible="{roleModel>/isUtente}">
+				<items>
+					<Avatar src="sap-icon://compare" displaySize="XL" showBorder="true" backgroundColor="Accent3" press="onPressComparator"></Avatar>
+					<Title class="sapUiSmallMarginTop" text="Contract Comparator" wrapping="true" textAlign="Center"></Title>
+				</items>
+			</VBox>
+		</items>
+	</HBox>
+</core:FragmentDefinition>

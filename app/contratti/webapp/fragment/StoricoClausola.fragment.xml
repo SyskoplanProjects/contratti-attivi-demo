@@ -1,0 +1,29 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+  <Dialog id="storicoDialog" title="Storico Clausola" contentWidth="40rem">
+    <content>
+      <List id="storicoList" items="{storico>/}">
+        <items>
+          <ObjectListItem
+            title="Versione {storico>numero}"
+            number="{storico>dataCreazione}"
+            press=".onSelezionaVersioneStorico">
+            <attributes>
+              <ObjectAttribute text="ID Clausola: {path: 'storico>versioneID', formatter: '.formatter.shortID'}" />
+              <ObjectAttribute text="Dettaglio">
+                <customContent>
+                  <Link text="Dettaglio" press=".onDettaglioVersioneStorico" />
+                </customContent>
+              </ObjectAttribute>
+            </attributes>
+            <firstStatus>
+              <ObjectStatus text="" icon="sap-icon://copy" press=".onCopiaVersioneClausola" active="true" />
+            </firstStatus>
+          </ObjectListItem>
+        </items>
+      </List>
+    </content>
+    <endButton>
+      <Button text="Chiudi" press=".onChiudiStorico" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

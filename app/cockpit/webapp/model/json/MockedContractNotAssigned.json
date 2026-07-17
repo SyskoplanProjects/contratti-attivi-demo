@@ -1,0 +1,33 @@
+{
+	"Contratti": [{
+		"NumeroContratto": "01472369",
+		"DataFrom": "01/08/2020",
+		"DataTo": "01/08/2023",
+		"SubAppalto": false,
+		"MaxPercent": 0,
+		"Importo": 74000
+	}, {
+		"NumeroContratto": "00125896",
+		"DataFrom": "01/01/2021",
+		"DataTo": "01/01/2023",
+		"SubAppalto": true,
+		"MaxPercent": 15,
+		"Importo": 456000
+	}, {
+
+		"NumeroContratto": "01223665",
+		"DataFrom": "24/05/2020",
+		"DataTo": "01/05/2025",
+		"SubAppalto": true,
+		"MaxPercent": 30,
+		"Importo": 1500000
+	}, {
+
+		"NumeroContratto": "01456328",
+		"DataFrom": "01/12/2020",
+		"DataTo": "01/12/2021",
+		"SubAppalto": true,
+		"MaxPercent": 10,
+		"Importo": 50000
+	}]
+}

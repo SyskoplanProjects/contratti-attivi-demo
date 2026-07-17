@@ -1,0 +1,110 @@
+{
+  "name": "contratti-attivi",
+  "version": "1.0.0",
+  "description": "Contratti Attivi - Gestione contratti verso clienti (SAP BTP CAP)",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@sap/cds": "^7",
+    "diff": "^5",
+    "docx": "^9",
+    "mammoth": "^1",
+    "multer": "^2",
+    "openai": "^6.48.0",
+    "pdfjs-dist": "^3",
+    "xlsx": "^0.18",
+    "@sap/xssec": "^3",
+    "@sap/cds-hana": "^2",
+    "@sap/xsenv": "^3",
+    "@sap-cloud-sdk/connectivity": "^3"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^1",
+    "@sap/cds-dk": "^7",
+    "axios": "^1",
+    "form-data": "^4",
+    "jest": "^30"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "dev": "cds watch",
+    "setup-assistant": "node srv/lib/setup-assistant.js",
+    "seed-demo": "node srv/lib/seed-demo.js",
+    "test": "jest --testTimeout=30000 --forceExit"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      ".claude/"
+    ]
+  },
+  "cds": {
+    "build": {
+      "target": "gen",
+      "tasks": [
+        { "for": "hana", "src": "db" },
+        { "for": "nodejs", "src": "srv", "options": { "model": ["db", "srv"] } }
+      ]
+    },
+    "requires": {
+      "db": {
+        "kind": "sqlite",
+        "[test]": {
+          "credentials": {
+            "database": ":memory:"
+          }
+        },
+        "[production]": {
+          "kind": "hana-cloud"
+        }
+      },
+      "auth": {
+        "kind": "basic",
+        "users": {
+          "mario.rossi@contrattiattivi.it": {
+            "password": "test",
+            "roles": [
+              "Utente"
+            ]
+          },
+          "revisore@contrattiattivi.it": {
+            "password": "test",
+            "roles": [
+              "Revisore"
+            ]
+          },
+          "altra.persona@contrattiattivi.it": {
+            "password": "test",
+            "roles": [
+              "Utente"
+            ]
+          }
+        },
+        "[production]": {
+          "kind": "xsuaa"
+        },
+        "[development]": {
+          "kind": "basic"
+        }
+      }
+    },
+    "fiori": {
+      "lean_draft": true
+    },
+    "odata": {
+      "version": "v4"
+    },
+    "i18n": {
+      "default_language": "it"
+    },
+    "features": {
+      "comparator-service": true
+    }
+  }
+}

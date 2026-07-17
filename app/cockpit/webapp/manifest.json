@@ -1,0 +1,197 @@
+{
+	"_version": "1.12.0",
+	"sap.app": {
+		"id": "com.buyerui.buyerui",
+		"type": "application",
+		"i18n": "i18n/i18n.properties",
+		"applicationVersion": {
+			"version": "1.0.0"
+		},
+		"title": "{{appTitle}}",
+		"description": "{{appDescription}}",
+		"sourceTemplate": {
+			"id": "html5moduletemplates.basicSAPUI5ApplicationProjectModule",
+			"version": "1.40.12"
+		}
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"icons": {
+			"icon": "",
+			"favIcon": "",
+			"phone": "",
+			"phone@2": "",
+			"tablet": "",
+			"tablet@2": ""
+		},
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"flexEnabled": false,
+		"rootView": {
+			"viewName": "com.buyerui.buyerui.view.App",
+			"type": "XML",
+			"async": true,
+			"id": "App"
+		},
+		"dependencies": {
+			"minUI5Version": "1.65.6",
+			"libs": {
+				"sap.ui.core": {},
+				"sap.m": {},
+				"sap.ui.layout": {}
+			},
+			"components": {
+				"com.buyerui.supplierapproval": {
+					"lazy": true
+				},
+				"com.buyerui.infoProvider": {
+					"lazy": true
+				},
+				"com.buyerui.documentManagement": {
+					"lazy": true
+				},
+				"com.buyerui.ResilienceCockpit": {
+					"lazy": true
+				}
+			}
+		},
+		"contentDensities": {
+			"compact": true,
+			"cozy": true
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "com.buyerui.buyerui.i18n.i18n"
+				}
+			}
+		},
+		"resources": {
+			"css": [
+				{
+					"uri": "css/style.css"
+				}
+			],
+			"js": [
+				{
+					"uri": "modules/managers/ModelManager.js"
+				},
+				{
+					"uri": "model/js/ajax-sequential-read.js"
+				},
+				{
+					"uri": "model/js/odata-sequential-read.js"
+				}
+			]
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"viewType": "XML",
+				"async": true,
+				"viewPath": "com.buyerui.buyerui.view",
+				"controlAggregation": "pages",
+				"controlId": "idAppControl",
+				"clearControlAggregation": false
+			},
+			"routes": [
+				{
+					"name": "Main",
+					"pattern": "",
+					"greedy": false,
+					"target": [
+						"MainPage"
+					]
+				},
+				{
+					"name": "SupplierApprovalApp",
+					"pattern": "SupplierApprovalApp",
+					"greedy": false,
+					"target": [
+						"SupplierApprovalApp"
+					]
+				},
+				{
+					"name": "SubcontractingReportApp",
+					"pattern": "SubcontractingReportApp",
+					"greedy": false,
+					"target": [
+						"SubcontractingReportApp"
+					]
+				},
+				{
+					"name": "DocumentManagementApp",
+					"pattern": "DocumentManagementApp",
+					"greedy": false,
+					"target": [
+						"DocumentManagement"
+					]
+				},
+				{
+					"name": "InfoProviderApp",
+					"pattern": "InfoProviderApp/:viewPattern:/:ID:/:taxNumber:/:vatCode:/:email:",
+					"greedy": false,
+					"target": [
+						"InfoProvider"
+					]
+				},
+				{
+					"name": "InfoProviderAppDetail",
+					"pattern": "InfoProviderAppDetail/:?query:",
+					"greedy": false,
+					"target": [
+						"InfoProvider"
+					]
+				},
+				{
+					"name": "ResilienceCockpitApp",
+					"pattern": "ResilienceCockpitApp/:viewPattern:/:ID:/:taxNumber:/:vatCode:/:email:",
+					"greedy": false,
+					"target": [
+						"ResilienceCockpit"
+					]
+				},{
+					"name": "ResilienceCockpitAppDetail",
+					"pattern": "ResilienceCockpitAppDetail/:?query:",
+					"greedy": false,
+					"target": [
+						"ResilienceCockpit"
+					]
+				}
+			],
+			"targets": {
+				"MainPage": {
+					"viewType": "XML",
+					"viewName": "MainPage",
+					"viewLevel": 1
+				},
+				"SupplierApprovalApp": {
+					"viewType": "XML",
+					"viewName": "SupplierApproval"
+				},
+				"SubcontractingReportApp": {
+					"viewType": "XML",
+					"viewName": "SubcontractingReport"
+				},
+				"InfoProvider": {
+					"viewType": "XML",
+					"viewName": "InfoProvider"
+				},
+				"DocumentManagement": {
+					"viewType": "XML",
+					"viewName": "DocumentManagement"
+				},
+				"ResilienceCockpit": {
+					"viewType": "XML",
+					"viewName": "ResilienceCockpit"
+				}
+			}
+		}
+	}
+}

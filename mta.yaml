@@ -1,0 +1,123 @@
+_schema-version: '3.1'
+ID: contratti-attivi
+version: 1.0.0
+description: "Contratti Attivi - Gestione contratti verso clienti (SAP BTP CAP)"
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+modules:
+  - name: contratti-attivi-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+      readiness-health-check-type: http
+      readiness-health-check-http-endpoint: /health
+    build-parameters:
+      builder: npm
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: contratti-attivi-db
+      - name: contratti-attivi-auth
+      - name: contratti-attivi-logs
+      - name: contratti-attivi-destination
+
+  - name: contratti-attivi-db-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: contratti-attivi-db
+
+  - name: contratti-attivi
+    type: approuter.nodejs
+    path: app
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api # must be used in xs-app.json as well
+          url: ~{srv-url}
+          forwardAuthToken: true
+      - name: contratti-attivi-auth
+      - name: contratti-attivi-destination
+
+resources:
+  - name: contratti-attivi-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: contratti-attivi-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      config:
+        xsappname: "contratti-attivi-${space}"
+        tenant-mode: dedicated
+        scopes:
+          - name: "$XSAPPNAME.Utente"
+            description: "Utente: crea, modifica, invia a revisione i propri contratti"
+          - name: "$XSAPPNAME.Revisore"
+            description: "Revisore: approva/rifiuta/commenta contratti in revisione"
+        role-templates:
+          - name: Utente
+            description: "Ruolo utente"
+            scope-references:
+              - "$XSAPPNAME.Utente"
+          - name: Revisore
+            description: "Ruolo revisore"
+            scope-references:
+              - "$XSAPPNAME.Revisore"
+        role-collections:
+          - name: ContrattiAttivi_Utente
+            description: "Accesso utente a Contratti Attivi"
+            role-template-references:
+              - "$XSAPPNAME.Utente"
+          - name: ContrattiAttivi_Revisore
+            description: "Accesso revisore a Contratti Attivi"
+            role-template-references:
+              - "$XSAPPNAME.Revisore"
+        oauth2-configuration:
+          redirect-uris:
+            - http://localhost:**
+            - https://*.hana.ondemand.com/**
+            - https://*.applicationstudio.cloud.sap/**
+  - name: contratti-attivi-logs
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: application-logs
+      service-plan: lite
+      service-name: contratti-attivi-logs
+  - name: contratti-attivi-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      service-name: contratti-attivi-destination
+      config:
+        init_data:
+          instance:
+            existing_destinations_policy: update
+            existing_certificates_policy: ignore
+            destinations:
+              - Name: contratti-attivi-openai
+                Type: HTTP
+                URL: https://api.openai.com
+                Authentication: NoAuthentication
+                ProxyType: Internet
+                apiKey: '{{OPENAI_API_KEY}}'

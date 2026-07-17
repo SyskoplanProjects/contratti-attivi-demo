@@ -1,0 +1,119 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.app.controller.Detail"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Contratto: {contesto>/intestatario}" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <HBox class="sapUiTinyMarginBottom">
+          <Text text="{contesto>/stato}" class="app-badge app-badge-warning" visible="{path: 'contesto>/stato', formatter: '.formatter.isStatoBozza', targetType: 'any'}" />
+          <Text text="{contesto>/stato}" class="app-badge app-badge-info" visible="{path: 'contesto>/stato', formatter: '.formatter.isStatoInRevisione', targetType: 'any'}" />
+          <Text text="{contesto>/stato}" class="app-badge app-badge-success" visible="{path: 'contesto>/stato', formatter: '.formatter.isStatoApprovato', targetType: 'any'}" />
+          <Text text="{= 'Template aggiornato a v' + ${contesto>/templateVersioneCorrente} + ' (usa v' + ${contesto>/templateVersioneUsata} + ')' }"
+            class="app-badge app-badge-warning sapUiTinyMarginBegin"
+            visible="{= ${contesto>/templateVersioneCorrente} !== undefined &amp;&amp; ${contesto>/templateVersioneCorrente} > ${contesto>/templateVersioneUsata} }" />
+          <Text text="{parts: [{path: 'contesto>/esitoVerifica'}, {path: 'contesto>/dataUltimaVerifica'}], formatter: '.formatter.esitoVerificaCompleto'}"
+            class="app-badge app-badge-success sapUiTinyMarginBegin"
+            visible="{= ${contesto>/esitoVerifica} === 'ok'}" />
+          <Text text="{parts: [{path: 'contesto>/esitoVerifica'}, {path: 'contesto>/dataUltimaVerifica'}], formatter: '.formatter.esitoVerificaCompleto'}"
+            class="app-badge app-badge-error-solid sapUiTinyMarginBegin"
+            visible="{= ${contesto>/esitoVerifica} === 'non_conforme'}" />
+          <Text text="{parts: [{path: 'contesto>/esitoVerifica'}, {path: 'contesto>/dataUltimaVerifica'}], formatter: '.formatter.esitoVerificaCompleto'}"
+            class="app-badge app-badge-warning sapUiTinyMarginBegin"
+            visible="{= ${contesto>/esitoVerifica} === 'in_corso'}" />
+        </HBox>
+
+        <Panel headerText="Testata contratto" expandable="true" expanded="true">
+          <form:SimpleForm xmlns:form="sap.ui.layout.form" editable="true" layout="ResponsiveGridLayout" labelSpanL="3" labelSpanM="4" emptySpanL="0" emptySpanM="0" columnsL="2" columnsM="1">
+            <form:content>
+              <Label text="Intestatario"/>
+              <Input value="{contesto>/intestatario}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Responsabile"/>
+              <Input value="{contesto>/responsabile}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Importo"/>
+              <Input value="{contesto>/importo}" type="Number" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="C.F."/>
+              <Input value="{contesto>/codiceFiscale}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Data stipula"/>
+              <DatePicker value="{contesto>/dataStipula}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Società contraente"/>
+              <Input value="{contesto>/societaContraente}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Responsabile controparte"/>
+              <Input value="{contesto>/responsabileControparte}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Email controparte"/>
+              <Input value="{contesto>/emailControparte}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Oggetto"/>
+              <Input value="{contesto>/oggetto}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Decorrenza"/>
+              <DatePicker value="{contesto>/dataDecorrenza}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Scadenza"/>
+              <DatePicker value="{contesto>/dataScadenza}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }"/>
+              <Label text="Categoria"/>
+              <Select selectedKey="{contesto>/categoria}" enabled="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }" items="{categorie>/}">
+                <core:Item key="{categorie>}" text="{path: 'categorie>', formatter: '.formatter.categoriaText'}"/>
+              </Select>
+            </form:content>
+          </form:SimpleForm>
+        </Panel>
+
+        <HBox class="app-action-bar app-btn-group" justifyContent="SpaceBetween" alignItems="Center">
+          <HBox class="app-btn-group">
+            <Button text="Salva testata" press="onSalvaTestata" class="app-btn app-btn-primary" visible="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }" />
+            <Button text="Salva bozza" press="onSalvaBozza" class="app-btn app-btn-outline app-btn-neutral" visible="{= ${contesto>/stato} === 'BOZZA' &amp;&amp; !${contesto>/bozzaSalvata} }" />
+            <Button text="Verifica" icon="sap-icon://compare-2" press="onVerificaContratto" class="app-btn app-btn-outline app-btn-neutral" />
+            <Button text="Storico versioni" icon="sap-icon://history" press="onMostraVersioni" class="app-btn app-btn-outline app-btn-neutral" />
+            <Button text="Esporta Word" icon="sap-icon://download" press="onEsportaContratto" class="app-btn app-btn-outline app-btn-neutral" />
+            <Button text="Allegati" icon="sap-icon://attachment" press="onMostraAllegati" class="app-btn app-btn-outline app-btn-neutral" />
+            <Button text="Archivia" icon="sap-icon://folder" press="onArchiviaContratto" class="app-btn app-btn-outline app-btn-neutral" visible="{= ${contesto>/stato} === 'APPROVATO' }" />
+          </HBox>
+          <HBox class="app-btn-group" visible="{path: 'contesto>/stato', formatter: '.formatter.isNotStatoApprovato', targetType: 'any'}">
+            <Button text="Invia a revisione" press="onInviaRevisione" class="app-btn app-btn-primary" visible="{path: 'contesto>/stato', formatter: '.formatter.isStatoBozza', targetType: 'any'}" />
+            <Button text="Riapri bozza" press="onRiapriBozza" class="app-btn app-btn-outline app-btn-warning-outline" visible="{path: 'contesto>/stato', formatter: '.formatter.isStatoInRevisione', targetType: 'any'}" />
+            <Button text="Approva" press="onApprovaRevisione" class="app-btn app-btn-success" visible="{= .formatter.isStatoInRevisione(${contesto>/stato}) &amp;&amp; ${roleModel>/isRevisore} }" />
+            <Button text="Rifiuta" press="onRifiutaRevisione" class="app-btn app-btn-danger" visible="{= .formatter.isStatoInRevisione(${contesto>/stato}) &amp;&amp; ${roleModel>/isRevisore} }" />
+          </HBox>
+        </HBox>
+
+        <VBox class="app-table-wrap">
+          <Table id="clausoleTable" items="{path: 'contesto>/clausole', filters: [{path: 'rimossa', operator: 'EQ', value1: false}]}">
+            <columns>
+              <Column width="6rem"><Text text="ID Clausola" /></Column>
+              <Column width="5rem"><Text text="Codice" /></Column>
+              <Column width="12rem"><Text text="Nome Clausola" /></Column>
+              <Column><Text text="Clausola" /></Column>
+              <Column width="10rem"><Text text="Azioni" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{path: 'contesto>clausolaVersione/ID', formatter: '.formatter.shortID'}" />
+                  <Text text="{contesto>clausola/codice}" />
+                  <Text text="{contesto>clausola/titolo}" />
+                  <Text text="{contesto>clausolaVersione/testo}" maxLines="3" />
+                  <HBox class="app-btn-group">
+                    <Button icon="sap-icon://history" tooltip="Storico" press="onStoricoClausolaDetail" class="app-btn" />
+                    <Button icon="sap-icon://edit" tooltip="Modifica" press="onModificaClausola" class="app-btn" visible="{= ${contesto>/stato} === 'BOZZA' }" />
+                    <Button icon="sap-icon://delete" tooltip="Rimuovi" press="onRimuoviClausola" class="app-btn app-btn-danger-text" visible="{= ${contesto>/stato} === 'BOZZA' }" />
+                  </HBox>
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+          <HBox class="app-btn-group sapUiSmallMarginTop">
+            <Button text="Aggiungi clausola" press="onAggiungiClausola" class="app-btn app-btn-primary" visible="{= ${contesto>/stato} === 'BOZZA' }" />
+            <Button text="Confronta clausole" press="onConfronta" class="app-btn app-btn-outline app-btn-neutral" />
+          </HBox>
+        </VBox>
+        </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

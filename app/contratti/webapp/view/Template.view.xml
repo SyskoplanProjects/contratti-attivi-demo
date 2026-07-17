@@ -1,0 +1,46 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.app.controller.Template"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  xmlns:u="sap.ui.unified">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Template" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="Importa e gestisci template contrattuali" />
+        <HBox class="sapUiSmallMarginBottom" alignItems="Center" justifyContent="SpaceBetween">
+          <u:FileUploader id="fileUploader" width="18rem" placeholder="Seleziona file .docx/.xlsx" change="onFileChange" buttonText="Scegli file" class="app-uploader-rounded" />
+          <Button text="Importa" press="onImporta" class="app-btn app-btn-primary" />
+        </HBox>
+        <VBox class="app-table-wrap">
+          <Table id="templateTable" items="{path: '/Template', parameters: {$expand: 'versioni'}}">
+            <columns>
+              <Column><Text text="Nome" /></Column>
+              <Column><Text text="Tipo Servizio" /></Column>
+              <Column><Text text="Versioni" /></Column>
+              <Column width="6rem"><Text text="Azioni" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem type="Navigation" press="onSelectTemplate">
+                <cells>
+                  <Text text="{nome}" />
+                  <Text text="{tipoServizio}" />
+                  <Text text="{= %{versioni} ? %{versioni}.length + ' versioni' : '' }" />
+                  <Button icon="sap-icon://delete" tooltip="Elimina template" press="onEliminaTemplate" class="app-btn app-btn-danger" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

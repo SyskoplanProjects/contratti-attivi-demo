@@ -1,0 +1,126 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.comparator.controller.ComparatorResult"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Risultati analisi" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <HBox id="coverageHeader" class="sapUiSmallMarginBottom">
+          <ObjectStatus text="Copertura: {coverage>/coveragePercent}%" state="{= ${coverage>/coveragePercent} >= 80 ? 'Success' : ${coverage>/coveragePercent} >= 50 ? 'Warning' : 'Error' }" />
+          <Text text="File: {coverage>/filename}" class="sapUiSmallMarginBegin" />
+        </HBox>
+
+
+        <VBox id="tipsAIWrap" visible="{tips>/has}" class="app-card app-card-padded sapUiSmallMarginBottom">
+          <HBox class="sapUiTinyMarginBottom" alignItems="Center">
+            <core:Icon src="sap-icon://lightbulb" class="sapUiTinyMarginEnd" />
+            <Label text="Tips AI" design="Bold" />
+          </HBox>
+          <List items="{tips>/value}" noDataText="Nessun suggerimento.">
+            <items>
+              <StandardListItem
+                icon="{= ${tips>tipo} === 'AGGIORNAMENTO' ? 'sap-icon://synchronize' : 'sap-icon://add-document' }"
+                title="{tips>messaggio}"
+                wrapping="true" />
+            </items>
+          </List>
+        </VBox>
+
+        <VBox id="complianceTableWrap" visible="false">
+          <!-- Tabella 1: Clausole Rilevate nel Contratto -->
+          <VBox visible="{compliance>/hasPresenti}" class="app-table-wrap sapUiSmallMarginBottom">
+            <Table id="complianceTablePresenti" items="{compliance>/presenti}" growing="true" growingThreshold="50">
+              <columns>
+                <Column><Text text="Parti Contratto" /></Column>
+                <Column width="10rem"><Text text="Esito" /></Column>
+                <Column><Text text="Dettaglio" /></Column>
+                <Column><Text text="Riferimento" /></Column>
+                <Column width="8rem"><Text text="Match % (Similarity)" /></Column>
+              </columns>
+              <items>
+                <ColumnListItem press=".onRowPress">
+                  <cells>
+                    <VBox>
+                      <Text text="{compliance>requisito}" />
+                      <Text text="{compliance>clausolaID}" visible="{= !!${compliance>clausolaID} }" class="app-id-badge" />
+                    </VBox>
+                    <ObjectStatus text="{compliance>esito}" state="{path: 'compliance>esito', formatter: '.formatter.esitoState'}" />
+                    <Text text="{compliance>dettaglio}" />
+                    <Text text="{compliance>riferimento}" />
+                    <Text text="{compliance>similarity}" />
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </VBox>
+
+          <!-- Tabella 2: Requisiti Non Presenti -->
+          <VBox visible="{compliance>/hasNonPresenti}" class="app-table-wrap sapUiSmallMarginTop">
+            <Table id="complianceTableNonPresenti" items="{compliance>/nonPresenti}" growing="true" growingThreshold="50">
+              <columns>
+                <Column><Text text="Parti Contratto Assenti" /></Column>
+                <Column width="10rem"><Text text="Esito" /></Column>
+                <Column><Text text="Dettaglio" /></Column>
+                <Column><Text text="Riferimento" /></Column>
+                <Column width="8rem"><Text text="Match % (Similarity)" /></Column>
+              </columns>
+              <items>
+                <ColumnListItem press=".onRowPress">
+                  <cells>
+                    <VBox>
+                      <Text text="{compliance>requisito}" />
+                      <Text text="{compliance>clausolaID}" visible="{= !!${compliance>clausolaID} }" class="app-id-badge" />
+                    </VBox>
+                    <ObjectStatus text="{compliance>esito}" state="{path: 'compliance>esito', formatter: '.formatter.esitoState'}" />
+                    <Text text="{compliance>dettaglio}" />
+                    <Text text="{compliance>riferimento}" />
+                    <Text text="{compliance>similarity}" />
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </VBox>
+        </VBox>
+
+        <VBox id="allegatiTableWrap" visible="false" class="app-card app-card-padded sapUiSmallMarginTop">
+          <Label text="Allegati rilevati" class="sapUiSmallMarginBottom" />
+          <Table id="allegatiTable" items="{allegati>/value}">
+            <columns>
+              <Column><Text text="Nome file" /></Column>
+              <Column width="16rem"><Text text="Tipo documento" /></Column>
+              <Column width="8rem"><Text text="Confidenza" /></Column>
+              <Column width="8rem"><Text text="" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{allegati>filename}" />
+                  <Select selectedKey="{allegati>tipo}" items="{tipologie>/value}">
+                    <core:Item key="{tipologie>codice}" text="{tipologie>label}" />
+                  </Select>
+                  <Text text="{path: 'allegati>confidenza', formatter: '.formatter.confidenzaText'}" />
+                  <ObjectStatus text="Anteprima" icon="sap-icon://search" press=".onAnteprimaAllegato" active="true" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+
+        <HBox class="app-btn-group sapUiSmallMarginTop" id="confirmBar">
+          <Button id="saveAsContrattoBtn" text="Digitalizza documento" type="Emphasized" press="onConfirm" class="app-btn app-btn-primary" />
+          <Button id="nuovaAnalisiBtn" text="Nuova analisi" press="onNuovaAnalisi" class="app-btn app-btn-outline app-btn-neutral" />
+          <Button id="tornaContrattoBtn" text="Torna al contratto" icon="sap-icon://nav-back" press="onTornaContratto" class="app-btn app-btn-outline app-btn-neutral" visible="false" />
+        </HBox>
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

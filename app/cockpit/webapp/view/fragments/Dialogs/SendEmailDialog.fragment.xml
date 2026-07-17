@@ -1,0 +1,34 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:u="sap.ui.unified" xmlns:rte="sap.ui.richtexteditor">
+	<Dialog title="{i18n>VendorManagement.SendEmail.cockpit.tile}" icon="sap-icon://address-book" draggable="true" state="Success"
+		contentHeight="80%" contentWidth="80rem">
+		<content>
+			<VBox class="sapUiMediumMargin" height="auto" width="auto">
+				<MultiComboBox id="idMultiSuppliersReceiver" items="{SuppliersCheck>/}" selectedKeys="{view>/selectedReceivers}" showSelectAll="true"
+					visible="{view>/showMultiComboBox}">
+					<core:Item key="{SuppliersCheck>email}" text="{SuppliersCheck>email} - {SuppliersCheck>name}"/>
+				</MultiComboBox>
+				<TextArea value="{= ${view>/selectedReceivers}.join(', ')}" visible="{= !${view>/showMultiComboBox}}" width="100%" rows="3" editable="false"/>
+				<HBox justifyContent="End">
+					<u:FileUploader id="idSupplierUploader" change="onUploadCompleteSuppliers" style="Emphasized" fileType="csv"
+						placeholder="{i18n>SendEmail.dialog.uploadSuppliers}"/>
+					<Button class="sapUiSmallMarginBegin" text="{i18n>SendEmail.dialog.downloadTemplate}" icon="sap-icon://download" press="onDownloadTemplate"/>
+				</HBox>
+				<VBox class="sapUiTinyMarginBottom">
+					<Label required="true" text="{i18n>SendEmail.dialog.object}:" width="8rem" class="sapUiMediumMarginEnd" design="Bold"/>
+					<Input id="idObjectEmail" value="{view>/object}" placeholder="{i18n>SendEmail.dialog.inserObject}" width="100%"/>
+				</VBox>
+				<VBox class="sapUiLargeMarginBottom">
+					<Label required="true" text="{i18n>SendEmail.dialog.body}:" width="8rem" class="sapUiMediumMarginEnd" design="Bold"/>
+					<rte:RichTextEditor id="idBodyEmail" width="100%" height="17rem" customToolbar="true" showGroupFont="true" value="{view>/body}"
+						showGroupLink="true" showGroupClipboard="true" showGroupUndo="true" useLegacyTheme="false"/>
+				</VBox>
+				<u:FileUploader id="idAttachmentsUploader" multiple="true" change="onUploadCompleteAttachments" maximumFileSize="5"
+					uploadStart="onUploadStartAttachments" style="Emphasized" placeholder="{i18n>SendEmail.dialog.attachments}" width="100%"/>
+			</VBox>
+		</content>
+		<buttons>
+			<Button text="{i18n>SendEmail.cancel}" press="onPressCancelSendEmail"/>
+			<Button text="{i18n>SendEmail.send}" press="onPressConfirmSendEmail"/>
+		</buttons>
+	</Dialog>
+</core:FragmentDefinition>

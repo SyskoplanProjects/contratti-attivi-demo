@@ -1,0 +1,4 @@
+<mvc:View controllerName="com.buyerui.buyerui.controller.App" xmlns:html="http://www.w3.org/1999/xhtml"
+	xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:core="sap.ui.core" displayBlock="true">
+		<App id="idAppControl" />
+</mvc:View>

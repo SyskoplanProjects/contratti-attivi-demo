@@ -1,0 +1,48 @@
+<core:FragmentDefinition controllerName="com.buyerui.buyerui.controller.MainPage" xmlns:core="sap.ui.core" xmlns="sap.m" xmlns:ux="sap.uxap"
+	xmlns:html="http://www.w3.org/1999/xhtml">
+	<Page visible="{= !${ExceptionPages>/noRoles} &amp;&amp; !${ExceptionPages>/noSupportedBrowser}}">
+		<customHeader>
+			<Toolbar class="gesub-userBar">
+				<Label text="{i18n>Application.container.title}" design="Bold" class="text-white"/>
+				<ToolbarSpacer/>
+				<core:Fragment fragmentName="com.buyerui.buyerui.view.fragments.HomeBar.UserInfoAndLogout" type="XML"/>
+			</Toolbar>
+		</customHeader>
+		<content>
+			<VBox>
+				<HBox height="22rem" width="100%" class="gesub-main-view__background"/>
+				<ux:ObjectPageLayout height="22rem" id="ObjectPageLayout" useIconTabBar="true">
+					<ux:sections>
+						<ux:ObjectPageSection title="{i18n>VendorManagement.Header.Title}" visible="false">
+							<ux:subSections>
+								<ux:ObjectPageSubSection title=" ">
+									<ux:blocks>
+										<core:Fragment fragmentName="com.buyerui.buyerui.view.fragments.vendorManagement" type="XML"/>
+									</ux:blocks>
+								</ux:ObjectPageSubSection>
+							</ux:subSections>
+						</ux:ObjectPageSection>
+						<ux:ObjectPageSection title="{i18n>VendorManagement.Header.Title2}" visible="false">
+							<ux:subSections>
+								<ux:ObjectPageSubSection title=" ">
+									<ux:blocks>
+										<core:Fragment fragmentName="com.buyerui.buyerui.view.fragments.cuManagement" type="XML"/>
+									</ux:blocks>
+								</ux:ObjectPageSubSection>
+							</ux:subSections>
+						</ux:ObjectPageSection>
+						<ux:ObjectPageSection title="{i18n>ContrattiAttivi.Header.Title}" visible="true" id="contrattiSection">
+							<ux:subSections>
+								<ux:ObjectPageSubSection title=" ">
+									<ux:blocks>
+										<core:Fragment fragmentName="com.buyerui.buyerui.view.fragments.contrattiAttivi" type="XML"/>
+									</ux:blocks>
+								</ux:ObjectPageSubSection>
+							</ux:subSections>
+						</ux:ObjectPageSection>
+					</ux:sections>
+				</ux:ObjectPageLayout>
+			</VBox>
+		</content>
+	</Page>
+</core:FragmentDefinition>

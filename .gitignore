@@ -1,0 +1,16 @@
+node_modules/
+package-lock.json
+gen/
+dist/
+.env
+default-env.json
+db.sqlite
+db.sqlite-shm
+db.sqlite-wal
+db.sqlite-journal
+*.log
+.DS_Store
+.vscode/
+.idea/
+.claude/
+.superpowers/

@@ -1,0 +1,18 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns:l="sap.ui.layout" xmlns="sap.m">
+  <Dialog id="confrontoDialog" title="Confronto Versioni" contentWidth="50rem">
+    <content>
+      <VBox class="sapUiSmallMargin">
+        <HBox class="sapUiSmallMarginBottom">
+          <core:Icon src="sap-icon://less" class="app-diff-removed sapUiTinyMarginEnd" />
+          <Text text="rimosso" class="app-diff-removed sapUiTinyMarginEnd" />
+          <core:Icon src="sap-icon://add" class="app-diff-added sapUiTinyMarginEnd" />
+          <Text text="aggiunto" class="app-diff-added" />
+        </HBox>
+        <FormattedText htmlText="{path: 'confronto>/delta', formatter: '.formatter.renderDiff'}" />
+      </VBox>
+    </content>
+    <endButton>
+      <Button text="Chiudi" press=".onChiudiConfronto" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

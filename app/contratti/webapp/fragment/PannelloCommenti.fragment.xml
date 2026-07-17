@@ -1,0 +1,18 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+  <VBox>
+    <List id="commentiList" items="{commenti>/}">
+      <items>
+        <FeedListItem
+          text="{commenti>testo}"
+          info="{commenti>autore}"
+          timestamp="{commenti>createdAt}"
+          iconDensityAware="false">
+        </FeedListItem>
+      </items>
+    </List>
+    <HBox>
+      <TextArea id="nuovoCommento" width="100%" rows="3" placeholder="Aggiungi commento..." />
+      <Button text="Invia" press=".onInviaCommento" visible="{roleModel>/isRevisore}" />
+    </HBox>
+  </VBox>
+</core:FragmentDefinition>

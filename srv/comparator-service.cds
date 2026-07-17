@@ -1,0 +1,95 @@
+using { com.reply.contrattiattivi as db } from '../db/schema';
+
+type UtilizzoClausolaEntry {
+  contrattoID : UUID;
+  tipo        : String;
+  intestatario : String;
+  variante    : Boolean;
+}
+
+type ClausolaCoverageResult {
+  numero            : Integer;
+  titolo            : String;
+  testo             : LargeString;
+  stato             : String;
+  similarity        : Decimal(5,4);
+  matchClausolaID   : UUID;
+  utilizzoStorico   : array of UtilizzoClausolaEntry;
+  riferimento       : String;
+  templateTitolo    : String;
+  versione          : Integer;
+}
+
+type AllegatoDaClassificare {
+  filename : String;
+  file     : LargeString;
+}
+
+type AllegatoClassificato {
+  filename             : String;
+  tipo                 : String;
+  confidenza           : Decimal(5,4);
+  metodoRiconoscimento : String;
+  testo                : LargeString;
+  campiEstratti        : LargeString;
+  dataScadenza         : Date;
+}
+
+type AllegatoConferma {
+  filename : String;
+  tipo     : String;
+}
+
+type TipologiaAllegato {
+  codice : String;
+  label  : String;
+}
+
+@path: '/comparator'
+service ComparatorService @(requires: 'Utente') {
+  action calcolaCoverage(templateID: UUID, file: LargeString, filename: String) returns {
+    previewID: UUID;
+    coveragePercent: Decimal(5,2);
+    clausole: array of ClausolaCoverageResult;
+  };
+  action classificaAllegati(previewID: UUID, allegati: array of AllegatoDaClassificare) returns array of AllegatoClassificato;
+  action getTipologieAllegato() returns array of TipologiaAllegato;
+  action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma) returns Contratto;
+  action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
+
+  type ComplianceResult {
+    requisito  : String;
+    esito      : String;
+    dettaglio  : LargeString;
+    riferimento : String;
+  }
+
+  action verificaCompliance(file: LargeString, filename: String, prompt: LargeString, templateID: UUID) returns array of ComplianceResult;
+  action calcolaCoverageDaContratto(contractID: UUID, templateID: UUID) returns {
+    previewID: UUID;
+    coveragePercent: Decimal(5,2);
+    clausole: array of ClausolaCoverageResult;
+  };
+  action verificaComplianceDaContratto(contractID: UUID, prompt: LargeString) returns array of ComplianceResult;
+
+  type ClausolaUsataInput {
+    clausolaID : UUID;
+    versione   : Integer;
+  }
+
+  type TipAI {
+    tipo      : String;
+    codice    : String;
+    titolo    : String;
+    messaggio : String;
+  }
+
+  action generaTipsAI(templateID: UUID, contractID: UUID, clausole: array of ClausolaUsataInput) returns array of TipAI;
+
+  @readonly entity Template as projection on db.Template;
+  @readonly entity Contratto as projection on db.Contratto;
+  @readonly entity ContrattoImportato as projection on db.ContrattoImportato;
+  @readonly entity ContrattoAllegato as projection on db.ContrattoAllegato;
+  @readonly entity ClausolaImportata as projection on db.ClausolaImportata;
+  @readonly entity AlertModificaTemplate as projection on db.AlertModificaTemplate;
+}

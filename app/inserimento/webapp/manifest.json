@@ -1,0 +1,71 @@
+{
+  "_version": "1.65.0",
+  "sap.app": {
+    "id": "com.reply.contrattiattivi.inserimento",
+    "type": "application",
+    "title": "Contratti Attivi - Inserimento",
+    "dataSources": {
+      "mainService": {
+        "uri": "/contratti/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      },
+      "agenteService": {
+        "uri": "/agente/",
+        "type": "OData",
+        "settings": { "odataVersion": "4.0" }
+      }
+    }
+  },
+  "sap.ui": { "technology": "UI5" },
+  "sap.ui5": {
+    "resources": {
+      "css": [{ "uri": "css/style.css" }]
+    },
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": { "sap.m": {}, "sap.ui.core": {}, "sap.ui.layout": {}, "sap.ui.unified": {} }
+    },
+    "rootView": {
+      "viewName": "com.reply.contrattiattivi.inserimento.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "app"
+    },
+    "models": {
+      "": {
+        "dataSource": "mainService",
+        "settings": {
+          "synchronizationMode": "None",
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "groupId": "$direct"
+        }
+      }
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "com.reply.contrattiattivi.inserimento.view",
+        "controlId": "app",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        { "pattern": "",               "name": "home",           "target": "home"           },
+        { "pattern": "import",         "name": "import",         "target": "import"         },
+        { "pattern": "importPreview",  "name": "importPreview",  "target": "importPreview"  },
+        { "pattern": "manuale",        "name": "manuale",        "target": "manuale"        },
+        { "pattern": "nuovoContratto", "name": "nuovoContratto", "target": "nuovoContratto" }
+      ],
+      "targets": {
+        "home":           { "viewName": "Home",           "viewLevel": 1 },
+        "import":         { "viewName": "Import",         "viewLevel": 1 },
+        "importPreview":  { "viewName": "ImportPreview",  "viewLevel": 2 },
+        "manuale":        { "viewName": "Manuale",        "viewLevel": 1 },
+        "nuovoContratto": { "viewName": "NuovoContratto", "viewLevel": 1 }
+      }
+    }
+  }
+}

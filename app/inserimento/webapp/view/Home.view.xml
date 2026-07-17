@@ -1,0 +1,13 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.inserimento.controller.Home"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m">
+  <Page>
+    <content>
+      <VBox class="sapUiSmallMargin" alignItems="Center" justifyContent="Center" height="100%">
+        <BusyIndicator />
+        <Text text="Reindirizzamento in corso..." class="sapUiSmallMarginTop" />
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>

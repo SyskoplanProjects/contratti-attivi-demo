@@ -1,0 +1,20 @@
+{
+  "welcomeFile": "/index.html",
+  "authenticationMethod": "route",
+  "sessionTimeout": 30,
+  "logout": {
+    "logoutEndpoint": "/do-logout",
+    "logoutPage": "/index.html"
+  },
+  "routes": [
+    { "source": "^/cockpit/webapp/(.*)$",     "target": "$1", "localDir": "cockpit/webapp",     "authenticationType": "xsuaa", "scope": ["$XSAPPNAME.Utente", "$XSAPPNAME.Revisore"] },
+    { "source": "^/contratti/webapp/(.*)$",   "target": "$1", "localDir": "contratti/webapp",   "authenticationType": "xsuaa", "scope": ["$XSAPPNAME.Utente", "$XSAPPNAME.Revisore"] },
+    { "source": "^/comparator/webapp/(.*)$",  "target": "$1", "localDir": "comparator/webapp",  "authenticationType": "xsuaa", "scope": "$XSAPPNAME.Utente" },
+    { "source": "^/inserimento/webapp/(.*)$", "target": "$1", "localDir": "inserimento/webapp", "authenticationType": "xsuaa", "scope": "$XSAPPNAME.Utente" },
+    { "source": "^/contratti/(.*)$",  "target": "/contratti/$1",  "destination": "srv-api", "authenticationType": "xsuaa", "scope": ["$XSAPPNAME.Utente","$XSAPPNAME.Revisore"], "csrfProtection": false },
+    { "source": "^/comparator/(.*)$", "target": "/comparator/$1", "destination": "srv-api", "authenticationType": "xsuaa", "scope": "$XSAPPNAME.Utente", "csrfProtection": false },
+    { "source": "^/agente/(.*)$",     "target": "/agente/$1",     "destination": "srv-api", "authenticationType": "xsuaa", "scope": ["$XSAPPNAME.Utente","$XSAPPNAME.Revisore"], "csrfProtection": false },
+    { "source": "^/user-info$", "target": "/user-info", "destination": "srv-api", "authenticationType": "xsuaa", "csrfProtection": false },
+    { "source": "^/(.*)$", "target": "$1", "localDir": ".", "authenticationType": "xsuaa" }
+  ]
+}

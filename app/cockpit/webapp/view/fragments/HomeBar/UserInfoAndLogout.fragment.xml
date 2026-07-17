@@ -1,0 +1,6 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m" xmlns:html="http://www.w3.org/1999/xhtml">
+	<HBox alignItems="Center">
+		<Label text="{User>/name}" class="text-white bold"/>
+		<Button type="Transparent" icon="sap-icon://log" class="gesub-home-btn" press="onPressLogout"/>
+	</HBox>
+</core:FragmentDefinition>

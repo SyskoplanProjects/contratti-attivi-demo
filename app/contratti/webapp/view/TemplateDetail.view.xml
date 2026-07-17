@@ -1,0 +1,46 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.app.controller.TemplateDetail"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="{contesto>/nome}" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="{contesto>/tipoServizio}" />
+        <VBox class="app-table-wrap">
+          <Table id="versioniTable" items="{contesto>/versioni}">
+            <columns>
+              <Column><Text text="Versione" /></Column>
+              <Column><Text text="Data Creazione" /></Column>
+              <Column><Text text="Note" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem type="Navigation" press="onVersionePress">
+                <cells>
+                  <Text text="v{contesto>numero}" />
+                  <Text text="{contesto>dataCreazione}" />
+                  <Text text="{contesto>note}" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+      </VBox>
+      <Panel headerText="Alert modifiche clausole" expandable="true" expanded="false" visible="{alertModel>/hasAlerts}">
+        <List items="{alertModel>/alerts}">
+          <items>
+            <StandardListItem title="{alertModel>clausolaCodice}" description="{alertModel>dataModifica}" info="{alertModel>numContratti} contratti" type="Navigation" press="onAlertDetail"/>
+          </items>
+        </List>
+      </Panel>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

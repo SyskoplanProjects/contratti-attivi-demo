@@ -1,0 +1,351 @@
+.app-gradient-header {
+  background: #008766 !important;
+  padding: 1.5rem 2rem;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 12px 12px;
+  margin: -1rem -1rem 1rem -1rem;
+}
+.app-header-title {
+  color: #fff !important;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  position: relative;
+  z-index: 1;
+}
+.app-header-subtitle {
+  color: rgba(255,255,255,.75) !important;
+  font-size: .75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  margin-top: 2px;
+  position: relative;
+  z-index: 1;
+}
+/* Barra di navigazione reale (customHeader di ogni Page): sottile, verde piatta,
+   stessa identità del gesub-userBar di riferimento invece dell'header decorativo in-content. */
+.app-page-header {
+  background: #008766 !important;
+}
+.app-page-header .app-header-title {
+  font-size: 1rem;
+  letter-spacing: normal;
+}
+.text-white { color: #fff !important; }
+.app-toolbar-btn .sapMBtnInner {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+.app-toolbar-btn:hover .sapMBtnInner {
+  background: rgba(255,255,255,.14) !important;
+}
+.app-toolbar-btn .sapUiIcon { color: #fff !important; }
+.sapMBusyIndicator > img {
+  width: 10rem !important;
+  height: 10rem !important;
+  animation: none !important;
+  -webkit-animation: none !important;
+}
+.app-card {
+  background: #fff !important;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+  transition: all .25s cubic-bezier(.4,0,.2,1);
+}
+.app-card-hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  border-color: rgba(0,135,102,.15);
+}
+.app-stat-grid {
+  display: flex; gap: .75rem; margin-bottom: 1rem;
+}
+.app-stat-box {
+  background: #fff !important;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  flex: 1;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  min-width: 0;
+}
+.app-stat-box .app-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.app-stat-box .app-stat-label {
+  font-size: .68rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-top: 2px;
+}
+.app-stat-box.stat-blue .app-stat-value { color: #008766; }
+.app-stat-box.stat-orange .app-stat-value { color: #e85d04; }
+.app-stat-box.stat-green .app-stat-value { color: #008766; }
+.app-stat-box.stat-purple .app-stat-value { color: #008766; }
+.app-badge {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.app-badge-warning { background: #fff3e0; color: #e85d04; }
+.app-badge-info { background: #e0f2ec; color: #008766; }
+.app-badge-success { background: #e0f2ec; color: #008766; }
+.app-badge-error { background: #fce4ec; color: #b71c1c; }
+.app-table-wrap {
+  background: #fff !important;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+}
+.app-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+.app-info-item {
+  background: #f8f9fa !important;
+  border-radius: 10px;
+  padding: .75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+}
+.app-info-item .app-info-icon {
+  width: 36px; height: 36px;
+  background: #fff !important;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #008766;
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+.app-info-label {
+  font-size: .65rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.app-info-item .app-info-value {
+  font-size: .85rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+.app-btn-group {
+  display: flex; gap: .5rem; flex-wrap: wrap;
+}
+.app-btn {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all .2s ease !important;
+}
+.app-btn .sapMBtnInner {
+  border-radius: inherit !important;
+  font-weight: inherit !important;
+  transition: inherit !important;
+}
+.app-btn:not(.app-btn-primary):not(.app-btn-success):not(.app-btn-danger):not(.app-btn-outline):not(.app-btn-neutral):not(.app-btn-warning-outline):not(.app-btn-danger-text) .sapMBtnInner {
+  color: #1a1a1a !important;
+  background: transparent !important;
+}
+.app-btn .sapMBtnInner:hover,
+.app-btn .sapMBtnInner:active {
+  background: rgba(0,0,0,.04) !important;
+}
+.app-btn:focus-visible {
+  outline-color: #1a1a1a !important;
+}
+.app-chat-list .sapMFeedListItemSender {
+  color: #1a1a1a !important;
+}
+.sapMColumnListItem .sapMNavArrow {
+  color: #1a1a1a !important;
+}
+.sapMColumnListItem:hover {
+  background: rgba(0,0,0,.03) !important;
+}
+.sapMColumnListItem.sapMSelected,
+.sapMColumnListItem.sapMLIBSelected {
+  background: rgba(0,135,102,.08) !important;
+}
+.sapMMenuItem:hover {
+  background: rgba(0,0,0,.04) !important;
+}
+.sapMMenuItem:focus-visible {
+  outline-color: #1a1a1a !important;
+}
+.sapMLIBFocus:focus,
+.sapMFocusable:focus-visible {
+  outline-color: #1a1a1a !important;
+}
+.app-btn-primary .sapMBtnInner {
+  background: #008766 !important;
+  border: none !important;
+  color: #fff !important;
+}
+.app-btn-outline .sapMBtnInner {
+  background: transparent !important;
+  border: 1.5px solid rgba(255,255,255,.3) !important;
+  color: #fff !important;
+}
+.app-btn-outline:hover .sapMBtnInner {
+  border-color: rgba(255,255,255,.6) !important;
+  background: rgba(255,255,255,.08) !important;
+}
+.app-action-bar {
+  background: #fff !important;
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  margin-bottom: 1rem;
+  transition: width .25s cubic-bezier(.4,0,.2,1);
+  box-sizing: border-box;
+}
+.app-btn-neutral .sapMBtnInner { color: #008766 !important; border-color: #008766 !important; }
+.app-btn-warning-outline .sapMBtnInner { color: #e85d04 !important; border-color: #e85d04 !important; }
+.app-btn-success .sapMBtnInner { background: #008766 !important; color: #fff !important; border: none !important; }
+.app-btn-danger .sapMBtnInner { background: #b71c1c !important; color: #fff !important; border: none !important; }
+.app-btn-danger-text .sapMBtnInner { color: #b71c1c !important; }
+.app-btn-danger-text .sapMBtnInner .sapUiIcon { color: #b71c1c !important; }
+.sapMObjStatusInformation .sapMObjStatusText,
+.sapMObjStatusInformation .sapUiIcon { color: #5a6b7a !important; }
+.app-mt-sm { margin-top: .5rem; }
+.app-mt-md { margin-top: 1rem; }
+.app-mb-sm { margin-bottom: .75rem; }
+.app-card-padded { padding: 1.25rem; }
+.app-info-item-col { flex-direction: column; align-items: stretch; }
+.app-hint-text { font-size: .72rem; color: #7f8c8d; margin-bottom: .5rem; }
+.app-doc-icon { font-size: 1.5rem; color: #008766; }
+.app-uploader-rounded { border-radius: 8px; }
+.app-card-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: .75rem;
+  flex-shrink: 0;
+}
+.app-card-icon-purple { background: #008766 !important; }
+.app-card-icon-green { background: #008766 !important; }
+.app-card-icon-blue { background: #00a884 !important; }
+.app-card-icon-glyph { color: #fff; font-size: 1.2rem; }
+.app-card-title { font-size: .95rem; font-weight: 700; color: #1a1a1a; }
+.app-card-subtitle { font-size: .75rem; color: #7f8c8d; }
+.app-card-list-item { display: block; border-radius: 12px; margin: 0; padding: 1rem 1.25rem; }
+.app-chat-header { background: #008766 !important; border-radius: 0; margin: 0; padding: 1rem 1.25rem; flex-shrink: 0; }
+.app-chat-icon-badge {
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,.15) !important;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.app-chat-icon { color: #fff; font-size: 1rem; }
+.app-chat-header .sapUiIcon { color: #fff !important; }
+.app-info-icon .sapUiIcon { color: inherit !important; }
+.app-btn:not(.app-btn-danger-text):not(.app-btn-warning-outline) .sapMBtnInner .sapUiIcon { color: inherit !important; }
+.app-chat-title { font-size: 1rem; color: #fff; }
+.app-chat-btn-icon { padding: .25rem !important; min-width: 2rem !important; }
+.app-chat-footer { flex-shrink: 0; }
+.app-chat-scroll .sapMList { height: 100%; overflow: visible; }
+.app-chat-list { background: transparent !important; }
+.app-chat-input { border-radius: 12px; border: 1.5px solid #e0e0e0; padding: .5rem .75rem; }
+.app-chat-send-btn { min-width: 2.5rem; margin-left: .5rem !important; border-radius: 12px !important; }
+/* Tab + pannello dell'assistente AI: sempre presente sul bordo destro di ogni pagina,
+   a scomparsa (non un dialog modale). */
+.app-ai-tab {
+  position: fixed !important;
+  bottom: 6rem;
+  right: 0;
+  z-index: 1000;
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  border-radius: 14px 0 0 14px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-right: none !important;
+  background: rgba(0,135,102,.9) !important;
+  box-shadow: 0 8px 28px rgba(0,135,102,.35) !important;
+  animation: app-ai-glow 3s ease-in-out infinite;
+}
+.app-ai-tab .sapMBtnInner {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+}
+.app-ai-tab:hover { transform: scale(1.05); animation: none; }
+
+@keyframes app-ai-glow {
+  0%, 100% { box-shadow: 0 8px 28px rgba(0,135,102,.28); }
+  50% { box-shadow: 0 8px 32px rgba(0,135,102,.45), 0 0 20px rgba(0,135,102,.25); }
+}
+.app-ai-panel {
+  position: fixed !important;
+  top: 0; right: 0;
+  height: 100vh;
+  width: 380px;
+  max-width: 92vw;
+  background: #fff !important;
+  border-left: 1px solid rgba(0,0,0,.08);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1), box-shadow .3s ease;
+  pointer-events: none;
+  display: grid !important;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.app-ai-panel-open {
+  transform: translateX(0);
+  box-shadow: -8px 0 32px rgba(0,135,102,.15);
+  pointer-events: auto;
+}
+.app-page-content {
+  transition: width .25s cubic-bezier(.4,0,.2,1);
+  box-sizing: border-box;
+}
+@media (max-width: 760px) {
+  .app-ai-panel { width: 100vw; max-width: 100vw; }
+  .app-page-content { width: calc(100% - 68px) !important; }
+  .app-action-bar { width: 100% !important; }
+}
+.app-stepper {
+  display: flex; align-items: center; gap: .5rem; margin-bottom: 1.5rem;
+}
+.app-step {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .78rem; color: #7f8c8d;
+}
+.app-step.active { color: #008766; font-weight: 600; }
+.app-step.completed { color: #008766; }
+.app-step-number {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex !important; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 600; line-height: 1;
+  background: #e0e0e0; color: #fff;
+}
+.app-step.active .app-step-number { background: #008766; }
+.app-step.completed .app-step-number { background: #008766; }
+.app-step-line {
+  width: 30px; height: 2px; background: #e0e0e0;
+}
+.app-step-line.completed { background: #008766; }
+.app-home-cards-list { background: transparent !important; border: none !important; }
+.app-home-cards-list .sapMListItems { display: flex !important; gap: .75rem; }
+.app-home-cards-list .sapMLIB { flex: 1; border-radius: 12px; margin: 0; }

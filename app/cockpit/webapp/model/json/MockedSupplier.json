@@ -1,0 +1,44 @@
+{
+	"Fornitori": [
+	{
+		"Nome": "Reply",
+		"PIVA": "08013390011",
+		"RagioneSociale": "REPLY S.P.A",
+		"Contatto": {
+			"nome": "Rossano",
+			"cognome": "Rosica",
+			"telefono": "3389956147",
+			"ruolo": "Developer"
+		}
+	}, {
+		"Nome": "Accenture",
+		"PIVA": "13454210157",
+		"RagioneSociale": "ACCENTURE S.P.A",
+		"Contatto": {
+			"nome": "Carlo",
+			"cognome": "Lunetta",
+			"telefono": "3352244123",
+			"ruolo": "partner"
+		}
+	}, {
+		"Nome": "Sopra Steria",
+		"PIVA": "10850910158",
+		"RagioneSociale": "SOPRA STERIA GROUP S.P.A",
+		"Contatto": {
+			"nome": "Luca",
+			"cognome": "Motta",
+			"telefono": "3887489153",
+			"ruolo": "Manager"
+		}
+	}, {
+		"Nome": "Engineering",
+		"PIVA": "05724831002",
+		"RagioneSociale": "ENGINEERING - INGEGNERIA INFORMATICA S.P.A",
+		"Contatto": {
+			"nome": "Dario",
+			"cognome": "Notarnicola",
+			"telefono": "3398843305",
+			"ruolo": "CEO"
+		}
+	}]
+}

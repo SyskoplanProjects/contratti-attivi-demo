@@ -1,0 +1,57 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+  <Dialog id="dialogConfrontoVersioniContratto" title="Confronto versioni contratto" contentWidth="50rem" stretch="true">
+    <content>
+      <VBox class="sapUiContentPadding">
+        <HBox class="app-stat-grid">
+          <VBox class="app-stat-box stat-green">
+            <Text text="{confrontoVersioni>/clausoleAggiunte}" class="app-stat-value" />
+            <Text text="Aggiunte" class="app-stat-label" />
+          </VBox>
+          <VBox class="app-stat-box stat-orange">
+            <Text text="{confrontoVersioni>/clausoleRimosse}" class="app-stat-value" />
+            <Text text="Rimosse" class="app-stat-label" />
+          </VBox>
+          <VBox class="app-stat-box stat-blue">
+            <Text text="{confrontoVersioni>/clausoleModificate}" class="app-stat-value" />
+            <Text text="Modificate" class="app-stat-label" />
+          </VBox>
+        </HBox>
+
+        <Panel headerText="Differenze testata" expandable="true" expanded="true" class="app-mt-md">
+          <Table items="{confrontoVersioni>/differenzeTestata}">
+            <columns>
+              <Column><Text text="Campo" /></Column>
+              <Column><Text text="Vecchio" /></Column>
+              <Column><Text text="Nuovo" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{confrontoVersioni>campo}" />
+                  <Text text="{confrontoVersioni>vecchio}" class="app-diff-removed" />
+                  <Text text="{confrontoVersioni>nuovo}" class="app-diff-added" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </Panel>
+
+        <Panel headerText="Dettaglio clausole" expandable="true" expanded="true" class="app-mt-md">
+          <VBox items="{confrontoVersioni>/clausoleDettaglio}">
+            <HBox class="app-diff-item" alignItems="Center" justifyContent="SpaceBetween">
+              <HBox alignItems="Center">
+                <core:Icon src="{path: 'confrontoVersioni>tipo', formatter: '.formatter.tipoModificaIcon'}" color="{path: 'confrontoVersioni>tipo', formatter: '.formatter.tipoModificaColor'}" class="app-timeline-meta-icon" />
+                <Text text="{confrontoVersioni>codice}" class="app-id-badge sapUiTinyMarginEnd" />
+                <Text text="{confrontoVersioni>titolo}" />
+              </HBox>
+              <ObjectStatus text="{path: 'confrontoVersioni>tipo', formatter: '.formatter.tipoModificaLabel'}" state="{path: 'confrontoVersioni>tipo', formatter: '.formatter.tipoModificaState'}" />
+            </HBox>
+          </VBox>
+        </Panel>
+      </VBox>
+    </content>
+    <endButton>
+      <Button text="Chiudi" press="onChiudiConfrontoVersioni" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

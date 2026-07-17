@@ -1,0 +1,200 @@
+.app-page-header {
+  background: #008766 !important;
+}
+.app-page-header .app-header-title {
+  color: #fff !important;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.app-page-header .app-header-subtitle {
+  color: rgba(255,255,255,.75) !important;
+  font-size: .75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  margin-top: 2px;
+}
+.app-toolbar-btn .sapMBtnInner {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+.app-toolbar-btn:hover .sapMBtnInner {
+  background: rgba(255,255,255,.14) !important;
+}
+.app-toolbar-btn .sapUiIcon { color: #fff !important; }
+.app-page-content {
+  width: 100%;
+}
+.app-btn-group {
+  display: flex; gap: .5rem; flex-wrap: wrap;
+}
+.app-btn {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all .2s ease !important;
+}
+.app-btn .sapMBtnInner {
+  border-radius: inherit !important;
+  font-weight: inherit !important;
+  transition: inherit !important;
+}
+.app-btn:not(.app-btn-primary):not(.app-btn-success):not(.app-btn-danger):not(.app-btn-outline):not(.app-btn-neutral):not(.app-btn-warning-outline):not(.app-btn-danger-text) .sapMBtnInner {
+  color: #008766 !important;
+  background: transparent !important;
+}
+.app-btn .sapMBtnInner:hover,
+.app-btn .sapMBtnInner:active {
+  background: rgba(0,0,0,.04) !important;
+}
+.app-btn:focus-visible {
+  outline-color: #1a1a1a !important;
+}
+.app-btn-primary .sapMBtnInner {
+  background: #008766 !important;
+  border: none !important;
+  color: #fff !important;
+}
+.app-btn-outline .sapMBtnInner {
+  background: transparent !important;
+  border: 1.5px solid rgba(255,255,255,.3) !important;
+  color: #fff !important;
+}
+.app-btn-outline:hover .sapMBtnInner {
+  border-color: rgba(255,255,255,.6) !important;
+  background: rgba(255,255,255,.08) !important;
+}
+.app-btn-neutral .sapMBtnInner { color: #008766 !important; border-color: #008766 !important; }
+.app-btn-success .sapMBtnInner { background: #008766 !important; color: #fff !important; border: none !important; }
+.app-btn-danger .sapMBtnInner { background: #b71c1c !important; color: #fff !important; border: none !important; }
+.app-table-wrap {
+  background: #fff !important;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+}
+.app-card {
+  background: #fff !important;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  overflow: hidden;
+  transition: all .25s cubic-bezier(.4,0,.2,1);
+}
+.app-card-padded { padding: 1.25rem; }
+.app-id-badge {
+  font-family: 'Courier New', Courier, monospace !important;
+  font-size: .7rem !important;
+  font-weight: 700 !important;
+  color: #006d57 !important;
+  opacity: .75;
+}
+#fileUploader { width: 100% !important; }
+#fileUploader .sapUiFupGroup { width: 100% !important; }
+#fileUploader .sapUiFupGroup > .sapUiFupGroupItem { width: 100% !important; }
+.app-hint-text {
+  font-size: .72rem;
+  color: #7f8c8d;
+  margin-bottom: .5rem;
+}
+.app-contract-info {
+  font-size: .9rem;
+  font-weight: 600;
+  color: #008766;
+  padding: .5rem .75rem;
+  background: rgba(0,135,102,.08);
+  border-radius: 8px;
+  display: inline-block;
+}
+.app-badge {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.app-badge-success { background: #e0f2ec; color: #008766; }
+.app-badge-warning { background: #fff3e0; color: #e85d04; }
+.app-badge-error { background: #fce4ec; color: #b71c1c; }
+.app-badge-info { background: #e0f2ec; color: #008766; }
+.app-stat-grid {
+  display: flex; gap: .75rem; margin-bottom: 1rem;
+}
+.app-stat-box {
+  background: #fff !important;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  flex: 1;
+  border: 1px solid rgba(0,0,0,.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  min-width: 0;
+}
+.app-ai-tab {
+  position: fixed !important;
+  bottom: 6rem;
+  right: 0;
+  z-index: 1000;
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  border-radius: 14px 0 0 14px !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-right: none !important;
+  background: rgba(0,135,102,.9) !important;
+  box-shadow: 0 8px 28px rgba(0,135,102,.35) !important;
+  animation: app-ai-glow 3s ease-in-out infinite;
+}
+.app-ai-tab .sapMBtnInner {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+}
+.app-ai-tab:hover { transform: scale(1.05); animation: none; }
+
+@keyframes app-ai-glow {
+  0%, 100% { box-shadow: 0 8px 28px rgba(0,135,102,.28); }
+  50% { box-shadow: 0 8px 32px rgba(0,135,102,.45), 0 0 20px rgba(0,135,102,.25); }
+}
+
+.app-ai-panel {
+  position: fixed !important;
+  top: 0; right: 0; bottom: 0;
+  width: 380px;
+  max-width: 92vw;
+  background: #fff !important;
+  border-left: 1px solid rgba(0,0,0,.08);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.4,0,.2,1), box-shadow .3s ease;
+  pointer-events: none;
+  display: grid !important;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.app-ai-panel-open {
+  transform: translateX(0);
+  box-shadow: -8px 0 32px rgba(0,135,102,.15);
+  pointer-events: auto;
+}
+
+.app-page-content {
+  transition: width .25s cubic-bezier(.4,0,.2,1);
+  box-sizing: border-box;
+}
+.app-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.app-stat-label {
+  font-size: .68rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-top: 2px;
+}

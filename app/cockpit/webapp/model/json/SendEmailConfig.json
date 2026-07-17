@@ -1,0 +1,19 @@
+{
+	"Steps": {
+		"fieldsAttributes": {
+			"idMultiSuppliersReceiver": {
+				"mandatory": true
+			},
+			"idObjectEmail": {
+				"mandatory": true
+			},
+			"idBodyEmail": {
+				"mandatory": true
+			}
+		},
+		"fieldsComposition": [{
+			"stepId": "SendEmail",
+			"fields": ["idMultiSuppliersReceiver", "idObjectEmail", "idBodyEmail"]
+		}]
+	}
+}

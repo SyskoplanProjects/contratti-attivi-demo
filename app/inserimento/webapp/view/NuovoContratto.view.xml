@@ -1,0 +1,30 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.inserimento.controller.NuovoContratto"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns:core="sap.ui.core"
+  xmlns="sap.m">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Nuovo contratto" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Text class="app-hint-text" text="Crea da template esistente" />
+
+        <VBox class="app-card app-card-padded">
+          <Label text="Template" class="app-info-label" />
+          <Select id="selTemplateContratto" forceSelection="false" items="{/Template}" width="100%" class="sapUiSmallMarginTop">
+            <core:Item key="{ID}" text="{nome}" />
+          </Select>
+          <Button text="Crea contratto" press="onCrea" class="app-btn app-btn-primary app-mt-md" width="100%" />
+          <Link id="lnkContrattoCreato" text="Apri il contratto creato" visible="false" class="sapUiSmallMarginTop" target="_blank" />
+        </VBox>
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.inserimento.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    <link rel="stylesheet" type="text/css" href="css/style.css">
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+		<title>buyerui</title>
+		<script type="text/javascript">
+		  window["sap-ui-config"] = {
+		    productive: "{{{user-provided.enableDebugTool}}}" === "true"
+		  };
+		</script>
+		<script id="sap-ui-bootstrap"
+			src="https://ui5.sap.com/1.108/resources/sap-ui-core.js"
+			data-sap-ui-async="true"
+			data-sap-ui-theme="sap_fiori_3"
+			data-sap-ui-resourceroots='{"com.buyerui.buyerui": "./" , 
+				"com.buyerui.gesub_cockpit.buyer_gesub_cockpit":  "../gesub_cockpit/buyer_gesub_cockpit", 
+				"com.buyerui.buyer_gesub_admin_cockpit":  "../gesub_admin_cockpit/buyer_gesub_admin_cockpit", 
+				"com.buyerui.rfxapproval": "../rfxapproval/rfxapproval", 
+				"com.buyerui.subcontractingreport": "../subcontractingreport/subcontractingreport", 
+				"com.buyerui.digitalsign": "../digitalsign/digitalsign", 
+				"com.buyerui.suppliersrotation": "../suppliersrotation/suppliersrotation", 
+				"com.buyerui.contracts": "../contracts/contracts", 
+				"com.buyerui.purchaseorders": "../purchaseorders/purchaseorders",
+				"com.buyerui.openinvitations": "../openinvitations/openinvitations",
+				"com.buyerui.supplierapproval": "../supplierapproval/supplierapproval",
+				"com.buyerui.rfxreport": "../rfxreport/rfxreport", 
+				"com.buyerui.verifydigitalsign": "../verifydigitalsign/verifydigitalsign",
+				"com.buyerui.infoProvider": "../infoprovider/infoProvider",
+				"com.buyerui.documentManagement": "../documentmanagement/documentManagement",
+				"com.buyerui.ResilienceCockpit": "../ResilienceCockpit/ResilienceCockpit",
+				"com.buyerui.gesubkpireport": "../gesubkpireport/gesubkpireport",
+				"com.buyerui.expirationmanagement": "../expirationmanagement/expirationmanagement",
+				"com.buyerui.institutionalstakeholders": "../institutionalstakeholders/institutionalstakeholders",
+				"com.buyerui.sendpec": "../sendpec/sendpec",
+				"com.buyerui.qualificationgrid": "../qualificationgrid/qualificationgrid",
+				"com.buyerui.teamrotation": "../teamrotation/teamrotation",
+				"com.buyerui.configurationcockpit": "../configuration/configurationcockpit",
+				"com.buyerui.supplierrequest": "../supplierrequest/supplierrequest"}'
+			data-sap-ui-compatVersion="edge"
+			data-sap-ui-onInit="module:sap/ui/core/ComponentSupport"
+			data-sap-ui-frameOptions="trusted">
+		</script>
+	</head>
+	<body class="sapUiBody">
+		<div data-sap-ui-component data-name="com.buyerui.buyerui" data-id="container" data-settings='{"id" : "buyerui"}'></div>
+	</body>
+</html>

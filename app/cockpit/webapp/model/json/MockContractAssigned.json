@@ -1,0 +1,221 @@
+{
+	"Contratti": [{
+		"NumeroContratto": "01115463",
+		"DescrizioneSocieta": "RAI",
+		"TipoOda": "ORDINE",
+		"ValutaUnit": "€",
+		"DataFrom": "01/01/2020",
+		"Description": "Sviluppo software",
+		"DataTo": "01/01/2022",
+		"SubAppalto": true,
+		"MaxPercent": 30,
+		"Importo": 1000000,
+		"Status": "CONFIRMED",
+		"NotaRifiuto": "",
+		"Assegnatario": {
+			"UID": "0025",
+			"Nome": "Reply",
+			"PIVA": "08013390011",
+			"RagioneSociale": "REPLY S.P.A",
+			"Contatto": {
+				"nome": "Rossano",
+				"cognome": "Rosica",
+				"telefono": "3389956147",
+				"ruolo": "Developer",
+				"email": "Leibniz_memetismo@meme.it"
+			}
+		},
+		"Documenti": [{
+			"DocID": "ID5577",
+			"DeadLine": "01/01/2020",
+			"Status": "OK"
+		}, {
+			"DocID": "ID5588",
+			"DeadLine": "01/01/2020",
+			"Status": "ERROR"
+		}, {
+			"DocID": "ID5599",
+			"DeadLine": "01/01/2020",
+			"Status": "WARNING"
+		}, {
+			"DocID": "ID5510",
+			"DeadLine": "01/01/2020",
+			"Status": "OK"
+		}, {
+			"DocID": "ID5544",
+			"DeadLine": "01/01/2020",
+			"Status": "OK"
+		}]
+	}, {
+		"NumeroContratto": "02224568",
+		"DescrizioneSocieta": "RAI",
+		"TipoOda": "ORDINE",
+		"ValutaUnit": "€",
+		"DataFrom": "01/01/2018",
+		"Description": "Sviluppo software",
+		"DataTo": "01/01/2024",
+		"SubAppalto": true,
+		"MaxPercent": 20,
+		"Importo": 56200,
+		"Status": "CONFIRMED",
+		"NotaRifiuto": "",
+		"Assegnatario": {
+			"UID": "0028",
+			"Nome": "Accenture",
+			"PIVA": "13454210157",
+			"RagioneSociale": "ACCENTURE S.P.A",
+			"Contatto": {
+				"nome": "Carlo",
+				"cognome": "Lunetta",
+				"telefono": "3352244123",
+				"ruolo": "partner"
+			}
+		},
+		"Documenti": [{
+			"DocID": "ID5577",
+			"DeadLine": "01/01/2020",
+			"Status": "OK"
+		}, {
+			"DocID": "ID5588",
+			"DeadLine": "01/01/2020",
+			"Status": "WARNING"
+		}, {
+			"DocID": "ID5599",
+			"DeadLine": "01/01/2020",
+			"Status": "ERROR"
+		}, {
+			"DocID": "ID5510",
+			"DeadLine": "01/01/2020",
+			"Status": "WARNING"
+		}, {
+			"DocID": "ID5544",
+			"DeadLine": "01/01/2020",
+			"Status": "ERROR"
+		}]
+	}, {
+		"NumeroContratto": "01472369",
+		"DescrizioneSocieta": "RAI",
+		"TipoOda": "ORDINE",
+		"ValutaUnit": "€",
+		"DataFrom": "01/01/2020",
+		"Description": "Sviluppo software",
+		"DataTo": "01/08/2023",
+		"SubAppalto": false,
+		"MaxPercent": 0,
+		"Importo": 74000,
+		"Status": "APPROVAL",
+		"NotaRifiuto": "",
+		"Assegnatario": {
+			"UID": "0025",
+			"Nome": "Reply",
+			"PIVA": "08013390011",
+			"RagioneSociale": "REPLY S.P.A",
+			"Contatto": {
+				"nome": "Rossano",
+				"cognome": "Rosica",
+				"telefono": "3389956147",
+				"ruolo": "Developer",
+				"email": "Leibniz_memetismo@meme.it"
+			}
+		},
+		"Documenti": [{
+			"DocID": "ID5577",
+			"DeadLine": "01/01/2020",
+			"Status": "ERROR"
+		}, {
+			"DocID": "ID5588",
+			"DeadLine": "01/01/2020",
+			"Status": "WARNING"
+		}, {
+			"DocID": "ID5599",
+			"DeadLine": "01/01/2020",
+			"Status": "WARNING"
+		}, {
+			"DocID": "ID5510",
+			"DeadLine": "01/01/2020",
+			"Status": "OK"
+		}, {
+			"DocID": "ID5544",
+			"DeadLine": "01/01/2020",
+			"Status": "ERROR"
+		}]
+	}, {
+		"NumeroContratto": "00125896",
+		"DescrizioneSocieta": "RAI",
+		"TipoOda": "ORDINE",
+		"ValutaUnit": "€",
+		"DataFrom": "01/02/2020",
+		"Description": "Sviluppo software",
+		"DataTo": "01/01/2023",
+		"SubAppalto": true,
+		"MaxPercent": 15,
+		"Importo": 456000,
+		"Status": "APPROVAL",
+		"NotaRifiuto": "",
+		"Assegnatario": {
+			"UID": "0025",
+			"Nome": "Reply",
+			"PIVA": "08013390011",
+			"RagioneSociale": "REPLY S.P.A",
+			"Contatto": {
+				"nome": "Rossano",
+				"cognome": "Rosica",
+				"telefono": "3389956147",
+				"ruolo": "Developer",
+				"email": "Leibniz_memetismo@meme.it"
+			}
+		}
+	}, {
+		"NumeroContratto": "01223665",
+		"DescrizioneSocieta": "RAI",
+		"TipoOda": "ORDINE",
+		"ValutaUnit": "€",
+		"DataFrom": "01/04/2020",
+		"Description": "Sviluppo software",
+		"DataTo": "01/05/2025",
+		"SubAppalto": true,
+		"MaxPercent": 30,
+		"Importo": 1500000,
+		"Status": "CREATED",
+		"NotaRifiuto": "",
+		"Assegnatario": {
+			"UID": "0025",
+			"Nome": "Reply",
+			"PIVA": "08013390011",
+			"RagioneSociale": "REPLY S.P.A",
+			"Contatto": {
+				"nome": "Rossano",
+				"cognome": "Rosica",
+				"telefono": "3389956147",
+				"ruolo": "Developer",
+				"email": "Leibniz_memetismo@meme.it"
+			}
+		}
+	}, {
+		"NumeroContratto": "01456328",
+		"DescrizioneSocieta": "RAI",
+		"TipoOda": "ORDINE",
+		"ValutaUnit": "€",
+		"DataFrom": "01/04/2019",
+		"Description": "Sviluppo software",
+		"DataTo": "01/12/2021",
+		"SubAppalto": true,
+		"MaxPercent": 10,
+		"Importo": 50000,
+		"Status": "CREATED",
+		"NotaRifiuto": "",
+		"Assegnatario": {
+			"UID": "0089",
+			"Nome": "Accenture",
+			"PIVA": "13454210157",
+			"RagioneSociale": "ACCENTURE S.P.A",
+			"Contatto": {
+				"nome": "Carlo",
+				"cognome": "Lunetta",
+				"telefono": "3352244123",
+				"ruolo": "partner",
+				"email": "ciccio_pasticcio@prova.it"
+			}
+		}
+	}]
+}
