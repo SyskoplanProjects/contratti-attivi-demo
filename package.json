@@ -5,25 +5,26 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@sap-cloud-sdk/connectivity": "^3",
     "@sap/cds": "^7",
+    "@sap/cds-hana": "^2",
+    "@sap/xsenv": "^3",
+    "@sap/xssec": "^3",
     "diff": "^5",
     "docx": "^9",
     "mammoth": "^1",
     "multer": "^2",
     "openai": "^6.48.0",
     "pdfjs-dist": "^3",
-    "xlsx": "^0.18",
-    "@sap/xssec": "^3",
-    "@sap/cds-hana": "^2",
-    "@sap/xsenv": "^3",
-    "@sap-cloud-sdk/connectivity": "^3"
+    "xlsx": "^0.18"
   },
   "devDependencies": {
     "@cap-js/sqlite": "^1",
     "@sap/cds-dk": "^7",
     "axios": "^1",
     "form-data": "^4",
-    "jest": "^30"
+    "jest": "^30",
+    "mbt": "^1.2.49"
   },
   "engines": {
     "node": ">=20"
@@ -48,8 +49,20 @@
     "build": {
       "target": "gen",
       "tasks": [
-        { "for": "hana", "src": "db" },
-        { "for": "nodejs", "src": "srv", "options": { "model": ["db", "srv"] } }
+        {
+          "for": "hana",
+          "src": "db"
+        },
+        {
+          "for": "nodejs",
+          "src": "srv",
+          "options": {
+            "model": [
+              "db",
+              "srv"
+            ]
+          }
+        }
       ]
     },
     "requires": {

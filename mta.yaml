@@ -10,6 +10,7 @@ build-parameters:
       commands:
         - npm ci
         - npx cds build --production
+        - node -e "const p=require('./gen/db/package.json');p.engines.node='>=20';require('fs').writeFileSync('gen/db/package.json',JSON.stringify(p,null,2)+'\n')"
 modules:
   - name: contratti-attivi-srv
     type: nodejs
