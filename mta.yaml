@@ -19,7 +19,8 @@ modules:
       buildpack: nodejs_buildpack
       readiness-health-check-type: http
       readiness-health-check-http-endpoint: /health
-      ASSISTANT_ID: asst_qKcpS1M1zGJFHSr1c0ELGUXG
+      env:
+        ASSISTANT_ID: asst_qKcpS1M1zGJFHSr1c0ELGUXG
     build-parameters:
       builder: npm
     provides:
