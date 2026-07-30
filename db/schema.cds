@@ -68,6 +68,7 @@ entity Contratto : cuid, managed {
   dataArchiviazione   : DateTime;
   clausole        : Composition of many ContrattoClausola on clausole.contratto = $self;
   allegati        : Composition of many ContrattoAllegato on allegati.contratto = $self;
+  metadati        : Composition of many MetadatoDocumento on metadati.contratto = $self;
 }
 
 entity ContrattoClausola : cuid {
@@ -97,7 +98,18 @@ entity ContrattoAllegato : cuid, managed {
   metodoRiconoscimento  : String(20);
   testo                 : LargeString;
   dataScadenza          : Date;
-  campiEstratti         : LargeString;
+  metadati              : Composition of many MetadatoDocumento on metadati.allegato = $self;
+}
+
+entity MetadatoDocumento : cuid, managed {
+  contratto             : Association to Contratto;
+  allegato               : Association to ContrattoAllegato;
+  campo                  : String(100) not null;
+  etichetta               : String(200) not null;
+  valore                  : LargeString;
+  valoreOriginaleAI        : LargeString;
+  confidenza              : Decimal(5,4);
+  modificatoManualmente   : Boolean default false;
 }
 
 entity ClausolaImportata : cuid {
