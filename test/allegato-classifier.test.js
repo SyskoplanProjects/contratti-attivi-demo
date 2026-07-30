@@ -72,4 +72,27 @@ describe('allegato-classifier', () => {
     expect(mockEmbeddings).not.toHaveBeenCalled();
     expect(mockChatJSON).not.toHaveBeenCalled();
   });
+
+  it('non invia testoRiferimento null/undefined a openai.embeddings', async () => {
+    // Verifica che CONTRATTO abbia testoRiferimento: null
+    const contratto = TIPOLOGIE_ALLEGATO.find(t => t.key === 'CONTRATTO');
+    expect(contratto?.testoRiferimento).toBe(null);
+
+    const conRiferimento = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
+    const nConRiferimento = conRiferimento.length;
+
+    // Prima chiamata: embedding solo delle tipologie con testoRiferimento
+    mockEmbeddings.mockResolvedValueOnce(conRiferimento.map((_, i) => vettoreOneHot(i, nConRiferimento)));
+    // Seconda chiamata: embedding del documento
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(0, nConRiferimento)]);
+    mockChatJSON.mockResolvedValueOnce({ tipo: 'DURC', confidenza: 0.85 });
+
+    await classificaAllegato('Documento di regolarità contributiva');
+
+    // Verifica che il primo embeddings abbia ricevuto solo i testi che esistono
+    const firstCall = mockEmbeddings.mock.calls[0];
+    expect(firstCall[0]).toHaveLength(nConRiferimento);
+    expect(firstCall[0]).not.toContain(null);
+    expect(firstCall[0]).not.toContain(undefined);
+  });
 });

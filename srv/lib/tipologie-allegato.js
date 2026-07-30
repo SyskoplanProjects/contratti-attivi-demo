@@ -62,6 +62,7 @@ const TIPOLOGIE_ALLEGATO = [
   {
     key: 'CONTRATTO',
     label: 'Contratto',
+    testoRiferimento: null,
     campiChiave: [
       { campo: 'titoloContratto', etichetta: 'Titolo Contratto', sezione: 'Dati principali', descrizione: 'Denominazione ufficiale del contratto o accordo' },
       { campo: 'fornitore', etichetta: 'Fornitore', sezione: 'Dati principali', descrizione: 'Ragione sociale della controparte contrattuale (fornitore/appaltatore)' },

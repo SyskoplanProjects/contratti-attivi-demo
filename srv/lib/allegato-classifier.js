@@ -6,8 +6,11 @@ let _embeddingsRiferimentoCache = null;
 
 async function _embeddingsRiferimento() {
   if (!_embeddingsRiferimentoCache) {
-    const vettori = await openai.embeddings(TIPOLOGIE_ALLEGATO.map(t => t.testoRiferimento));
-    _embeddingsRiferimentoCache = TIPOLOGIE_ALLEGATO.map((t, i) => ({ ...t, embedding: vettori[i] }));
+    // Filter out entries without testoRiferimento to avoid sending undefined/null to OpenAI API
+    const conRiferimento = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
+    const testi = conRiferimento.map(t => t.testoRiferimento);
+    const vettori = await openai.embeddings(testi);
+    _embeddingsRiferimentoCache = conRiferimento.map((t, i) => ({ ...t, embedding: vettori[i] }));
   }
   return _embeddingsRiferimentoCache;
 }

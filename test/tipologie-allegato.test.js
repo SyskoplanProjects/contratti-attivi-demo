@@ -42,4 +42,8 @@ describe('tipologie-allegato — tipo CONTRATTO', () => {
       expect(typeof c.sezione).toBe('string');
     });
   });
+
+  it('ha testoRiferimento === null', () => {
+    expect(contratto.testoRiferimento).toBe(null);
+  });
 });
