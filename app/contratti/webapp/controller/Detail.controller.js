@@ -478,6 +478,8 @@ sap.ui.define([
         MessageToast.show('Allegato salvato.');
         const oUploader = this.byId('nuovoAllegatoUploader');
         if (oUploader) oUploader.clear();
+        oDialog.setModel(null, 'wizardSezioni');
+        oDialog.setModel(null, 'wizardDocumento');
         await this._ricaricaAllegatiContratto(oDialog);
       } catch (e) {
         MessageBox.error('Errore salvataggio allegato: ' + (e.message || String(e)));
@@ -533,14 +535,20 @@ sap.ui.define([
       const oLayout = this._oAnteprimaAllegatoDialog.getContent()[0];
       oLayout.removeAllContent();
 
-      const oModel2 = this.getOwnerComponent().getModel();
-      const oResp = await fetch(oModel2.getServiceUrl() + `MetadatoDocumento?$filter=allegato_ID eq ${oData.ID}`);
-      const oMetadatiData = await oResp.json();
-      const aFields = [
-        { label: 'Nome file', value: oData.filename },
-        { label: 'Tipo documento', value: formatter.tipoAllegatoText(oData.tipo) },
-        { label: 'Confidenza', value: formatter.confidenzaText(oData.confidenza) }
-      ].concat((oMetadatiData.value || []).map(function (m) { return { label: m.etichetta, value: m.valore }; }));
+      let aFields;
+      try {
+        const oModel2 = this.getOwnerComponent().getModel();
+        const oResp = await fetch(oModel2.getServiceUrl() + `MetadatoDocumento?$filter=allegato_ID eq ${oData.ID}`);
+        const oMetadatiData = await oResp.json();
+        aFields = [
+          { label: 'Nome file', value: oData.filename },
+          { label: 'Tipo documento', value: formatter.tipoAllegatoText(oData.tipo) },
+          { label: 'Confidenza', value: formatter.confidenzaText(oData.confidenza) }
+        ].concat((oMetadatiData.value || []).map(function (m) { return { label: m.etichetta, value: m.valore }; }));
+      } catch (e) {
+        MessageBox.error('Errore caricamento metadati allegato: ' + (e.message || String(e)));
+        return;
+      }
       aFields.forEach(function (f) {
         if (!f.value) return;
         oLayout.addContent(new sap.m.Label({ text: f.label, design: 'Bold' }));
