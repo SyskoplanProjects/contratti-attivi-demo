@@ -511,7 +511,7 @@ describe('ComparatorService confirmCoverage', () => {
       coveragePercent: 75
     });
 
-    const res = await POST('/comparator/confirmCoverage', { previewID, clausole: [], allegati: [] }, { auth: MOCK_USER });
+    const res = await POST('/comparator/confirmCoverage', { previewID, clausole: [], allegati: [], metadati: [] }, { auth: MOCK_USER });
 
     expect(res.status).toBe(200);
     expect(res.data.intestatario).toBe('contratto_test_acme');
