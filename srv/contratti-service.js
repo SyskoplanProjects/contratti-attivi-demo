@@ -6,6 +6,7 @@ const { computeAndSaveEmbedding } = require('./lib/embedding-utils');
 const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato } = require('./lib/allegato-extractor');
+const { salvaMetadati } = require('./lib/metadati-writer');
 
 function _mimeTypeDaFilename(filename) {
   return filename.endsWith('.pdf') ? 'application/pdf'
@@ -564,26 +565,37 @@ module.exports = class ContrattiService extends cds.ApplicationService {
       }
 
       const { tipo, confidenza, metodoRiconoscimento } = await classificaAllegato(testo);
-      const { campiEstratti, dataScadenza } = await estraiCampiAllegato(tipo, testo);
-      return { tipo, confidenza, metodoRiconoscimento, testo, campiEstratti, dataScadenza };
+      const { metadati, dataScadenza } = await estraiCampiAllegato(tipo, testo);
+      return { tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza };
     });
 
     this.on('aggiungiAllegatoContratto', async (req) => {
-      const { contrattoID, filename, file, tipo, confidenza, metodoRiconoscimento, testo } = req.data;
+      const { contrattoID, filename, file, tipo, confidenza, metodoRiconoscimento, testo, metadati } = req.data;
       if (!filename || !file || !tipo) return req.reject(400, 'filename, file e tipo obbligatori');
 
       if (!await _isOwner(req, contrattoID, Contratto)) return;
 
-      // ricalcola sempre i campi strutturati sul tipo definitivo (l'utente può aver corretto
-      // il tipo proposto da classificaAllegatoContratto prima di salvare)
-      const { campiEstratti, dataScadenza } = await estraiCampiAllegato(tipo, testo);
+      // i metadati arrivano già verificati/corretti dal wizard lato client (Task 8/9): non si
+      // ricalcolano più qui, a differenza del comportamento precedente.
+      let metadatiDaSalvare = metadati;
+      let dataScadenzaFinale = null;
+      if (!metadatiDaSalvare || !metadatiDaSalvare.length) {
+        ({ metadati: metadatiDaSalvare, dataScadenza: dataScadenzaFinale } = await estraiCampiAllegato(tipo, testo));
+      } else {
+        const campoScadenza = metadatiDaSalvare.find(m => m.campo === 'scadenzaValidita' || m.campo === 'dataScadenza');
+        dataScadenzaFinale = (campoScadenza && campoScadenza.valore && /^\d{4}-\d{2}-\d{2}$/.test(campoScadenza.valore))
+          ? campoScadenza.valore : null;
+      }
 
       const { ContrattoAllegato } = cds.entities('com.reply.contrattiattivi');
       const allegatoID = cds.utils.uuid();
-      await INSERT.into(ContrattoAllegato).entries({
-        ID: allegatoID, contratto_ID: contrattoID,
-        filename, mimeType: _mimeTypeDaFilename(filename), contenuto: file,
-        tipo, confidenza, metodoRiconoscimento, testo, campiEstratti, dataScadenza
+      await cds.tx(req).run(async (tx) => {
+        await tx.run(INSERT.into(ContrattoAllegato).entries({
+          ID: allegatoID, contratto_ID: contrattoID,
+          filename, mimeType: _mimeTypeDaFilename(filename), contenuto: file,
+          tipo, confidenza, metodoRiconoscimento, testo, dataScadenza: dataScadenzaFinale
+        }));
+        await salvaMetadati({ tx, parentType: 'ContrattoAllegato', parentID: allegatoID, metadati: metadatiDaSalvare });
       });
       return SELECT.one.from(ContrattoAllegato, allegatoID);
     });

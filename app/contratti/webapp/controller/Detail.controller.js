@@ -455,6 +455,7 @@ sap.ui.define([
           .setParameter('confidenza', oNuovo.confidenza)
           .setParameter('metodoRiconoscimento', oNuovo.metodoRiconoscimento)
           .setParameter('testo', oNuovo.testo)
+          .setParameter('metadati', [])
           .execute();
 
         MessageToast.show('Allegato salvato.');

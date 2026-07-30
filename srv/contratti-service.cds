@@ -1,4 +1,5 @@
 using { com.reply.contrattiattivi as db } from '../db/schema';
+using { MetadatoConfermato } from './comparator-service';
 
 type StoricoClausolaEntry {
   versioneID        : UUID;
@@ -54,7 +55,7 @@ type AllegatoClassificatoInfo {
   confidenza           : Decimal(5,4);
   metodoRiconoscimento : String;
   testo                : LargeString;
-  campiEstratti        : LargeString;
+  metadati             : array of MetadatoConfermato;
   dataScadenza         : Date;
 }
 
@@ -111,7 +112,7 @@ service ContrattiService @(requires: ['Utente','Revisore']) {
   @(requires: 'Utente') action cancellaClausola(clausolaID: UUID) returns Boolean;
   @(requires: 'Utente') action cancellaTemplate(templateID: UUID) returns Boolean;
   @(requires: 'Utente') action classificaAllegatoContratto(filename: String, file: LargeString) returns AllegatoClassificatoInfo;
-  @(requires: 'Utente') action aggiungiAllegatoContratto(contrattoID: UUID, filename: String, file: LargeString, tipo: String, confidenza: Decimal(5,4), metodoRiconoscimento: String, testo: LargeString) returns ContrattoAllegato;
+  @(requires: 'Utente') action aggiungiAllegatoContratto(contrattoID: UUID, filename: String, file: LargeString, tipo: String, confidenza: Decimal(5,4), metodoRiconoscimento: String, testo: LargeString, metadati: array of MetadatoConfermato) returns ContrattoAllegato;
   @(requires: 'Utente') action eliminaAllegatoContratto(allegatoID: UUID) returns Boolean;
 
   action getVersioniContratto(contrattoID: UUID) returns array of {

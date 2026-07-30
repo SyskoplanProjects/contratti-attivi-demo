@@ -42,6 +42,7 @@ describe('classificaAllegatoContratto / aggiungiAllegatoContratto', () => {
     expect(classifica.data.tipo).toBe(TIPOLOGIE_ALLEGATO[0].key);
     expect(classifica.data.metodoRiconoscimento).toBe('embedding');
     expect(classifica.data.testo).toContain('Documento Unico di Regolarità Contributiva');
+    expect(Array.isArray(classifica.data.metadati)).toBe(true);
 
     const { ContrattoAllegato } = cds.entities('com.reply.contrattiattivi');
     const primaDelSalvataggio = await SELECT.from(ContrattoAllegato).where({ contratto_ID: contrattoID });
@@ -52,7 +53,8 @@ describe('classificaAllegatoContratto / aggiungiAllegatoContratto', () => {
       tipo: 'DURC', // scelta manuale, eventualmente diversa dal suggerimento
       confidenza: classifica.data.confidenza,
       metodoRiconoscimento: classifica.data.metodoRiconoscimento,
-      testo: classifica.data.testo
+      testo: classifica.data.testo,
+      metadati: classifica.data.metadati
     }, { auth: MOCK_USER });
 
     expect(aggiungi.status).toBe(200);
@@ -63,11 +65,15 @@ describe('classificaAllegatoContratto / aggiungiAllegatoContratto', () => {
     expect(righe[0].tipo).toBe('DURC');
     expect(righe[0].contenuto).toBe(fileBase64);
     expect(righe[0].testo).toContain('Documento Unico di Regolarità Contributiva');
+
+    const { MetadatoDocumento } = cds.entities('com.reply.contrattiattivi');
+    const metadati = await SELECT.from(MetadatoDocumento).where({ allegato_ID: aggiungi.data.ID });
+    expect(metadati.length).toBeGreaterThan(0);
   });
 
   it('rejects aggiungiAllegatoContratto for an unknown contratto', async () => {
     await expect(POST('/contratti/aggiungiAllegatoContratto', {
-      contrattoID: cds.utils.uuid(), filename: 'x.docx', file: 'AAAA', tipo: 'ALTRO'
+      contrattoID: cds.utils.uuid(), filename: 'x.docx', file: 'AAAA', tipo: 'ALTRO', metadati: []
     }, { auth: MOCK_USER })).rejects.toMatchObject({ response: { status: 404 } });
   });
 
@@ -76,7 +82,7 @@ describe('classificaAllegatoContratto / aggiungiAllegatoContratto', () => {
     const ALTRO_UTENTE = { username: 'altra.persona@contrattiattivi.it', password: 'test' };
 
     await expect(POST('/contratti/aggiungiAllegatoContratto', {
-      contrattoID, filename: 'x.docx', file: 'AAAA', tipo: 'ALTRO'
+      contrattoID, filename: 'x.docx', file: 'AAAA', tipo: 'ALTRO', metadati: []
     }, { auth: ALTRO_UTENTE })).rejects.toMatchObject({ response: { status: 403 } });
 
     const { ContrattoAllegato } = cds.entities('com.reply.contrattiattivi');
