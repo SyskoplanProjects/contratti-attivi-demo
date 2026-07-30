@@ -179,7 +179,7 @@ function (BaseController, MessageBox, JSONModel) {
         var oResp = await fetch("/comparator/confirmCoverage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ previewID: oData.previewID, clausole: oData.clausole, allegati: aAllegati })
+          body: JSON.stringify({ previewID: oData.previewID, clausole: oData.clausole, allegati: aAllegati, metadati: [] })
         });
         if (!oResp.ok) {
           var oErr = await oResp.text();

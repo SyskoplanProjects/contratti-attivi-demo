@@ -533,7 +533,7 @@ describe('ComparatorService confirmCoverage', () => {
     });
 
     await expect(
-      POST('/comparator/confirmCoverage', { previewID, clausole: [], allegati: [] }, { auth: MOCK_USER })
+      POST('/comparator/confirmCoverage', { previewID, clausole: [], allegati: [], metadati: [] }, { auth: MOCK_USER })
     ).rejects.toMatchObject({ response: { status: 400 } });
   });
 });
