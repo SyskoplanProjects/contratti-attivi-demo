@@ -108,7 +108,9 @@ sap.ui.define([
           templateID: sTemplateID,
           filename: this._file.name,
           coveragePercent: oResult.coveragePercent,
-          clausole: oResult.clausole
+          clausole: oResult.clausole,
+          metadati: oResult.metadati || [],
+          testoDocumento: ""
         }), "preview");
 
         this.getOwnerComponent().getRouter().navTo("importPreview");

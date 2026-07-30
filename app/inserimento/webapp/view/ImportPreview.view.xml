@@ -56,6 +56,11 @@
             </items>
           </Table>
         </VBox>
+
+        <Panel headerText="Verifica campi estratti" expandable="true" expanded="true"
+          visible="{= ${preview>/mode} === 'coverage'}" class="sapUiSmallMarginTop">
+          <core:Fragment fragmentName="com.reply.contrattiattivi.inserimento.fragment.MetadataWizard" type="XML" />
+        </Panel>
       </VBox>
       <core:Fragment fragmentName="com.reply.contrattiattivi.inserimento.fragment.AiPanel" type="XML" />
     </content>

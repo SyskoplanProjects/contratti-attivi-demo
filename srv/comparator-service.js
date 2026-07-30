@@ -119,7 +119,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         templateID, filename, clausole: result.clausole,
         coveragePercent: result.coveragePercent, metadati
       });
-      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole };
+      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati };
     });
 
     this.on('classificaAllegati', async (req) => {
