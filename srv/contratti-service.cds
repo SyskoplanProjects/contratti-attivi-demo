@@ -94,6 +94,7 @@ service ContrattiService @(requires: ['Utente','Revisore']) {
 
   entity ContrattoClausola as projection on db.ContrattoClausola;
   @readonly entity ContrattoAllegato as projection on db.ContrattoAllegato;
+  @readonly entity MetadatoDocumento as projection on db.MetadatoDocumento;
 
   function getCategorieContratto() returns array of String;
 

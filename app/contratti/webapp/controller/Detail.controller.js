@@ -4,12 +4,14 @@ sap.ui.define([
   "sap/m/MessageToast",
   "sap/ui/model/json/JSONModel",
   "sap/ui/layout/VerticalLayout",
-  "../formatter"
-], function (BaseController, MessageBox, MessageToast, JSONModel, VerticalLayout, formatter) {
+  "../formatter",
+  "./MetadataWizardHelper"
+], function (BaseController, MessageBox, MessageToast, JSONModel, VerticalLayout, formatter, metadataWizardHelper) {
   "use strict";
 
   return BaseController.extend("com.reply.contrattiattivi.app.controller.Detail", {
     formatter: formatter,
+    metadataWizardHelper: metadataWizardHelper,
 
     onInit: function () {
       this._initChatState();
@@ -432,6 +434,12 @@ sap.ui.define([
           tipo: oResult.tipo, confidenza: oResult.confidenza,
           metodoRiconoscimento: oResult.metodoRiconoscimento, testo: oResult.testo
         });
+
+        const aMetadati = (oResult.metadati || []).map(function (m) {
+          return Object.assign({}, m, { modificatoManualmente: false });
+        });
+        oDialog.setModel(new JSONModel(metadataWizardHelper.raggruppaPerSezione(aMetadati)), 'wizardSezioni');
+        oDialog.setModel(new JSONModel({ testo: oResult.testo || '' }), 'wizardDocumento');
       } catch (e) {
         MessageBox.error('Errore riconoscimento allegato: ' + (e.message || String(e)));
       } finally {
@@ -439,11 +447,20 @@ sap.ui.define([
       }
     },
 
+    onCampoMetadatoModificato: function (oEvent) {
+      const oCtx = oEvent.getSource().getBindingContext('wizardSezioni');
+      if (!oCtx) return;
+      oCtx.getModel().setProperty(oCtx.getPath() + '/modificatoManualmente', true);
+    },
+
     onSalvaNuovoAllegato: async function () {
       const oDialog = await this._pAllegatiContratto;
       const oModel = oDialog.getModel('allegatiContratto');
       const oNuovo = oModel.getProperty('/nuovoAllegato');
       if (!oNuovo) return;
+
+      const oWizardModel = oDialog.getModel('wizardSezioni');
+      const aMetadati = oWizardModel ? oWizardModel.getData().reduce(function (acc, s) { return acc.concat(s.campi); }, []) : [];
 
       try {
         const oOwnerModel = this.getOwnerComponent().getModel();
@@ -455,7 +472,7 @@ sap.ui.define([
           .setParameter('confidenza', oNuovo.confidenza)
           .setParameter('metodoRiconoscimento', oNuovo.metodoRiconoscimento)
           .setParameter('testo', oNuovo.testo)
-          .setParameter('metadati', [])
+          .setParameter('metadati', aMetadati)
           .execute();
 
         MessageToast.show('Allegato salvato.');
@@ -497,7 +514,7 @@ sap.ui.define([
       });
     },
 
-    onAnteprimaAllegatoContratto: function (oEvent) {
+    onAnteprimaAllegatoContratto: async function (oEvent) {
       const oCtx = oEvent.getSource().getBindingContext('allegatiContratto');
       if (!oCtx) return;
       const oData = oCtx.getObject();
@@ -515,11 +532,15 @@ sap.ui.define([
       }
       const oLayout = this._oAnteprimaAllegatoDialog.getContent()[0];
       oLayout.removeAllContent();
+
+      const oModel2 = this.getOwnerComponent().getModel();
+      const oResp = await fetch(oModel2.getServiceUrl() + `MetadatoDocumento?$filter=allegato_ID eq ${oData.ID}`);
+      const oMetadatiData = await oResp.json();
       const aFields = [
         { label: 'Nome file', value: oData.filename },
         { label: 'Tipo documento', value: formatter.tipoAllegatoText(oData.tipo) },
         { label: 'Confidenza', value: formatter.confidenzaText(oData.confidenza) }
-      ].concat(formatter.campiEstrattiList(oData.campiEstratti));
+      ].concat((oMetadatiData.value || []).map(function (m) { return { label: m.etichetta, value: m.valore }; }));
       aFields.forEach(function (f) {
         if (!f.value) return;
         oLayout.addContent(new sap.m.Label({ text: f.label, design: 'Bold' }));

@@ -13,6 +13,10 @@
             <Text text="{path: 'allegatiContratto>/nuovoAllegato/confidenza', formatter: '.formatter.confidenzaText'}" class="sapUiTinyMarginEnd" />
             <Button text="Salva allegato" icon="sap-icon://add" press=".onSalvaNuovoAllegato" />
           </HBox>
+          <Panel headerText="Verifica campi estratti" expandable="true" expanded="true"
+            visible="{= ${allegatiContratto>/nuovoAllegato} !== null }" class="sapUiSmallMarginTop">
+            <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.MetadataWizard" type="XML" />
+          </Panel>
         </VBox>
         <Table id="allegatiContrattoTable" items="{allegatiContratto>/allegati}" noDataText="Nessun allegato presente.">
           <columns>

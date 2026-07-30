@@ -6,29 +6,6 @@ sap.ui.define([], function () {
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  var CAMPI_ALLEGATO_LABELS = {
-    numeroProtocollo: "Numero protocollo",
-    denominazione: "Denominazione",
-    codiceFiscale: "Codice fiscale",
-    partitaIva: "Partita IVA",
-    sedeLegale: "Sede legale",
-    domicilioFiscale: "Domicilio fiscale",
-    dataRichiesta: "Data richiesta",
-    dataRilascio: "Data rilascio",
-    meseRiferimento: "Mese di riferimento",
-    scadenzaValidita: "Scadenza validità",
-    esito: "Esito",
-    formaGiuridica: "Forma giuridica",
-    pec: "PEC",
-    numeroRea: "Numero REA",
-    dataIscrizione: "Data iscrizione",
-    dataCostituzione: "Data costituzione",
-    oggettoSociale: "Oggetto sociale",
-    capitaleSociale: "Capitale sociale (€)",
-    amministratori: "Amministratori",
-    dataEstrazione: "Data estrazione"
-  };
-
   return {
     statoState: function (stato) {
       switch (stato) {
@@ -85,15 +62,6 @@ sap.ui.define([], function () {
         .join("\n")
         .replace(/\n{3,}/g, "\n\n")
         .trim();
-    },
-
-    campiEstrattiList: function (sJSON) {
-      if (!sJSON) return [];
-      var oCampi;
-      try { oCampi = JSON.parse(sJSON); } catch (e) { return []; }
-      return Object.keys(oCampi)
-        .filter(function (k) { return oCampi[k] != null && oCampi[k] !== ""; })
-        .map(function (k) { return { label: CAMPI_ALLEGATO_LABELS[k] || k, value: oCampi[k] }; });
     },
 
     esitoVerificaText: function (v) {
