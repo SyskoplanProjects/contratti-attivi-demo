@@ -7,6 +7,7 @@ const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
+const { TIPOLOGIE_ALLEGATO } = require('./lib/tipologie-allegato');
 
 function _mimeTypeDaFilename(filename) {
   return filename.endsWith('.pdf') ? 'application/pdf'
@@ -576,10 +577,16 @@ module.exports = class ContrattiService extends cds.ApplicationService {
       if (!await _isOwner(req, contrattoID, Contratto)) return;
 
       // i metadati arrivano già verificati/corretti dal wizard lato client (Task 8/9): non si
-      // ricalcolano più qui, a differenza del comportamento precedente.
+      // ricalcolano più qui, a differenza del comportamento precedente — a meno che l'utente
+      // abbia cambiato il tipo dopo l'estrazione (il <Select> del tipo non ricalcola il wizard):
+      // in quel caso i campo-chiave inviati appartengono ancora al tipo vecchio e vanno rifatti.
       let metadatiDaSalvare = metadati;
       let dataScadenzaFinale = null;
-      if (!metadatiDaSalvare || !metadatiDaSalvare.length) {
+      const tipologiaFinale = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
+      const campiAttesi = new Set((tipologiaFinale && tipologiaFinale.campiChiave || []).map(c => c.campo));
+      const tipoNonCorrisponde = metadatiDaSalvare && metadatiDaSalvare.length &&
+        !metadatiDaSalvare.every(m => campiAttesi.has(m.campo));
+      if (!metadatiDaSalvare || !metadatiDaSalvare.length || tipoNonCorrisponde) {
         ({ metadati: metadatiDaSalvare, dataScadenza: dataScadenzaFinale } = await estraiCampiAllegato(tipo, testo));
       } else {
         const campoScadenza = metadatiDaSalvare.find(m => m.campo === 'scadenzaValidita' || m.campo === 'dataScadenza');

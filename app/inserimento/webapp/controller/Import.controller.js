@@ -110,7 +110,7 @@ sap.ui.define([
           coveragePercent: oResult.coveragePercent,
           clausole: oResult.clausole,
           metadati: oResult.metadati || [],
-          testoDocumento: ""
+          testoDocumento: oResult.testo || ""
         }), "preview");
 
         this.getOwnerComponent().getRouter().navTo("importPreview");

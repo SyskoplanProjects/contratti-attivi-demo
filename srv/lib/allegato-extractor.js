@@ -38,9 +38,9 @@ async function estraiCampiAllegato(tipo, testo) {
   const metadatiDinamici = await Promise.all(campiDinamici.map(async (c) => {
     if (c.dynamic === 'riconosciTemplateContrattuale') {
       const { valore, confidenza } = await riconosciTemplateContrattuale(testo);
-      return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza };
+      return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore };
     }
-    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: null, confidenza: null };
+    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: null, confidenza: null, valoreOriginaleAI: null };
   }));
 
   const metadati = campiDaChiedere.map(c => {
@@ -48,9 +48,9 @@ async function estraiCampiAllegato(tipo, testo) {
     const valore = (r && typeof r === 'object' && r.valore != null && r.valore !== '') ? String(r.valore) : null;
     const confidenza = (r && typeof r === 'object' && typeof r.confidenza === 'number')
       ? Math.max(0, Math.min(1, r.confidenza)) : 0;
-    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza };
+    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore };
   }).concat(campiStatici.map(c => ({
-    campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: c.staticValue, confidenza: null
+    campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: c.staticValue, confidenza: null, valoreOriginaleAI: c.staticValue
   }))).concat(metadatiDinamici);
 
   const campoScadenza = tipologia.campiChiave.find(c => c.scadenza);

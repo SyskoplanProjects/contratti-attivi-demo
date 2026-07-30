@@ -2,29 +2,6 @@ sap.ui.define(["./BaseController", "sap/m/MessageBox", "sap/ui/model/json/JSONMo
 function (BaseController, MessageBox, JSONModel) {
   "use strict";
 
-  var CAMPI_ALLEGATO_LABELS = {
-    numeroProtocollo: "Numero protocollo",
-    denominazione: "Denominazione",
-    codiceFiscale: "Codice fiscale",
-    partitaIva: "Partita IVA",
-    sedeLegale: "Sede legale",
-    domicilioFiscale: "Domicilio fiscale",
-    dataRichiesta: "Data richiesta",
-    dataRilascio: "Data rilascio",
-    meseRiferimento: "Mese di riferimento",
-    scadenzaValidita: "Scadenza validità",
-    esito: "Esito",
-    formaGiuridica: "Forma giuridica",
-    pec: "PEC",
-    numeroRea: "Numero REA",
-    dataIscrizione: "Data iscrizione",
-    dataCostituzione: "Data costituzione",
-    oggettoSociale: "Oggetto sociale",
-    capitaleSociale: "Capitale sociale (€)",
-    amministratori: "Amministratori",
-    dataEstrazione: "Data estrazione"
-  };
-
   function testoLeggibile(sTesto) {
     if (!sTesto) return "";
     return String(sTesto)
@@ -33,15 +10,6 @@ function (BaseController, MessageBox, JSONModel) {
       .join("\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
-  }
-
-  function campiEstrattiList(sJSON) {
-    if (!sJSON) return [];
-    var oCampi;
-    try { oCampi = JSON.parse(sJSON); } catch (e) { return []; }
-    return Object.keys(oCampi)
-      .filter(function (k) { return oCampi[k] != null && oCampi[k] !== ""; })
-      .map(function (k) { return { label: CAMPI_ALLEGATO_LABELS[k] || k, value: oCampi[k] }; });
   }
 
   return BaseController.extend("com.reply.contrattiattivi.comparator.controller.ComparatorResult", {
@@ -320,7 +288,7 @@ function (BaseController, MessageBox, JSONModel) {
         { label: "Nome file", value: oData.filename },
         { label: "Tipo documento", value: oTipologia ? oTipologia.label : oData.tipo },
         { label: "Confidenza", value: oData.confidenza != null ? (Math.round(oData.confidenza * 10000) / 100) + "%" : "" }
-      ].concat(campiEstrattiList(oData.campiEstratti));
+      ].concat((oData.metadati || []).map(function (m) { return { label: m.etichetta, value: m.valore }; }));
       aFields.forEach(function (f) {
         if (!f.value) return;
         oLayout.addContent(new sap.m.Label({ text: f.label, design: "Bold" }));
