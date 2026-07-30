@@ -2,35 +2,57 @@ const openai = require('../modules/openai-module');
 const { TIPOLOGIE_ALLEGATO } = require('./tipologie-allegato');
 
 // Estrae dal testo grezzo di un allegato (già classificato per tipo) i campi strutturati
-// definiti in campiChiave per quel tipo, invece di lasciare il testo come unico blob
-// "ammassato". Ritorna { campiEstratti, dataScadenza } pronti da salvare su ContrattoAllegato:
-// campiEstratti è il JSON serializzato di tutti i campi, dataScadenza è il campo marcato
-// scadenza:true (se presente e valorizzato), duplicato in colonna propria per query/alert.
+// definiti in campiChiave per quel tipo. Per ogni campo il modello ritorna { valore, confidenza }
+// invece di un valore nudo: la confidenza è autodichiarata dal modello (0-1), non calibrata,
+// e alimenta il badge nel wizard di verifica. I campi con staticValue e quelli con dynamic
+// (es. templateContrattuale, valorizzato da un motore dedicato — vedi Task 3b) non vengono
+// chiesti al modello insieme agli altri.
 async function estraiCampiAllegato(tipo, testo) {
   const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
   if (!tipologia || !tipologia.campiChiave || !testo || !testo.trim()) {
-    return { campiEstratti: null, dataScadenza: null };
+    return { metadati: [], dataScadenza: null };
   }
 
-  const elencoCampi = tipologia.campiChiave.map(c => `- ${c.campo}: ${c.descrizione}`).join('\n');
-  const systemPrompt = `Sei un estrattore di dati da documenti amministrativi italiani (${tipologia.label}). ` +
-    `Dal testo fornito estrai ESATTAMENTE questi campi e rispondi in JSON con un oggetto con queste chiavi ` +
-    `(usa null per un campo se non presente nel testo, non inventare mai valori):\n${elencoCampi}`;
+  const campiDaChiedere = tipologia.campiChiave.filter(c => !c.staticValue && !c.dynamic);
+  const campiStatici = tipologia.campiChiave.filter(c => c.staticValue);
+  const campiDinamici = tipologia.campiChiave.filter(c => c.dynamic);
 
-  let risultato;
-  try {
-    risultato = await openai.chatJSON(systemPrompt, testo.slice(0, 8000));
-  } catch (e) {
-    console.warn('[allegato-extractor] estrazione campi fallita:', e.message);
-    return { campiEstratti: null, dataScadenza: null };
+  let risultato = {};
+  if (campiDaChiedere.length) {
+    const elencoCampi = campiDaChiedere.map(c => `- ${c.campo}: ${c.descrizione}`).join('\n');
+    const systemPrompt = `Sei un estrattore di dati da documenti amministrativi/contrattuali italiani (${tipologia.label}). ` +
+      `Dal testo fornito estrai ESATTAMENTE questi campi. Per ciascun campo rispondi con un oggetto ` +
+      `{ "valore": <stringa o numero o null>, "confidenza": <numero tra 0 e 1> }. Usa valore null e ` +
+      `confidenza 0 se il campo non è presente nel testo, non inventare mai valori. Rispondi in JSON ` +
+      `con un oggetto che ha come chiavi questi campi:\n${elencoCampi}`;
+
+    try {
+      risultato = await openai.chatJSON(systemPrompt, testo.slice(0, 8000)) || {};
+    } catch (e) {
+      console.warn('[allegato-extractor] estrazione campi fallita:', e.message);
+      risultato = {};
+    }
   }
-  if (!risultato || typeof risultato !== 'object') return { campiEstratti: null, dataScadenza: null };
+
+  const metadati = campiDaChiedere.map(c => {
+    const r = risultato[c.campo];
+    const valore = (r && typeof r === 'object' && r.valore != null && r.valore !== '') ? String(r.valore) : null;
+    const confidenza = (r && typeof r === 'object' && typeof r.confidenza === 'number')
+      ? Math.max(0, Math.min(1, r.confidenza)) : 0;
+    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza };
+  }).concat(campiStatici.map(c => ({
+    campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: c.staticValue, confidenza: null
+  }))).concat(campiDinamici.map(c => ({
+    // placeholder: nessun motore dedicato ancora collegato in questo task, vedi Task 3b
+    campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: null, confidenza: null
+  })));
 
   const campoScadenza = tipologia.campiChiave.find(c => c.scadenza);
-  const sScadenza = campoScadenza && risultato[campoScadenza.campo] &&
-    /^\d{4}-\d{2}-\d{2}$/.test(risultato[campoScadenza.campo]) ? risultato[campoScadenza.campo] : null;
+  const metaScadenza = campoScadenza && metadati.find(m => m.campo === campoScadenza.campo);
+  const dataScadenza = (metaScadenza && metaScadenza.valore && /^\d{4}-\d{2}-\d{2}$/.test(metaScadenza.valore))
+    ? metaScadenza.valore : null;
 
-  return { campiEstratti: JSON.stringify(risultato), dataScadenza: sScadenza };
+  return { metadati, dataScadenza };
 }
 
 module.exports = { estraiCampiAllegato };
