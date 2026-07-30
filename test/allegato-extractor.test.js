@@ -1,10 +1,17 @@
 const mockChatJSON = jest.fn();
-jest.mock('../srv/modules/openai-module', () => ({ chatJSON: (...args) => mockChatJSON(...args) }));
+const mockEmbeddings = jest.fn();
+jest.mock('../srv/modules/openai-module', () => ({
+  chatJSON: (...args) => mockChatJSON(...args),
+  embeddings: (...args) => mockEmbeddings(...args)
+}));
 
 const { estraiCampiAllegato } = require('../srv/lib/allegato-extractor');
 
 describe('allegato-extractor — confidenza per campo', () => {
-  beforeEach(() => mockChatJSON.mockReset());
+  beforeEach(() => {
+    mockChatJSON.mockReset();
+    mockEmbeddings.mockReset();
+  });
 
   it('ritorna un array di metadati con valore e confidenza per campo richiesto al modello', async () => {
     mockChatJSON.mockResolvedValueOnce({
@@ -33,12 +40,11 @@ describe('allegato-extractor — confidenza per campo', () => {
     mockChatJSON.mockResolvedValueOnce(
       Object.fromEntries(['titoloContratto', 'fornitore'].map(c => [c, { valore: 'x', confidenza: 0.5 }]))
     );
+    mockEmbeddings.mockResolvedValue([[1, 0, 0]]); // qualunque valore: il testo di prova è troppo corto (< 100 caratteri), riconosciTemplateContrattuale non arriva a chiamare le embeddings
 
     const { metadati } = await estraiCampiAllegato('CONTRATTO', 'Testo contratto di prova.');
-    // in questo task (3) i campi dynamic non sono ancora valorizzati da un motore dedicato:
-    // Task 3b sostituisce questo comportamento placeholder con riconosciTemplateContrattuale.
     const template = metadati.find(m => m.campo === 'templateContrattuale');
-    expect(template.valore).toBeNull();
+    expect(template.valore).toBe('Non Determinabile');
     expect(template.confidenza).toBeNull();
 
     const promptInviato = mockChatJSON.mock.calls[0][0];

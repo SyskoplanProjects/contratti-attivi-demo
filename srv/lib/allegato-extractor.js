@@ -1,5 +1,6 @@
 const openai = require('../modules/openai-module');
 const { TIPOLOGIE_ALLEGATO } = require('./tipologie-allegato');
+const { riconosciTemplateContrattuale } = require('./template-recognizer');
 
 // Estrae dal testo grezzo di un allegato (già classificato per tipo) i campi strutturati
 // definiti in campiChiave per quel tipo. Per ogni campo il modello ritorna { valore, confidenza }
@@ -34,6 +35,14 @@ async function estraiCampiAllegato(tipo, testo) {
     }
   }
 
+  const metadatiDinamici = await Promise.all(campiDinamici.map(async (c) => {
+    if (c.dynamic === 'riconosciTemplateContrattuale') {
+      const { valore, confidenza } = await riconosciTemplateContrattuale(testo);
+      return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza };
+    }
+    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: null, confidenza: null };
+  }));
+
   const metadati = campiDaChiedere.map(c => {
     const r = risultato[c.campo];
     const valore = (r && typeof r === 'object' && r.valore != null && r.valore !== '') ? String(r.valore) : null;
@@ -42,10 +51,7 @@ async function estraiCampiAllegato(tipo, testo) {
     return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza };
   }).concat(campiStatici.map(c => ({
     campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: c.staticValue, confidenza: null
-  }))).concat(campiDinamici.map(c => ({
-    // placeholder: nessun motore dedicato ancora collegato in questo task, vedi Task 3b
-    campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: null, confidenza: null
-  })));
+  }))).concat(metadatiDinamici);
 
   const campoScadenza = tipologia.campiChiave.find(c => c.scadenza);
   const metaScadenza = campoScadenza && metadati.find(m => m.campo === campoScadenza.campo);
