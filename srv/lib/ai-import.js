@@ -135,46 +135,6 @@ async function estraiClausoleAI(testoDocumento) {
     .filter(c => c.testo);
 }
 
-const METADATI_SYSTEM_PROMPT = `Sei un assistente esperto nell'analisi di contratti legali italiani.
-Estrai i metadati del contratto dal testo fornito.
-Rispondi ESCLUSIVAMENTE con un oggetto JSON valido con la seguente struttura (tutti i valori null se non trovati):
-{
-  "intestatario": <stringa - nome o ragione sociale del Cliente/Intestatario principale. Se non trovato usa il titolo del documento>,
-  "societaContraente": <stringa o null - nome della società fornitrice/controparte>,
-  "oggetto": <stringa o null - oggetto sintetico del contratto>,
-  "importo": <numero o null - valore economico totale in Euro (es: 120000.00). Solo il numero, senza simboli>,
-  "codiceFiscale": <stringa o null - Partita IVA o Codice Fiscale dell'intestatario>,
-  "dataStipula": <stringa in formato YYYY-MM-DD o null>,
-  "dataDecorrenza": <stringa in formato YYYY-MM-DD o null>,
-  "dataScadenza": <stringa in formato YYYY-MM-DD o null>,
-  "categoria": <stringa - una tra: "fornitura", "servizio", "consulenza", "NDA", "altro">,
-  "responsabileControparte": <stringa o null - nome del responsabile della controparte>,
-  "emailControparte": <stringa o null - email della controparte>
-}`;
-
-async function estraiMetadatiContratto(testoDocumento, fallbackNome) {
-  try {
-    const result = await openai.chatJSON(METADATI_SYSTEM_PROMPT, testoDocumento.slice(0, 8000));
-    if (!result || typeof result !== 'object') return { intestatario: fallbackNome };
-    return {
-      intestatario: (result.intestatario && String(result.intestatario).trim()) || fallbackNome,
-      societaContraente: result.societaContraente ? String(result.societaContraente).trim() : null,
-      oggetto: result.oggetto ? String(result.oggetto).trim() : null,
-      importo: result.importo != null && !isNaN(Number(result.importo)) ? Number(result.importo) : null,
-      codiceFiscale: result.codiceFiscale ? String(result.codiceFiscale).trim() : null,
-      dataStipula: result.dataStipula && /^\d{4}-\d{2}-\d{2}$/.test(result.dataStipula) ? result.dataStipula : null,
-      dataDecorrenza: result.dataDecorrenza && /^\d{4}-\d{2}-\d{2}$/.test(result.dataDecorrenza) ? result.dataDecorrenza : null,
-      dataScadenza: result.dataScadenza && /^\d{4}-\d{2}-\d{2}$/.test(result.dataScadenza) ? result.dataScadenza : null,
-      categoria: ['fornitura','servizio','consulenza','NDA','altro'].includes(result.categoria) ? result.categoria : null,
-      responsabileControparte: result.responsabileControparte ? String(result.responsabileControparte).trim() : null,
-      emailControparte: result.emailControparte ? String(result.emailControparte).trim() : null
-    };
-  } catch (e) {
-    console.warn('[ai-import] estrazione metadati fallita:', e.message);
-    return { intestatario: fallbackNome };
-  }
-}
-
 async function estraiClausoleConFallback(buffer, filename, mimeType) {
   try {
     const testo = await extractTextMultiFormato(buffer, mimeType, filename);
@@ -273,7 +233,6 @@ module.exports = {
   extractTextMultiFormato,
   estraiClausoleConFallback,
   estraiClausoleAI,
-  estraiMetadatiContratto,
   cosineSimilarity,
   trovaMatch,
   buildCandidatiPerCodice
