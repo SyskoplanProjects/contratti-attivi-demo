@@ -2,9 +2,10 @@ const cds = require('@sap/cds');
 const { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola } = require('./lib/comparator-engine');
 const previewStore = require('./lib/preview-store');
 const { normalizeText } = require('./lib/diff-utils');
-const { extractTextMultiFormato, estraiMetadatiContratto } = require('./lib/ai-import');
+const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato } = require('./lib/allegato-extractor');
+const { salvaMetadati } = require('./lib/metadati-writer');
 const { TIPOLOGIE_ALLEGATO } = require('./lib/tipologie-allegato');
 
 async function confrontaClausoleConTemplate(clausole, templateID, tx) {
@@ -105,12 +106,11 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       const result = await cds.tx(req).run(tx =>
         calcolaCoverage(buffer, filename, mimeType, templateID, tx));
 
-      // Estrai metadati del contratto dal testo del documento in parallelo
-      const fallbackNome = filename.replace(/\.[^.]+$/, '');
-      let metadati = { intestatario: fallbackNome };
+      // Estrai metadati del contratto (tipo CONTRATTO, con confidenza per campo) dal testo del documento
+      let metadati = [];
       try {
         const testo = await extractTextMultiFormato(buffer, mimeType, filename);
-        metadati = await estraiMetadatiContratto(testo, fallbackNome);
+        ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo));
       } catch (e) {
         console.warn('[comparator] estrazione metadati fallita, uso fallback:', e.message);
       }
@@ -144,17 +144,17 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         }
 
         const { tipo, confidenza, metodoRiconoscimento } = await classificaAllegato(testo);
-        const { campiEstratti, dataScadenza } = await estraiCampiAllegato(tipo, testo);
+        const { metadati, dataScadenza } = await estraiCampiAllegato(tipo, testo);
         allegatiClassificati.push({
           filename: a.filename, mimeType, contenuto: a.file,
-          tipo, confidenza, metodoRiconoscimento, testo, campiEstratti, dataScadenza
+          tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza
         });
       }
 
       previewStore.update(previewID, { allegati: allegatiClassificati });
 
-      return allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, campiEstratti, dataScadenza }) =>
-        ({ filename, tipo, confidenza, metodoRiconoscimento, testo, campiEstratti, dataScadenza }));
+      return allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }) =>
+        ({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }));
     });
 
     this.on('getTipologieAllegato', () => {
@@ -205,7 +205,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       }
 
       const nome = (preview.filename || 'Contratto').replace(/\.[^.]+$/, '');
-      const meta = preview.metadati || {};
+      const metadatiFinali = (req.data.metadati && req.data.metadati.length) ? req.data.metadati : (preview.metadati || []);
 
       const result = await cds.tx(req).run(async (tx) => {
         const { Contratto, ContrattoClausola } = cds.entities('com.reply.contrattiattivi');
@@ -222,20 +222,12 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         await tx.run(INSERT.into(Contratto).entries({
           ID: contrattoID,
           stato: 'BOZZA',
-          intestatario: meta.intestatario || nome,
-          societaContraente: meta.societaContraente || null,
-          oggetto: meta.oggetto || null,
-          importo: meta.importo || null,
-          codiceFiscale: meta.codiceFiscale || null,
-          dataStipula: meta.dataStipula || null,
-          dataDecorrenza: meta.dataDecorrenza || null,
-          dataScadenza: meta.dataScadenza || null,
-          categoria: meta.categoria || null,
-          responsabileControparte: meta.responsabileControparte || null,
-          emailControparte: meta.emailControparte || null,
+          intestatario: nome,
           template_ID: templateID, templateVersion_ID: versionID,
           responsabile: req.user.id
         }));
+
+        await salvaMetadati({ tx, parentType: 'Contratto', parentID: contrattoID, metadati: metadatiFinali });
 
         for (let i = 0; i < clausoleFinali.length; i++) {
           const { titolo, testo, templateTitolo } = clausoleFinali[i];
@@ -270,19 +262,24 @@ module.exports = class ComparatorService extends cds.ApplicationService {
 
           for (const a of allegatiPreview) {
             const tipoFinale = tipiCorretti.get(a.filename) || a.tipo;
-            let campiEstratti = a.campiEstratti, dataScadenza = a.dataScadenza;
+            const metadatiCorretti = (allegati || []).find(x => x.filename === a.filename);
+            let metadatiAllegato = (metadatiCorretti && metadatiCorretti.metadati && metadatiCorretti.metadati.length)
+              ? metadatiCorretti.metadati : a.metadati;
+            let dataScadenza = a.dataScadenza;
             if (tipoFinale !== a.tipo) {
               // utente ha corretto il tipo prima di confermare: i campi estratti in preview
               // erano basati sul tipo originale, vanno rifatti sul tipo corretto
-              ({ campiEstratti, dataScadenza } = await estraiCampiAllegato(tipoFinale, a.testo));
+              ({ metadati: metadatiAllegato, dataScadenza } = await estraiCampiAllegato(tipoFinale, a.testo));
             }
+            const allegatoID = cds.utils.uuid();
             await tx.run(INSERT.into(ContrattoAllegato).entries({
-              ID: cds.utils.uuid(), contratto_ID: contrattoID,
+              ID: allegatoID, contratto_ID: contrattoID,
               filename: a.filename, mimeType: a.mimeType, contenuto: a.contenuto,
               tipo: tipoFinale,
               confidenza: a.confidenza, metodoRiconoscimento: a.metodoRiconoscimento,
-              testo: a.testo, campiEstratti, dataScadenza
+              testo: a.testo, dataScadenza
             }));
+            await salvaMetadati({ tx, parentType: 'ContrattoAllegato', parentID: allegatoID, metadati: metadatiAllegato });
           }
         }
 

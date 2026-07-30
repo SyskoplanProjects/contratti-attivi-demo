@@ -25,19 +25,30 @@ type AllegatoDaClassificare {
   file     : LargeString;
 }
 
+type MetadatoConfermato {
+  campo                  : String(100);
+  etichetta              : String(200);
+  sezione                : String(100);
+  valore                 : String;
+  valoreOriginaleAI      : String;
+  confidenza             : Decimal(5,4);
+  modificatoManualmente  : Boolean;
+}
+
 type AllegatoClassificato {
   filename             : String;
   tipo                 : String;
   confidenza           : Decimal(5,4);
   metodoRiconoscimento : String;
   testo                : LargeString;
-  campiEstratti        : LargeString;
+  metadati             : array of MetadatoConfermato;
   dataScadenza         : Date;
 }
 
 type AllegatoConferma {
   filename : String;
   tipo     : String;
+  metadati : array of MetadatoConfermato;
 }
 
 type TipologiaAllegato {
@@ -54,7 +65,7 @@ service ComparatorService @(requires: 'Utente') {
   };
   action classificaAllegati(previewID: UUID, allegati: array of AllegatoDaClassificare) returns array of AllegatoClassificato;
   action getTipologieAllegato() returns array of TipologiaAllegato;
-  action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma) returns Contratto;
+  action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
 
   type ComplianceResult {
