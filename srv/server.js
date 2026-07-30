@@ -3,9 +3,10 @@ const express = require('express');
 const multer = require('multer');
 const { parseFile } = require('./import-handler');
 const { eseguiImport } = require('./lib/import-commit');
-const { estraiClausoleConFallback, trovaMatch, buildCandidatiPerCodice } = require('./lib/ai-import');
+const { estraiClausoleConFallback, trovaMatch, buildCandidatiPerCodice, extractTextMultiFormato } = require('./lib/ai-import');
 const previewStore = require('./lib/preview-store');
 const { calcolaCoverage } = require('./lib/comparator-engine');
+const { estraiCampiAllegato } = require('./lib/allegato-extractor');
 const { generaDocxContratto } = require('./lib/export-docx');
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -157,8 +158,19 @@ cds.on('bootstrap', (app) => {
       const result = await cds.tx(tx =>
         calcolaCoverage(buffer, filename, mimeType, templateID, tx)
       );
-      const previewID = previewStore.put({ templateID, filename, clausole: result.clausole, coveragePercent: result.coveragePercent });
-      res.status(200).json({ previewID, coveragePercent: result.coveragePercent, clausole: result.clausole });
+
+      // Estrai metadati del contratto (tipo CONTRATTO, con confidenza per campo) dal testo del documento,
+      // simmetrico a ComparatorService.calcolaCoverage in comparator-service.js
+      let metadati = [];
+      try {
+        const testo = await extractTextMultiFormato(buffer, mimeType, filename);
+        ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo));
+      } catch (e) {
+        console.warn('[uploadCoverage] estrazione metadati fallita, uso fallback:', e.message);
+      }
+
+      const previewID = previewStore.put({ templateID, filename, clausole: result.clausole, coveragePercent: result.coveragePercent, metadati });
+      res.status(200).json({ previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati });
     } catch (e) {
       res.status(500).json({ code: 'COVERAGE_FAILED', message: e.message });
     }
