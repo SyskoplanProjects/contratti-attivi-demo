@@ -221,3 +221,13 @@ entity Anomalia : cuid, managed {
   allegato        : LargeString;
   filenameAllegato : String(200);
 }
+
+entity EsempioClassificazione : cuid, managed {
+  categoria           : String(50) not null;
+  sottoTipo           : String(50);
+  testo               : LargeString not null;
+  embedding           : LargeString;
+  fonte               : String(20) enum { correzione; conferma; };
+  categoriaProposta    : String(50);
+  confidenzaProposta   : Decimal(5,4);
+}
