@@ -285,6 +285,10 @@ function (BaseController, MessageBox) {
       }
     },
 
+    onOpenDashboard: function () {
+      sap.ui.core.UIComponent.getRouterFor(this).navTo("dashboard");
+    },
+
     onCreaManualmente: function () {
       window.location.href = "/inserimento/webapp/index.html#/manuale";
     },
