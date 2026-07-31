@@ -7,6 +7,8 @@ const { classificaAllegato } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
 const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
+const { buildSnapshotData } = require('./lib/snapshot-utils');
+const { generaAnomalie } = require('./lib/anomalie-utils');
 
 // La confidenza LLM non passa dall'arrotondamento del path embedding: coerziona a 0 i
 // valori non numerici e arrotonda a 4 decimali (campo Decimal(5,4) su DB).
@@ -329,6 +331,36 @@ module.exports = class ComparatorService extends cds.ApplicationService {
             }));
             await salvaMetadati({ tx, parentType: 'ContrattoAllegato', parentID: allegatoID, metadati: metadatiAllegato });
           }
+        }
+
+        const { EsitoVerificaContratto, Anomalia, ContrattoAllegato } = cds.entities('com.reply.contrattiattivi');
+
+        const allegatiSalvati = await tx.run(SELECT.from(ContrattoAllegato).where({ contratto_ID: contrattoID }));
+        const snapshot = await buildSnapshotData(allegatiSalvati, preview.testo || '');
+
+        const esitoID = cds.utils.uuid();
+        await tx.run(INSERT.into(EsitoVerificaContratto).entries({
+          ID: esitoID, contratto_ID: contrattoID, dataVerifica: new Date().toISOString(),
+          completezzaPercent: snapshot.percentuale,
+          allegatiAttesi: snapshot.attesi.map(a => ({ codice: a.allegatoAtteso, presente: a.presente, filename: a.filename })),
+          deroghe: snapshot.deroghe.map(d => ({ articolo: d.articolo, esito: d.esito, dettaglio: d.dettaglio, riferimentoComma: d.riferimentoComma })),
+          totaleAllegati: snapshot.totaleAllegati,
+          allegatiPresenti: snapshot.allegatiPresenti,
+          confidenzaMedia: snapshot.confidenzaMedia,
+          fonte: preview.contractID ? 'CONTRATTO' : 'AVVIO_VERIFICA'
+        }));
+
+        const anomalie = generaAnomalie({
+          attesi: snapshot.attesi,
+          percentuale: snapshot.percentuale,
+          deroghe: snapshot.deroghe,
+          allegati: allegatiSalvati
+        });
+        for (const a of anomalie) {
+          await tx.run(INSERT.into(Anomalia).entries({
+            ID: cds.utils.uuid(), esitoVerifica_ID: esitoID,
+            tipo: a.tipo, riferimento: a.riferimento, dettaglio: a.dettaglio
+          }));
         }
 
         return tx.run(SELECT.one.from(Contratto, contrattoID));
