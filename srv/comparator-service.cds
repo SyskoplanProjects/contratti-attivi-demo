@@ -86,6 +86,15 @@ service ComparatorService @(requires: 'Utente') {
     attesi      : array of AllegatoAttesoEsito;
     percentuale : Decimal(5,2);
   };
+  type EsitoDeroga {
+    articolo          : String;
+    esito             : String;
+    dettaglio         : LargeString;
+    riferimentoComma  : String;
+    segnali           : String;
+  }
+
+  action verificaDeroghe(previewID: UUID) returns array of EsitoDeroga;
   action getTipologieAllegato() returns array of TipologiaAllegato;
   action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
