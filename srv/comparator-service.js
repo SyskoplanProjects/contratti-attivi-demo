@@ -6,7 +6,7 @@ const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
-const { TIPOLOGIE_ALLEGATO } = require('./lib/tipologie-allegato');
+const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
 
 async function confrontaClausoleConTemplate(clausole, templateID, tx) {
   const { Template } = cds.entities('com.reply.contrattiattivi');
@@ -128,7 +128,22 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       if (!previewID) return req.reject(400, 'previewID obbligatorio');
       const preview = previewStore.get(previewID);
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente, ripetere l\'analisi');
-      if (!allegati || !allegati.length) return [];
+
+      let documentoPrincipale = { categoria: null, sottoTipo: null, confidenza: null };
+      if (preview.testo && preview.testo.trim()) {
+        const { tipo, confidenza } = await classificaAllegato(preview.testo);
+        const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
+        documentoPrincipale = {
+          categoria: categoriaMacro(tipo),
+          sottoTipo: (tipologia && tipologia.sottoTipologia) ? tipo : null,
+          confidenza
+        };
+      }
+
+      if (!allegati || !allegati.length) {
+        previewStore.update(previewID, { documentoPrincipale, allegati: [] });
+        return { documentoPrincipale, allegati: [] };
+      }
 
       const allegatiClassificati = [];
       for (const a of allegati) {
@@ -152,15 +167,18 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         });
       }
 
-      previewStore.update(previewID, { allegati: allegatiClassificati });
+      previewStore.update(previewID, { allegati: allegatiClassificati, documentoPrincipale });
 
-      return allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }) =>
-        ({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }));
+      return {
+        documentoPrincipale,
+        allegati: allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }) =>
+          ({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }))
+      };
     });
 
     this.on('getTipologieAllegato', () => {
       return [
-        ...TIPOLOGIE_ALLEGATO.map(t => ({ codice: t.key, label: t.label })),
+        ...TIPOLOGIE_ALLEGATO.filter(t => t.key !== 'ALTRO').map(t => ({ codice: t.key, label: t.label })),
         { codice: 'ALTRO', label: 'Altro / non riconosciuto' }
       ];
     });
