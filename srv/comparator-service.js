@@ -192,6 +192,15 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       return verificaCompletezza(preview.allegati || []);
     });
 
+    this.on('verificaDeroghe', async (req) => {
+      const { previewID } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+      if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
+      const { verificaDeroghe } = require('./lib/deroghe-engine');
+      return verificaDeroghe(preview.testo || '');
+    });
+
     this.on('calcolaCoverageDaContratto', async (req) => {
       const { contractID, templateID } = req.data;
       if (!contractID || !templateID) return req.reject(400, 'contractID e templateID obbligatori');
