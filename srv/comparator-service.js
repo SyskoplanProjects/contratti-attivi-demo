@@ -486,6 +486,62 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         .where(where);
     });
 
+    this.on('getDashboardKPIs', async () => {
+      const { EsitoVerificaContratto, Anomalia } = cds.entities('com.reply.contrattiattivi');
+      const snapshots = await SELECT.from(EsitoVerificaContratto).orderBy('dataVerifica desc');
+      const anomalie = await SELECT.from(Anomalia);
+
+      const ultimoPerContratto = new Map();
+      for (const s of snapshots) {
+        if (!ultimoPerContratto.has(s.contratto_ID)) ultimoPerContratto.set(s.contratto_ID, s);
+      }
+      const ultimi = [...ultimoPerContratto.values()];
+
+      const contrattiCompleti = ultimi.filter(s => Number(s.completezzaPercent) === 100).length;
+      const completezzaMedia = ultimi.length
+        ? Math.round(ultimi.reduce((somma, s) => somma + Number(s.completezzaPercent), 0) / ultimi.length * 100) / 100
+        : 0;
+      const derogheTotali = ultimi.reduce((n, s) =>
+        n + (s.deroghe || []).filter(d => d.esito === 'derogato').length, 0);
+      const anomalieAperte = anomalie.filter(a =>
+        ['APERTA', 'ASSEGNATA', 'IN_LAVORAZIONE'].includes(a.stato)).length;
+
+      const oggi = new Date();
+      const inizio = new Date(Date.UTC(oggi.getUTCFullYear(), oggi.getUTCMonth(), oggi.getUTCDate() - 29));
+
+      const perGiorno = new Map();
+      for (const s of snapshots) {
+        const giorno = new Date(s.dataVerifica);
+        if (giorno < inizio) continue;
+        const chiave = giorno.toISOString().slice(0, 10);
+        if (!perGiorno.has(chiave)) perGiorno.set(chiave, { somma: 0, n: 0, contratti: new Set() });
+        const g = perGiorno.get(chiave);
+        g.somma += Number(s.completezzaPercent);
+        g.n++;
+        g.contratti.add(s.contratto_ID);
+      }
+
+      const andamento = [];
+      for (let i = 0; i < 30; i++) {
+        const chiave = new Date(inizio.getTime() + i * 86400000).toISOString().slice(0, 10);
+        const g = perGiorno.get(chiave);
+        andamento.push({
+          data: chiave,
+          completezzaMedia: g ? Math.round(g.somma / g.n * 100) / 100 : 0,
+          totaleContratti: g ? g.contratti.size : 0
+        });
+      }
+
+      return {
+        totaleContratti: ultimi.length,
+        completezzaMedia,
+        contrattiCompleti,
+        derogheTotali,
+        anomalieAperte,
+        andamento
+      };
+    });
+
     return super.init();
   }
 };
