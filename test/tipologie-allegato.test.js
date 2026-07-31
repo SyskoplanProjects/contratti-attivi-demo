@@ -47,3 +47,53 @@ describe('tipologie-allegato — tipo CONTRATTO', () => {
     expect(contratto.testoRiferimento).toBe(null);
   });
 });
+
+describe('tipologie-allegato — tassonomia estesa (RF2/RF5)', () => {
+  const chiavi = TIPOLOGIE_ALLEGATO.map(t => t.key);
+
+  it('include le 5 macro-categorie', () => {
+    ['CONTRATTO', 'MAIL', 'ODA', 'OFFERTA', 'FATTURA', 'ALTRO'].forEach(k => {
+      expect(chiavi).toContain(k);
+    });
+  });
+
+  it('include le sotto-tipologie Contratto', () => {
+    ['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_B', 'ALLEGATO_C', 'ALLEGATO_D', 'ALLEGATO_E', 'ALLEGATO_F', 'ALLEGATO_G', 'ALBERO_DECISIONALE'].forEach(k => {
+      expect(chiavi).toContain(k);
+    });
+  });
+
+  it('marca le sotto-tipologie con sottoTipologia:true', () => {
+    const sotto = TIPOLOGIE_ALLEGATO.filter(t => t.sottoTipologia).map(t => t.key);
+    ['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_E', 'ALBERO_DECISIONALE'].forEach(k => {
+      expect(sotto).toContain(k);
+    });
+  });
+
+  it('marca le macro-categorie con macro:true', () => {
+    const macro = TIPOLOGIE_ALLEGATO.filter(t => t.macro).map(t => t.key);
+    ['CONTRATTO', 'MAIL', 'ODA', 'OFFERTA', 'FATTURA', 'ALTRO'].forEach(k => {
+      expect(macro).toContain(k);
+    });
+  });
+
+  it('nessuna chiave è insieme macro e sottoTipologia', () => {
+    TIPOLOGIE_ALLEGATO.forEach(t => {
+      expect(!(t.macro && t.sottoTipologia)).toBe(true);
+    });
+  });
+
+  it('ALLEGATO_E ha campiChiave subfornitori e subresponsabili (RF5)', () => {
+    const allegatoE = TIPOLOGIE_ALLEGATO.find(t => t.key === 'ALLEGATO_E');
+    const campi = allegatoE.campiChiave.map(c => c.campo);
+    expect(campi).toContain('subfornitori');
+    expect(campi).toContain('subresponsabili');
+  });
+
+  it('ogni sotto-tipologia e macro-categoria ha testoRiferimento non-null (CONTRATTO escluso: volutamente null)', () => {
+    TIPOLOGIE_ALLEGATO.filter(t => (t.macro || t.sottoTipologia) && t.key !== 'CONTRATTO').forEach(t => {
+      expect(typeof t.testoRiferimento).toBe('string');
+      expect(t.testoRiferimento.length).toBeGreaterThan(30);
+    });
+  });
+});
