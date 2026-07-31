@@ -150,13 +150,16 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       var oData = JSON.parse(sessionStorage.getItem("coverageResult") || "{}");
       var oAllegatiModel = this.getView().getModel("allegati");
       var aAllegati = oAllegatiModel ? oAllegatiModel.getProperty("/value").map(function (a) {
-        return { filename: a.filename, tipo: a.tipo };
+        var aMetadatiAllegato = (a.sezioni || []).reduce(function (acc, s) { return acc.concat(s.campi); }, []);
+        return { filename: a.filename, tipo: a.tipo, metadati: aMetadatiAllegato };
       }) : [];
+      var oWizardModel = this.getView().getModel("wizardSezioni");
+      var aMetadati = oWizardModel ? oWizardModel.getData().reduce(function (acc, s) { return acc.concat(s.campi); }, []) : [];
       try {
         var oResp = await fetch("/comparator/confirmCoverage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ previewID: oData.previewID, clausole: oData.clausole, allegati: aAllegati, metadati: [] })
+          body: JSON.stringify({ previewID: oData.previewID, clausole: oData.clausole, allegati: aAllegati, metadati: aMetadati })
         });
         if (!oResp.ok) {
           var oErr = await oResp.text();
