@@ -167,11 +167,16 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       }) : [];
       var oWizardModel = this.getView().getModel("wizardSezioni");
       var aMetadati = oWizardModel ? oWizardModel.getData().reduce(function (acc, s) { return acc.concat(s.campi); }, []) : [];
+      var oDocPrincipaleModel = this.getView().getModel("documentoPrincipale");
+      var sTipoDocumento = oDocPrincipaleModel ? oDocPrincipaleModel.getProperty("/codiceSelezionato") : null;
       try {
         var oResp = await fetch("/comparator/confirmCoverage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ previewID: oData.previewID, clausole: oData.clausole, allegati: aAllegati, metadati: aMetadati })
+          body: JSON.stringify({
+            previewID: oData.previewID, clausole: oData.clausole, allegati: aAllegati, metadati: aMetadati,
+            tipoDocumento: sTipoDocumento
+          })
         });
         if (!oResp.ok) {
           var oErr = await oResp.text();
