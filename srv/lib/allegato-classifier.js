@@ -1,6 +1,7 @@
 const openai = require('../modules/openai-module');
 const { cosineSimilarity } = require('./ai-import');
 const { TIPOLOGIE_ALLEGATO, SOGLIA_TIPO_ALLEGATO } = require('./tipologie-allegato');
+const { caricaEsempi } = require('./classificazione-esempi');
 
 let _embeddingsRiferimentoCache = null;
 
@@ -10,9 +11,14 @@ async function _embeddingsRiferimento() {
     const conRiferimento = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
     const testi = conRiferimento.map(t => t.testoRiferimento);
     const vettori = await openai.embeddings(testi);
-    _embeddingsRiferimentoCache = conRiferimento.map((t, i) => ({ ...t, embedding: vettori[i] }));
+    _embeddingsRiferimentoCache = conRiferimento.map((t, i) => ({ key: t.key, embedding: vettori[i] }));
   }
   return _embeddingsRiferimentoCache;
+}
+
+async function _poolEmbeddings() {
+  const [statici, esempi] = await Promise.all([_embeddingsRiferimento(), caricaEsempi()]);
+  return [...statici, ...esempi];
 }
 
 async function _classificaConLLM(testo) {
@@ -34,11 +40,11 @@ async function _classificaConLLM(testo) {
 async function classificaAllegato(testo) {
   if (!testo || !testo.trim()) return { tipo: 'ALTRO', confidenza: null, metodoRiconoscimento: 'nessuno' };
 
-  const riferimenti = await _embeddingsRiferimento();
+  const pool = await _poolEmbeddings();
   const [embeddingTesto] = await openai.embeddings([testo]);
 
   let bestSim = 0, bestKey = null;
-  for (const rif of riferimenti) {
+  for (const rif of pool) {
     const sim = cosineSimilarity(embeddingTesto, rif.embedding);
     if (sim > bestSim) { bestSim = sim; bestKey = rif.key; }
   }

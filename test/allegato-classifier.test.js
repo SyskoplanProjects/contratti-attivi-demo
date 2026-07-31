@@ -1,3 +1,6 @@
+const path = require('path');
+const cds = require('@sap/cds');
+
 const mockEmbeddings = jest.fn();
 const mockChatJSON = jest.fn();
 
@@ -23,6 +26,9 @@ describe('allegato-classifier', () => {
     // cache interna dei profili di riferimento è a livello di modulo:
     // reset per avere, ad ogni test, la prima chiamata a embeddings() dedicata ai profili.
     jest.resetModules();
+    // allegato-classifier ora dipende da classificazione-esempi che usa cds.entities:
+    // ri-registrare l'istanza bootstrappata da cds.test() dopo il reset.
+    jest.doMock('@sap/cds', () => cds);
     ({ classificaAllegato } = require('../srv/lib/allegato-classifier'));
   });
 
@@ -94,5 +100,44 @@ describe('allegato-classifier', () => {
     expect(firstCall[0]).toHaveLength(nConRiferimento);
     expect(firstCall[0]).not.toContain(null);
     expect(firstCall[0]).not.toContain(undefined);
+  });
+});
+
+const { POST } = cds.test(path.join(__dirname, '..'));
+
+describe('classificaAllegato — pool esteso con esempi reali', () => {
+  beforeEach(() => {
+    mockEmbeddings.mockReset();
+    jest.resetModules();
+    // jest.resetModules() svuota anche @sap/cds dal registry: lo ri-registriamo
+    // con doMock così classificazione-esempi.js riusa l'istanza bootstrappata da
+    // cds.test() (entity EsempioClassificazione + DB in-memory già deployati).
+    jest.doMock('@sap/cds', () => cds);
+  });
+
+  it('un esempio reale salvato per MAIL vince sul best-match statico quando più simile', async () => {
+    // Baseline statica: ogni testoRiferimento riceve un embedding "neutro" [0,0,1]
+    // (nessuno supera la soglia 0.75 da solo). L'esempio reale per MAIL riceve [1,0,0],
+    // identico al documento da classificare: deve vincere lui.
+    mockEmbeddings.mockImplementation((testi) => Promise.resolve(testi.map(() => [0, 0, 1])));
+
+    const conRiferimento = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
+
+    const { salvaEsempio } = require('../srv/lib/classificazione-esempi');
+    mockEmbeddings.mockImplementationOnce(() => Promise.resolve([[1, 0, 0]])); // embedding esempio salvato
+    await salvaEsempio({
+      categoria: 'MAIL', sottoTipo: null, testo: 'Da: mario@acme.it Oggetto: rinnovo',
+      fonte: 'correzione', categoriaProposta: 'ODA', confidenzaProposta: 0.5
+    });
+
+    const { classificaAllegato } = require('../srv/lib/allegato-classifier');
+    // Ordine chiamate dentro classificaAllegato: prima i testiRiferimento statici (pool),
+    // poi il documento. Quindi: once per i riferimenti statici, poi once per il documento.
+    mockEmbeddings.mockImplementationOnce(() => Promise.resolve(conRiferimento.map(() => [0, 0, 1]))); // embedding riferimenti statici
+    mockEmbeddings.mockImplementationOnce(() => Promise.resolve([[1, 0, 0]])); // embedding documento da classificare
+    const risultato = await classificaAllegato('Da: luigi@fornitore.it Oggetto: proroga contratto');
+
+    expect(risultato.tipo).toBe('MAIL');
+    expect(risultato.metodoRiconoscimento).toBe('embedding');
   });
 });
