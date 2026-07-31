@@ -420,6 +420,72 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       return result;
     });
 
+    const { Anomalia } = cds.entities('com.reply.contrattiattivi');
+
+    const getAnomalia = async (req, anomaliaID) => {
+      const anomalia = await SELECT.one.from(Anomalia, anomaliaID);
+      if (!anomalia) { req.reject(404, 'Anomalia non trovata'); return null; }
+      return anomalia;
+    };
+
+    this.on('assegnaAnomalia', async (req) => {
+      const { anomaliaID, assegnatario } = req.data;
+      if (!assegnatario) return req.reject(400, 'assegnatario obbligatorio');
+      const anomalia = await getAnomalia(req, anomaliaID);
+      if (!anomalia) return;
+      if (anomalia.stato !== 'APERTA') return req.reject(409, 'Solo anomalie APERTA possono essere assegnate');
+      await UPDATE(Anomalia, anomaliaID).with({ stato: 'ASSEGNATA', assegnatario });
+      return SELECT.one.from(Anomalia, anomaliaID);
+    });
+
+    this.on('avviaLavorazione', async (req) => {
+      const { anomaliaID } = req.data;
+      const anomalia = await getAnomalia(req, anomaliaID);
+      if (!anomalia) return;
+      if (anomalia.stato !== 'ASSEGNATA') return req.reject(409, 'Solo anomalie ASSEGNATE possono passare in lavorazione');
+      await UPDATE(Anomalia, anomaliaID).with({ stato: 'IN_LAVORAZIONE' });
+      return SELECT.one.from(Anomalia, anomaliaID);
+    });
+
+    this.on('risolviAnomalia', async (req) => {
+      const { anomaliaID, nota, file, filename } = req.data;
+      const anomalia = await getAnomalia(req, anomaliaID);
+      if (!anomalia) return;
+      if (anomalia.stato !== 'IN_LAVORAZIONE') return req.reject(409, 'Solo anomalie IN_LAVORAZIONE possono essere risolte');
+      await UPDATE(Anomalia, anomaliaID).with({
+        stato: 'RISOLTA',
+        notaCorrettiva: nota || null,
+        allegato: file || null,
+        filenameAllegato: filename || null
+      });
+      return SELECT.one.from(Anomalia, anomaliaID);
+    });
+
+    this.on('chiudiAnomalia', async (req) => {
+      const { anomaliaID, nota } = req.data;
+      const anomalia = await getAnomalia(req, anomaliaID);
+      if (!anomalia) return;
+      if (anomalia.stato === 'RISOLTA' || anomalia.stato === 'CHIUSA_SENZA_AZIONE') {
+        return req.reject(409, 'Anomalia già chiusa');
+      }
+      await UPDATE(Anomalia, anomaliaID).with({ stato: 'CHIUSA_SENZA_AZIONE', notaCorrettiva: nota || null });
+      return SELECT.one.from(Anomalia, anomaliaID);
+    });
+
+    this.on('getAnomalie', async (req) => {
+      const { stato, tipo } = req.data;
+      const where = {};
+      if (stato) where.stato = stato;
+      if (tipo) where.tipo = tipo;
+      return SELECT.from(Anomalia)
+        .columns(
+          'ID as anomaliaID', 'tipo', 'riferimento', 'stato', 'assegnatario', 'createdAt as dataApertura',
+          'esitoVerifica.contratto.ID as contrattoID',
+          'esitoVerifica.contratto.intestatario as intestatario'
+        )
+        .where(where);
+    });
+
     return super.init();
   }
 };
