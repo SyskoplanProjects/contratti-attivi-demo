@@ -97,26 +97,24 @@
 
         <VBox id="allegatiTableWrap" visible="false" class="app-card app-card-padded sapUiSmallMarginTop">
           <Label text="Allegati rilevati" class="sapUiSmallMarginBottom" />
-          <Table id="allegatiTable" items="{allegati>/value}">
-            <columns>
-              <Column><Text text="Nome file" /></Column>
-              <Column width="16rem"><Text text="Tipo documento" /></Column>
-              <Column width="8rem"><Text text="Confidenza" /></Column>
-              <Column width="8rem"><Text text="" /></Column>
-            </columns>
-            <items>
-              <ColumnListItem>
-                <cells>
-                  <Text text="{allegati>filename}" />
-                  <Select selectedKey="{allegati>tipo}" items="{tipologie>/value}">
+          <VBox id="allegatiPanelList" items="{allegati>/value}">
+            <Panel expandable="true" expanded="false" class="app-card sapUiTinyMarginBottom">
+              <headerToolbar>
+                <Toolbar>
+                  <Title text="{allegati>filename}" level="H5" />
+                  <ToolbarSpacer />
+                  <Select selectedKey="{allegati>tipo}" items="{tipologie>/value}" width="12rem" class="sapUiTinyMarginEnd">
                     <core:Item key="{tipologie>codice}" text="{tipologie>label}" />
                   </Select>
-                  <Text text="{path: 'allegati>confidenza', formatter: '.formatter.confidenzaText'}" />
+                  <Text text="{path: 'allegati>confidenza', formatter: '.formatter.confidenzaText'}" class="sapUiTinyMarginEnd" />
                   <ObjectStatus text="Anteprima" icon="sap-icon://search" press=".onAnteprimaAllegato" active="true" />
-                </cells>
-              </ColumnListItem>
-            </items>
-          </Table>
+                </Toolbar>
+              </headerToolbar>
+              <content>
+                <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.MetadataWizardAllegato" type="XML" />
+              </content>
+            </Panel>
+          </VBox>
         </VBox>
 
         <HBox class="app-btn-group sapUiSmallMarginTop" id="confirmBar">

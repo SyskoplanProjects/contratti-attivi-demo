@@ -1,0 +1,30 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m" xmlns:l="sap.ui.layout">
+  <l:Splitter height="50vh" class="sapUiSmallMarginTop">
+    <VBox class="sapUiSmallMargin" width="60%" items="{allegati>sezioni}">
+      <Panel headerText="{allegati>sezione}" expandable="true" expanded="true"
+        class="sapUiTinyMarginBottom">
+        <Table items="{allegati>campi}" noDataText="Nessun campo per questa sezione.">
+          <columns>
+            <Column width="30%"><Text text="Campo" /></Column>
+            <Column><Text text="Valore" /></Column>
+            <Column width="8rem"><Text text="Confidenza" /></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <Text text="{allegati>etichetta}" />
+                <Input value="{allegati>valore}" liveChange=".onCampoMetadatoAllegatoModificato" />
+                <ObjectStatus text="{= ${allegati>confidenza} !== null &amp;&amp; ${allegati>confidenza} !== undefined ? Math.round(${allegati>confidenza} * 100) + '%' : '—' }"
+                  state="{path: 'allegati>confidenza', formatter: '.metadataWizardHelper.statoConfidenza'}" />
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </Panel>
+    </VBox>
+    <VBox class="sapUiSmallMargin" width="40%">
+      <Text text="Testo estratto dal documento" class="app-hint-text sapUiTinyMarginBottom" />
+      <TextArea value="{allegati>testo}" editable="false" width="100%" height="45vh" />
+    </VBox>
+  </l:Splitter>
+</core:FragmentDefinition>

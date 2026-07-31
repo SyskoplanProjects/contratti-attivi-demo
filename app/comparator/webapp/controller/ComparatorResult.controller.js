@@ -129,7 +129,9 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       var aTips = (oTipsData && oTipsData.value) || (Array.isArray(oTipsData) ? oTipsData : []);
       this.getView().setModel(new JSONModel({ value: aTips, has: aTips.length > 0 }), "tips");
 
-      var aAllegati = JSON.parse(sessionStorage.getItem("allegatiResult") || "[]");
+      var aAllegati = JSON.parse(sessionStorage.getItem("allegatiResult") || "[]").map(function (a) {
+        return Object.assign({}, a, { sezioni: metadataWizardHelper.raggruppaPerSezione(a.metadati || []) });
+      });
       if (aAllegati.length) {
         this.getView().setModel(new JSONModel({ value: aAllegati }), "allegati");
         this.byId("allegatiTableWrap").setVisible(true);
@@ -181,6 +183,12 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
 
     onCampoMetadatoModificato: function (oEvent) {
       var oCtx = oEvent.getSource().getBindingContext('wizardSezioni');
+      if (!oCtx) return;
+      oCtx.getModel().setProperty(oCtx.getPath() + '/modificatoManualmente', true);
+    },
+
+    onCampoMetadatoAllegatoModificato: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext('allegati');
       if (!oCtx) return;
       oCtx.getModel().setProperty(oCtx.getPath() + '/modificatoManualmente', true);
     },
