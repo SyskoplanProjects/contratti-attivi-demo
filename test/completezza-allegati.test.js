@@ -26,7 +26,7 @@ describe('verificaCompletezza — allegati attesi per CONTRATTO (RF4)', () => {
       allegati: attesi.map((tipo, i) => ({ filename: tipo + '.pdf', tipo }))
     });
 
-    const resp = await POST('/comparator/verificaCompletezza', { previewID }, { auth: MOCK_USER });
+    const resp = await POST('/comparator/verificaCompletezza', { previewID, allegati: [] }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
     expect(resp.data.attesi).toHaveLength(9);
@@ -43,7 +43,7 @@ describe('verificaCompletezza — allegati attesi per CONTRATTO (RF4)', () => {
       allegati: [{ filename: 'cgc.pdf', tipo: 'CGC' }]
     });
 
-    const resp = await POST('/comparator/verificaCompletezza', { previewID }, { auth: MOCK_USER });
+    const resp = await POST('/comparator/verificaCompletezza', { previewID, allegati: [] }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
     const cgc = resp.data.attesi.find(a => a.allegatoAtteso === 'CGC');
@@ -63,7 +63,7 @@ describe('verificaCompletezza — allegati attesi per CONTRATTO (RF4)', () => {
       coveragePercent: 100
     });
 
-    const resp = await POST('/comparator/verificaCompletezza', { previewID }, { auth: MOCK_USER });
+    const resp = await POST('/comparator/verificaCompletezza', { previewID, allegati: [] }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
     expect(resp.data.attesi.every(a => !a.presente)).toBe(true);
@@ -71,7 +71,34 @@ describe('verificaCompletezza — allegati attesi per CONTRATTO (RF4)', () => {
   });
 
   it('reject 410 se la preview non esiste', async () => {
-    await expect(POST('/comparator/verificaCompletezza', { previewID: cds.utils.uuid() }, { auth: MOCK_USER }))
+    await expect(POST('/comparator/verificaCompletezza', { previewID: cds.utils.uuid(), allegati: [] }, { auth: MOCK_USER }))
       .rejects.toMatchObject({ response: { status: 410 } });
+  });
+
+  it('usa gli allegati corretti passati come parametro al posto di quelli stale della preview', async () => {
+    const previewID = previewStore.put({
+      templateID: cds.utils.uuid(),
+      filename: 'contratto-corrected.pdf',
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'x', stato: 'PRESENTE', similarity: 0.9 }],
+      coveragePercent: 100,
+      // preview stale: CGC malclassificata come ALTRO, corretta nel wizard solo a livello UI
+      allegati: [{ filename: 'cgc.pdf', tipo: 'ALTRO' }]
+    });
+
+    const resp = await POST('/comparator/verificaCompletezza', {
+      previewID,
+      allegati: [
+        { filename: 'cgc.pdf', tipo: 'CGC' },
+        { filename: 'cpc.pdf', tipo: 'CPC' }
+      ]
+    }, { auth: MOCK_USER });
+
+    expect(resp.status).toBe(200);
+    const cgc = resp.data.attesi.find(a => a.allegatoAtteso === 'CGC');
+    const cpc = resp.data.attesi.find(a => a.allegatoAtteso === 'CPC');
+    expect(cgc.presente).toBe(true);
+    expect(cgc.filename).toBe('cgc.pdf');
+    expect(cpc.presente).toBe(true);
+    expect(resp.data.percentuale).toBeGreaterThan(0);
   });
 });

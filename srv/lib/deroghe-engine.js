@@ -18,10 +18,33 @@ const ARTICOLI_CRITICI = [
 
 const SYSTEM_PROMPT = `Sei un assistente che verifica se un contratto presenta deroghe rispetto agli articoli critici delle Condizioni Generali di Contratto (CGC) standard del Gruppo. Per ogni articolo indica l'esito: "conforme" se il contratto rispetta lo standard, "derogato" se presenta una deroga rispetto ai segnali elencati, "non_determinabile" se dal testo non si può stabilire. Rispondi SOLO con un oggetto JSON nella forma: { "risultati": [ { "articolo": "...", "esito": "conforme|derogato|non_determinabile", "dettaglio": "...", "riferimentoComma": "...", "segnali": "..." } ] }.`;
 
+const ESITI_VALIDI = ['conforme', 'derogato', 'non_determinabile'];
+
 function _esitiNonDeterminabili() {
   return ARTICOLI_CRITICI.map(a => ({
     articolo: a.articolo, esito: 'non_determinabile', dettaglio: '', riferimentoComma: '', segnali: ''
   }));
+}
+
+// Normalizza la risposta LLM: solo articoli critici, esito nell'enum, un esito per articolo.
+function _normalizzaRisultati(risultati) {
+  const perArticolo = new Map();
+  for (const r of (risultati || [])) {
+    const articolo = r && r.articolo;
+    if (!ARTICOLI_CRITICI.some(a => a.articolo === articolo)) continue;
+    if (perArticolo.has(articolo)) continue; // duplicato: tiene il primo
+    perArticolo.set(articolo, {
+      articolo,
+      esito: ESITI_VALIDI.includes(r.esito) ? r.esito : 'non_determinabile',
+      dettaglio: r.dettaglio || '',
+      riferimentoComma: r.riferimentoComma || '',
+      segnali: r.segnali || ''
+    });
+  }
+  return ARTICOLI_CRITICI.map(a =>
+    perArticolo.get(a.articolo) || {
+      articolo: a.articolo, esito: 'non_determinabile', dettaglio: '', riferimentoComma: '', segnali: ''
+    });
 }
 
 async function verificaDeroghe(testoDocumento) {
@@ -34,7 +57,7 @@ async function verificaDeroghe(testoDocumento) {
   try {
     const risposta = await openai.chatJSON(SYSTEM_PROMPT, userMessage);
     const risultati = (risposta && risposta.risultati) || [];
-    return risultati.length ? risultati : _esitiNonDeterminabili();
+    return risultati.length ? _normalizzaRisultati(risultati) : _esitiNonDeterminabili();
   } catch (e) {
     console.warn('[deroghe-engine] verifica deroghe fallita:', e.message);
     return _esitiNonDeterminabili();

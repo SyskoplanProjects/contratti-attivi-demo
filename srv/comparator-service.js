@@ -8,6 +8,14 @@ const { estraiCampiAllegato } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
 const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
 
+// La confidenza LLM non passa dall'arrotondamento del path embedding: coerziona a 0 i
+// valori non numerici e arrotonda a 4 decimali (campo Decimal(5,4) su DB).
+function _normalizzaConfidenza(confidenza) {
+  const n = Number(confidenza);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 10000) / 10000;
+}
+
 async function confrontaClausoleConTemplate(clausole, templateID, tx) {
   const { Template } = cds.entities('com.reply.contrattiattivi');
   const oTemplate = await tx.run(SELECT.one.from(Template, templateID));
@@ -136,7 +144,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         documentoPrincipale = {
           categoria: categoriaMacro(tipo),
           sottoTipo: (tipologia && tipologia.sottoTipologia) ? tipo : null,
-          confidenza
+          confidenza: _normalizzaConfidenza(confidenza)
         };
       }
 
@@ -163,7 +171,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         const { metadati, dataScadenza } = await estraiCampiAllegato(tipo, testo);
         allegatiClassificati.push({
           filename: a.filename, mimeType, contenuto: a.file,
-          tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza
+          tipo, confidenza: _normalizzaConfidenza(confidenza), metodoRiconoscimento, testo, metadati, dataScadenza
         });
       }
 
@@ -184,12 +192,15 @@ module.exports = class ComparatorService extends cds.ApplicationService {
     });
 
     this.on('verificaCompletezza', async (req) => {
-      const { previewID } = req.data;
+      const { previewID, allegati } = req.data;
       if (!previewID) return req.reject(400, 'previewID obbligatorio');
       const preview = previewStore.get(previewID);
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
       const { verificaCompletezza } = require('./lib/allegati-attesi');
-      return verificaCompletezza(preview.allegati || []);
+      // Gli allegati corretti arrivano dal wizard (parametro): la preview può contenere
+      // tipi stale se l'utente ha corretto la classificazione a mano.
+      const allegatiEffettivi = (allegati && allegati.length) ? allegati : (preview.allegati || []);
+      return verificaCompletezza(allegatiEffettivi);
     });
 
     this.on('verificaDeroghe', async (req) => {

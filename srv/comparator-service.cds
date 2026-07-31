@@ -82,7 +82,7 @@ service ComparatorService @(requires: 'Utente') {
     filename       : String;
   }
 
-  action verificaCompletezza(previewID: UUID) returns {
+  action verificaCompletezza(previewID: UUID, allegati: array of AllegatoClassificato null) returns {
     attesi      : array of AllegatoAttesoEsito;
     percentuale : Decimal(5,2);
   };
