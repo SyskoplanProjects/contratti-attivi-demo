@@ -183,6 +183,15 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       ];
     });
 
+    this.on('verificaCompletezza', async (req) => {
+      const { previewID } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+      if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
+      const { verificaCompletezza } = require('./lib/allegati-attesi');
+      return verificaCompletezza(preview.allegati || []);
+    });
+
     this.on('calcolaCoverageDaContratto', async (req) => {
       const { contractID, templateID } = req.data;
       if (!contractID || !templateID) return req.reject(400, 'contractID e templateID obbligatori');

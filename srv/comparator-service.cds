@@ -75,6 +75,17 @@ service ComparatorService @(requires: 'Utente') {
     documentoPrincipale : ClassificazioneDocumento;
     allegati            : array of AllegatoClassificato;
   };
+  type AllegatoAttesoEsito {
+    allegatoAtteso : String;
+    etichetta      : String;
+    presente       : Boolean;
+    filename       : String;
+  }
+
+  action verificaCompletezza(previewID: UUID) returns {
+    attesi      : array of AllegatoAttesoEsito;
+    percentuale : Decimal(5,2);
+  };
   action getTipologieAllegato() returns array of TipologiaAllegato;
   action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
