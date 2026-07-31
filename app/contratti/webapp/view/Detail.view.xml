@@ -74,11 +74,11 @@
             <Button text="Allegati" icon="sap-icon://attachment" press="onMostraAllegati" class="app-btn app-btn-outline app-btn-neutral" />
             <Button text="Archivia" icon="sap-icon://folder" press="onArchiviaContratto" class="app-btn app-btn-outline app-btn-neutral" visible="{= ${contesto>/stato} === 'APPROVATO' }" />
           </HBox>
-          <HBox class="app-btn-group" visible="{path: 'contesto>/stato', formatter: '.formatter.isNotStatoApprovato', targetType: 'any'}">
+          <HBox class="app-btn-group" core:require="{formatter: 'com/reply/contrattiattivi/app/formatter'}" visible="{path: 'contesto>/stato', formatter: '.formatter.isNotStatoApprovato', targetType: 'any'}">
             <Button text="Invia a revisione" press="onInviaRevisione" class="app-btn app-btn-primary" visible="{path: 'contesto>/stato', formatter: '.formatter.isStatoBozza', targetType: 'any'}" />
             <Button text="Riapri bozza" press="onRiapriBozza" class="app-btn app-btn-outline app-btn-warning-outline" visible="{path: 'contesto>/stato', formatter: '.formatter.isStatoInRevisione', targetType: 'any'}" />
-            <Button text="Approva" press="onApprovaRevisione" class="app-btn app-btn-success" visible="{= .formatter.isStatoInRevisione(${contesto>/stato}) &amp;&amp; ${roleModel>/isRevisore} }" />
-            <Button text="Rifiuta" press="onRifiutaRevisione" class="app-btn app-btn-danger" visible="{= .formatter.isStatoInRevisione(${contesto>/stato}) &amp;&amp; ${roleModel>/isRevisore} }" />
+            <Button text="Approva" press="onApprovaRevisione" class="app-btn app-btn-success" visible="{= formatter.isStatoInRevisione(${contesto>/stato}) &amp;&amp; ${roleModel>/isRevisore} }" />
+            <Button text="Rifiuta" press="onRifiutaRevisione" class="app-btn app-btn-danger" visible="{= formatter.isStatoInRevisione(${contesto>/stato}) &amp;&amp; ${roleModel>/isRevisore} }" />
           </HBox>
         </HBox>
 
