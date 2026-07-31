@@ -63,6 +63,7 @@ const TIPOLOGIE_ALLEGATO = [
     key: 'CONTRATTO',
     label: 'Contratto',
     testoRiferimento: null,
+    macro: true,
     campiChiave: [
       { campo: 'titoloContratto', etichetta: 'Titolo Contratto', sezione: 'Dati principali', descrizione: 'Denominazione ufficiale del contratto o accordo' },
       { campo: 'fornitore', etichetta: 'Fornitore', sezione: 'Dati principali', descrizione: 'Ragione sociale della controparte contrattuale (fornitore/appaltatore)' },
@@ -100,9 +101,112 @@ const TIPOLOGIE_ALLEGATO = [
       { campo: 'articoloRisoluzione', etichetta: 'Articolo: Risoluzione Contrattuale', sezione: 'Clausole di rischio', descrizione: 'Articolo/allegato con eventi che portano a risoluzione del contratto' },
       { campo: 'articoloTempoAssistenza', etichetta: 'Articolo: Tempo Assistenza Dopo Interruzione', sezione: 'Clausole di rischio', descrizione: 'Articolo/allegato sul periodo di assistenza post-risoluzione' }
     ]
+  },
+  {
+    key: 'CGC',
+    label: 'CGC (Condizioni Generali di Contratto)',
+    sottoTipologia: true,
+    testoRiferimento: 'Condizioni Generali di Contratto. Disciplina il rapporto tra la banca e il fornitore di servizi ICT: disposizioni generali, oggetto e conclusione del contratto, obbligazioni e facoltà delle parti, disposizioni finali, clausole vessatorie approvate ai sensi degli artt. 1341-1342 c.c.'
+  },
+  {
+    key: 'CPC',
+    label: 'CPC (Condizioni Particolari di Contratto)',
+    sottoTipologia: true,
+    testoRiferimento: 'Condizioni Particolari di Contratto. Specifiche tecniche e operative del singolo servizio: ciascun servizio erogato dall\'appaltatore alla committente è dettagliato nello specifico allegato tecnico individuato con la lettera A seguita da numero progressivo.'
+  },
+  {
+    key: 'ALLEGATO_A',
+    label: 'Allegato A — Specifiche tecniche e modalità operative',
+    sottoTipologia: true,
+    testoRiferimento: 'Allegato tecnico A. Specifiche tecniche e modalità operative di erogazione dei servizi.'
+  },
+  {
+    key: 'ALLEGATO_B',
+    label: 'Allegato B — Allegati Economici',
+    sottoTipologia: true,
+    testoRiferimento: 'Allegato economico B. Condizioni economiche del contratto: canoni, corrispettivi e modalità di fatturazione.'
+  },
+  {
+    key: 'ALLEGATO_C',
+    label: 'Allegato C — Livelli di Servizio, KPI e penali',
+    sottoTipologia: true,
+    testoRiferimento: 'Allegato C. Livelli di servizio, indicatori chiave di prestazione (KPI) e penali.'
+  },
+  {
+    key: 'ALLEGATO_D',
+    label: 'Allegato D — Nomina Responsabile/Sub-responsabile trattamento dati',
+    sottoTipologia: true,
+    testoRiferimento: 'Allegato D. Nomina a Responsabile ovvero Sub-responsabile del trattamento dei dati personali.'
+  },
+  {
+    key: 'ALLEGATO_E',
+    label: 'Allegato E — Elenco Subfornitori e Sub-responsabili',
+    sottoTipologia: true,
+    testoRiferimento: 'Allegato E. Elenco Subfornitori e Sub-responsabili del trattamento dei dati personali. Denominazioni dei subfornitori autorizzati, ruolo e riferimenti.',
+    campiChiave: [
+      { campo: 'subfornitori', etichetta: 'Subfornitori', sezione: 'Dati documento', descrizione: 'Elenco delle denominazioni dei subfornitori autorizzati, separate da virgola' },
+      { campo: 'subresponsabili', etichetta: 'Sub-responsabili', sezione: 'Dati documento', descrizione: 'Elenco dei sub-responsabili del trattamento dei dati personali, separati da virgola' }
+    ]
+  },
+  {
+    key: 'ALLEGATO_F',
+    label: 'Allegato F — Continuità Operativa e Sicurezza ICT',
+    sottoTipologia: true,
+    testoRiferimento: 'Allegato F. Requisiti di sicurezza delle informazioni, dei sistemi ICT e della continuità e resilienza operativa: governance della sicurezza, protezione dei dati, gestione accessi, resilienza operativa, gestione incidenti, audit, conformità DORA, GDPR e ISO 27001.'
+  },
+  {
+    key: 'ALLEGATO_G',
+    label: 'Allegato G — Indirizzi delle Parti e PEC',
+    sottoTipologia: true,
+    testoRiferimento: 'Allegato G. Indirizzi delle Parti e PEC.'
+  },
+  {
+    key: 'ALBERO_DECISIONALE',
+    label: 'Albero decisionale Qualifica DORA / Esternalizzazione',
+    sottoTipologia: true,
+    testoRiferimento: 'Albero decisionale Qualifica DORA e Esternalizzazione. Questionario a compilazione del proponente per classificare le iniziative: servizio ICT DORA semplice, servizio ICT DORA a supporto di funzioni essenziali o importanti, esternalizzazione di funzioni essenziali o importanti o di funzioni di attività critica, esternalizzazioni semplici, servizi ICT critici.'
+  },
+  {
+    key: 'MAIL',
+    label: 'Mail',
+    macro: true,
+    testoRiferimento: 'Comunicazione email tra le parti relativa a negoziazione, approvazione, trasmissione o gestione di documenti contrattuali o commerciali. Identificabile da mittente, destinatario, oggetto, data e corpo del messaggio.'
+  },
+  {
+    key: 'ODA',
+    label: 'OdA (Ordine di Acquisto)',
+    macro: true,
+    testoRiferimento: 'Ordine di Acquisto. Documento emesso dalla banca per formalizzare la richiesta di acquisto di beni o servizi via SAP Ciclo Passivo. Contiene numero ordine, dati fornitore, importi, codici articolo, riferimenti amministrativi e condizioni di acquisto.'
+  },
+  {
+    key: 'OFFERTA',
+    label: 'Offerta',
+    macro: true,
+    testoRiferimento: 'Offerta commerciale, tecnica ed economica del fornitore: prezzi, canoni, listini, descrizione dei servizi, validità dell\'offerta e condizioni preliminari. Normalmente precede la stipula del contratto.'
+  },
+  {
+    key: 'FATTURA',
+    label: 'Fattura',
+    macro: true,
+    testoRiferimento: 'Fattura. Documento amministrativo e fiscale emesso dal fornitore per la richiesta di pagamento: numero fattura, data, imponibile, IVA, totale, dati fiscali e riferimenti a ordini o contratti.'
+  },
+  {
+    key: 'ALTRO',
+    label: 'Altro / non riconosciuto',
+    macro: true,
+    testoRiferimento: 'Documento non riconducibile alle altre categorie: contratti, condizioni generali o particolari di contratto, allegati contrattuali, mail, ordini di acquisto, offerte, fatture.'
   }
 ];
 
 const SOGLIA_TIPO_ALLEGATO = 0.75;
 
-module.exports = { TIPOLOGIE_ALLEGATO, SOGLIA_TIPO_ALLEGATO };
+// Mappa un tipo riconosciuto alla categoria macro del foglio "Categorie":
+// sotto-tipologie (CGC/CPC/Allegati/Albero) -> CONTRATTO; macro -> se stessa; altro -> se stessa.
+function categoriaMacro(tipo) {
+  const t = TIPOLOGIE_ALLEGATO.find(x => x.key === tipo);
+  if (!t) return tipo;
+  if (t.sottoTipologia) return 'CONTRATTO';
+  return t.key;
+}
+
+module.exports = { TIPOLOGIE_ALLEGATO, SOGLIA_TIPO_ALLEGATO, categoriaMacro };
