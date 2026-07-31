@@ -28,11 +28,17 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
         console.log("Preview ID per assistente:", oCoverageData.previewID);
       }
 
-      this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
+      var oTipologia = (oCoverageData.metadati || []).find(function (m) { return m.campo === "tipologiaContratto"; });
+      var sTipologiaContratto = oTipologia ? oTipologia.valore : "";
+
+      this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename, tipologiaContratto: sTipologiaContratto }), "coverage");
 
       if (!this._sContractID && oCoverageData.metadati && oCoverageData.metadati.length) {
         this.getView().setModel(new JSONModel(metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati)), "wizardSezioni");
-        this.getView().setModel(new JSONModel({ testo: oCoverageData.testo || "" }), "wizardDocumento");
+        this.getView().setModel(new JSONModel({
+          testo: oCoverageData.testo || "",
+          tipologiaContratto: sTipologiaContratto
+        }), "wizardDocumento");
       }
 
       var aComplianceAPI = (oComplianceData && oComplianceData.value) || [];
@@ -135,7 +141,13 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       if (aAllegati.length) {
         this.getView().setModel(new JSONModel({ value: aAllegati }), "allegati");
         this.byId("allegatiTableWrap").setVisible(true);
+      }
 
+      var oDocPrincipale = JSON.parse(sessionStorage.getItem("documentoPrincipaleResult") || "null") || { categoria: null, sottoTipo: null, confidenza: null };
+      oDocPrincipale.codiceSelezionato = oDocPrincipale.sottoTipo || oDocPrincipale.categoria;
+      this.getView().setModel(new JSONModel(oDocPrincipale), "documentoPrincipale");
+
+      if (aAllegati.length || oDocPrincipale.categoria) {
         fetch("/comparator/getTipologieAllegato", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
           .then(function (oResp) { return oResp.json(); })
           .then(function (oData) {

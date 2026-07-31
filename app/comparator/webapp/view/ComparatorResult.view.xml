@@ -13,14 +13,24 @@
     </customHeader>
     <content>
       <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
-        <HBox id="coverageHeader" class="sapUiSmallMarginBottom">
+        <HBox id="coverageHeader" class="sapUiSmallMarginBottom" alignItems="Center">
           <ObjectStatus text="Copertura: {coverage>/coveragePercent}%" state="{= ${coverage>/coveragePercent} >= 80 ? 'Success' : ${coverage>/coveragePercent} >= 50 ? 'Warning' : 'Error' }" />
           <Text text="File: {coverage>/filename}" class="sapUiSmallMarginBegin" />
+          <Select selectedKey="{documentoPrincipale>/codiceSelezionato}" items="{tipologie>/value}" width="16rem"
+            class="sapUiSmallMarginBegin" visible="{= !!${documentoPrincipale>/categoria} }">
+            <core:Item key="{tipologie>codice}" text="{tipologie>label}" />
+          </Select>
         </HBox>
 
-        <Panel id="wizardMetadatiPanel" headerText="Verifica metadati contratto" expandable="true" expanded="true"
+        <Panel id="wizardMetadatiPanel" expandable="true" expanded="true"
           visible="{= !!${coverage>/metadati} &amp;&amp; ${coverage>/metadati}.length > 0 }"
           class="app-card app-card-padded sapUiSmallMarginBottom">
+          <headerToolbar>
+            <Toolbar>
+              <Title text="Verifica metadati contratto" level="H4" />
+              <ToolbarSpacer />
+            </Toolbar>
+          </headerToolbar>
           <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.MetadataWizard" type="XML" />
         </Panel>
 
