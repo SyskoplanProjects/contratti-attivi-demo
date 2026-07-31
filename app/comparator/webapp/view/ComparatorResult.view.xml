@@ -18,6 +18,11 @@
           <Text text="File: {coverage>/filename}" class="sapUiSmallMarginBegin" />
         </HBox>
 
+        <Panel id="wizardMetadatiPanel" headerText="Verifica metadati contratto" expandable="true" expanded="true"
+          visible="{= !!${coverage>/metadati} &amp;&amp; ${coverage>/metadati}.length > 0 }"
+          class="app-card app-card-padded sapUiSmallMarginBottom">
+          <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.MetadataWizard" type="XML" />
+        </Panel>
 
         <VBox id="tipsAIWrap" visible="{tips>/has}" class="app-card app-card-padded sapUiSmallMarginBottom">
           <HBox class="sapUiTinyMarginBottom" alignItems="Center">

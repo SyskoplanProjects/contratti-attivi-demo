@@ -1,5 +1,5 @@
-sap.ui.define(["./BaseController", "sap/m/MessageBox", "sap/ui/model/json/JSONModel", "sap/ui/layout/VerticalLayout"],
-function (BaseController, MessageBox, JSONModel) {
+sap.ui.define(["./BaseController", "sap/m/MessageBox", "sap/ui/model/json/JSONModel", "sap/ui/layout/VerticalLayout", "./MetadataWizardHelper"],
+function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardHelper) {
   "use strict";
 
   function testoLeggibile(sTesto) {
@@ -13,6 +13,8 @@ function (BaseController, MessageBox, JSONModel) {
   }
 
   return BaseController.extend("com.reply.contrattiattivi.comparator.controller.ComparatorResult", {
+    metadataWizardHelper: metadataWizardHelper,
+
     onInit: function () {
       this._initChatState();
       var oCoverageData = JSON.parse(sessionStorage.getItem("coverageResult") || "{}");
@@ -27,6 +29,11 @@ function (BaseController, MessageBox, JSONModel) {
       }
 
       this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
+
+      if (!this._sContractID && oCoverageData.metadati && oCoverageData.metadati.length) {
+        this.getView().setModel(new JSONModel(metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati)), "wizardSezioni");
+        this.getView().setModel(new JSONModel({ testo: oCoverageData.testo || "" }), "wizardDocumento");
+      }
 
       var aComplianceAPI = (oComplianceData && oComplianceData.value) || [];
       var aComplianceItems = [];
@@ -170,6 +177,12 @@ function (BaseController, MessageBox, JSONModel) {
       } catch (e) {
         MessageBox.error("Errore di rete: " + e.message);
       }
+    },
+
+    onCampoMetadatoModificato: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext('wizardSezioni');
+      if (!oCtx) return;
+      oCtx.getModel().setProperty(oCtx.getPath() + '/modificatoManualmente', true);
     },
 
     onNuovaAnalisi: function () {
