@@ -65,7 +65,38 @@ service ComparatorService @(requires: 'Utente') {
     metadati: array of MetadatoConfermato;
     testo: LargeString;
   };
-  action classificaAllegati(previewID: UUID, allegati: array of AllegatoDaClassificare) returns array of AllegatoClassificato;
+  type ClassificazioneDocumento {
+    categoria  : String;
+    sottoTipo  : String;
+    confidenza : Decimal(5,4);
+  }
+
+  action classificaAllegati(previewID: UUID, allegati: array of AllegatoDaClassificare) returns {
+    documentoPrincipale : ClassificazioneDocumento;
+    allegati            : array of AllegatoClassificato;
+  };
+  type AllegatoAttesoEsito {
+    allegatoAtteso : String;
+    etichetta      : String;
+    presente       : Boolean;
+    filename       : String;
+  }
+
+  // Nota: in OData v4 il parametro array-of-complex va SEMPRE passato (anche `[]`),
+  // il deserializzatore non gestisce l'omissione; il handler lo tratta come "usa preview".
+  action verificaCompletezza(previewID: UUID, allegati: array of AllegatoClassificato null) returns {
+    attesi      : array of AllegatoAttesoEsito;
+    percentuale : Decimal(5,2);
+  };
+  type EsitoDeroga {
+    articolo          : String;
+    esito             : String;
+    dettaglio         : LargeString;
+    riferimentoComma  : String;
+    segnali           : String;
+  }
+
+  action verificaDeroghe(previewID: UUID) returns array of EsitoDeroga;
   action getTipologieAllegato() returns array of TipologiaAllegato;
   action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;

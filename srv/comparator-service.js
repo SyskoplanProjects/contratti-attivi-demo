@@ -6,7 +6,15 @@ const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
-const { TIPOLOGIE_ALLEGATO } = require('./lib/tipologie-allegato');
+const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
+
+// La confidenza LLM non passa dall'arrotondamento del path embedding: coerziona a 0 i
+// valori non numerici e arrotonda a 4 decimali (campo Decimal(5,4) su DB).
+function _normalizzaConfidenza(confidenza) {
+  const n = Number(confidenza);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 10000) / 10000;
+}
 
 async function confrontaClausoleConTemplate(clausole, templateID, tx) {
   const { Template } = cds.entities('com.reply.contrattiattivi');
@@ -128,7 +136,22 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       if (!previewID) return req.reject(400, 'previewID obbligatorio');
       const preview = previewStore.get(previewID);
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente, ripetere l\'analisi');
-      if (!allegati || !allegati.length) return [];
+
+      let documentoPrincipale = { categoria: null, sottoTipo: null, confidenza: null };
+      if (preview.testo && preview.testo.trim()) {
+        const { tipo, confidenza } = await classificaAllegato(preview.testo);
+        const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
+        documentoPrincipale = {
+          categoria: categoriaMacro(tipo),
+          sottoTipo: (tipologia && tipologia.sottoTipologia) ? tipo : null,
+          confidenza: _normalizzaConfidenza(confidenza)
+        };
+      }
+
+      if (!allegati || !allegati.length) {
+        previewStore.update(previewID, { documentoPrincipale, allegati: [] });
+        return { documentoPrincipale, allegati: [] };
+      }
 
       const allegatiClassificati = [];
       for (const a of allegati) {
@@ -148,21 +171,45 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         const { metadati, dataScadenza } = await estraiCampiAllegato(tipo, testo);
         allegatiClassificati.push({
           filename: a.filename, mimeType, contenuto: a.file,
-          tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza
+          tipo, confidenza: _normalizzaConfidenza(confidenza), metodoRiconoscimento, testo, metadati, dataScadenza
         });
       }
 
-      previewStore.update(previewID, { allegati: allegatiClassificati });
+      previewStore.update(previewID, { allegati: allegatiClassificati, documentoPrincipale });
 
-      return allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }) =>
-        ({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }));
+      return {
+        documentoPrincipale,
+        allegati: allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }) =>
+          ({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }))
+      };
     });
 
     this.on('getTipologieAllegato', () => {
       return [
-        ...TIPOLOGIE_ALLEGATO.map(t => ({ codice: t.key, label: t.label })),
+        ...TIPOLOGIE_ALLEGATO.filter(t => t.key !== 'ALTRO').map(t => ({ codice: t.key, label: t.label })),
         { codice: 'ALTRO', label: 'Altro / non riconosciuto' }
       ];
+    });
+
+    this.on('verificaCompletezza', async (req) => {
+      const { previewID, allegati } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+      if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
+      const { verificaCompletezza } = require('./lib/allegati-attesi');
+      // Gli allegati corretti arrivano dal wizard (parametro): la preview può contenere
+      // tipi stale se l'utente ha corretto la classificazione a mano.
+      const allegatiEffettivi = (allegati && allegati.length) ? allegati : (preview.allegati || []);
+      return verificaCompletezza(allegatiEffettivi);
+    });
+
+    this.on('verificaDeroghe', async (req) => {
+      const { previewID } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+      if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
+      const { verificaDeroghe } = require('./lib/deroghe-engine');
+      return verificaDeroghe(preview.testo || '');
     });
 
     this.on('calcolaCoverageDaContratto', async (req) => {
