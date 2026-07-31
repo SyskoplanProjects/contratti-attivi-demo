@@ -97,6 +97,43 @@ service ComparatorService @(requires: 'Utente') {
   }
 
   action verificaDeroghe(previewID: UUID) returns array of EsitoDeroga;
+
+  type KPIAndamento {
+    data              : Date;
+    completezzaMedia  : Decimal(5,2);
+    totaleContratti   : Integer;
+  }
+
+  type DashboardKPIs {
+    totaleContratti   : Integer;
+    completezzaMedia  : Decimal(5,2);
+    contrattiCompleti : Integer;
+    derogheTotali     : Integer;
+    anomalieAperte    : Integer;
+    andamento         : array of KPIAndamento;
+  }
+
+  type AnomaliaRow {
+    anomaliaID    : UUID;
+    contrattoID   : UUID;
+    intestatario  : String;
+    tipo          : String;
+    riferimento   : String;
+    stato         : String;
+    assegnatario  : String;
+    dataApertura  : DateTime;
+  }
+
+  action getDashboardKPIs() returns DashboardKPIs;
+  action getAnomalie(stato: String, tipo: String) returns array of AnomaliaRow;
+  action assegnaAnomalia(anomaliaID: UUID, assegnatario: String) returns Anomalia;
+  action avviaLavorazione(anomaliaID: UUID) returns Anomalia;
+  action risolviAnomalia(anomaliaID: UUID, nota: String, file: LargeString, filename: String) returns Anomalia;
+  action chiudiAnomalia(anomaliaID: UUID, nota: String) returns Anomalia;
+
+  @readonly entity EsitoVerificaContratto as projection on db.EsitoVerificaContratto;
+  @readonly entity Anomalia as projection on db.Anomalia;
+
   action getTipologieAllegato() returns array of TipologiaAllegato;
   action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
