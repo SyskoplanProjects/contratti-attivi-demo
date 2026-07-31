@@ -6,6 +6,7 @@ const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
+const { salvaEsempio } = require('./lib/classificazione-esempi');
 const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
 const { buildSnapshotData } = require('./lib/snapshot-utils');
 const { generaAnomalie } = require('./lib/anomalie-utils');
@@ -241,7 +242,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
     });
 
     this.on('confirmCoverage', async (req) => {
-      const { previewID, clausole, allegati } = req.data;
+      const { previewID, clausole, allegati, tipoDocumento } = req.data;
       const preview = previewStore.get(previewID);
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
 
@@ -365,6 +366,24 @@ module.exports = class ComparatorService extends cds.ApplicationService {
 
         return tx.run(SELECT.one.from(Contratto, contrattoID));
       });
+
+      if (tipoDocumento && preview.testo) {
+        try {
+          const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipoDocumento);
+          const categoria = categoriaMacro(tipoDocumento);
+          const sottoTipo = (tipologia && tipologia.sottoTipologia) ? tipoDocumento : null;
+          const proposta = preview.documentoPrincipale || {};
+          const codiceProposto = proposta.sottoTipo || proposta.categoria;
+          await salvaEsempio({
+            categoria, sottoTipo, testo: preview.testo,
+            fonte: codiceProposto === tipoDocumento ? 'conferma' : 'correzione',
+            categoriaProposta: proposta.categoria || null,
+            confidenzaProposta: proposta.confidenza != null ? proposta.confidenza : null
+          });
+        } catch (e) {
+          console.warn('[confirmCoverage] salvataggio esempio classificazione fallito:', e.message);
+        }
+      }
 
       previewStore.remove(previewID);
       return result;

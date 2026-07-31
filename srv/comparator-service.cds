@@ -135,7 +135,7 @@ service ComparatorService @(requires: 'Utente') {
   @readonly entity Anomalia as projection on db.Anomalia;
 
   action getTipologieAllegato() returns array of TipologiaAllegato;
-  action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato) returns Contratto;
+  action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato, tipoDocumento: String null) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
 
   type ComplianceResult {
