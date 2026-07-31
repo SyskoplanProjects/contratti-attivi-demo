@@ -108,8 +108,9 @@ module.exports = class ComparatorService extends cds.ApplicationService {
 
       // Estrai metadati del contratto (tipo CONTRATTO, con confidenza per campo) dal testo del documento
       let metadati = [];
+      let testo = '';
       try {
-        const testo = await extractTextMultiFormato(buffer, mimeType, filename);
+        testo = await extractTextMultiFormato(buffer, mimeType, filename);
         ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo));
       } catch (e) {
         console.warn('[comparator] estrazione metadati fallita, uso fallback:', e.message);
@@ -117,9 +118,9 @@ module.exports = class ComparatorService extends cds.ApplicationService {
 
       const previewID = previewStore.put({
         templateID, filename, clausole: result.clausole,
-        coveragePercent: result.coveragePercent, metadati
+        coveragePercent: result.coveragePercent, metadati, testo
       });
-      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati };
+      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati, testo };
     });
 
     this.on('classificaAllegati', async (req) => {

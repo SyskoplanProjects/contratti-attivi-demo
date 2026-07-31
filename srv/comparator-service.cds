@@ -63,6 +63,7 @@ service ComparatorService @(requires: 'Utente') {
     coveragePercent: Decimal(5,2);
     clausole: array of ClausolaCoverageResult;
     metadati: array of MetadatoConfermato;
+    testo: String;
   };
   action classificaAllegati(previewID: UUID, allegati: array of AllegatoDaClassificare) returns array of AllegatoClassificato;
   action getTipologieAllegato() returns array of TipologiaAllegato;

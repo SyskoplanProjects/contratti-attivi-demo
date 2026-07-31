@@ -197,4 +197,36 @@ describe('calcolaCoverage / confirmCoverage — metadati contratto principale', 
     const contratto = await SELECT.one.from(Contratto, conferma.data.ID);
     expect(contratto.intestatario).toBe('Titolo corretto a mano');
   });
+
+  it('ritorna anche il testo integrale estratto dal documento', async () => {
+    mockChatJSON.mockImplementation(async (systemPrompt) => {
+      if (systemPrompt && systemPrompt.includes('segmenta')) {
+        return { clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola per verifica testo.' }] };
+      }
+      return { titoloContratto: { valore: 'Contratto Testo', confidenza: 0.9 } };
+    });
+
+    const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } = cds.entities('com.reply.contrattiattivi');
+    const templateID = cds.utils.uuid();
+    await INSERT.into(Template).entries({ ID: templateID, nome: 'Template testo' });
+    const versionID = cds.utils.uuid();
+    await INSERT.into(TemplateVersion).entries({ ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString() });
+    const clausolaID = cds.utils.uuid();
+    await INSERT.into(Clausola).entries({ ID: clausolaID, codice: 'C1', titolo: 'Oggetto', template_ID: templateID });
+    const clausolaVersioneID = cds.utils.uuid();
+    await INSERT.into(ClausolaVersione).entries({
+      ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: 'Testo clausola per verifica testo.',
+      dataCreazione: new Date().toISOString(), modificata: false, templateVersionOrigine_ID: versionID
+    });
+    await INSERT.into(TemplateVersionClausola).entries({ ID: cds.utils.uuid(), templateVersion_ID: versionID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1 });
+
+    const doc = new Document({ sections: [{ children: [new Paragraph('Testo clausola per verifica testo.')] }] });
+    const fileBase64 = (await Packer.toBuffer(doc)).toString('base64');
+
+    const coverage = await POST('/comparator/calcolaCoverage', { templateID, file: fileBase64, filename: 'contratto-testo.docx' }, { auth: MOCK_USER });
+
+    expect(coverage.status).toBe(200);
+    expect(typeof coverage.data.testo).toBe('string');
+    expect(coverage.data.testo).toContain('Testo clausola per verifica testo.');
+  });
 });
