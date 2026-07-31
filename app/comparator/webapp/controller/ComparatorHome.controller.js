@@ -145,7 +145,7 @@ function (BaseController, MessageBox) {
             });
             if (oAllegatiResp.ok) {
               var oAllegatiData = await oAllegatiResp.json();
-              aAllegatiResult = oAllegatiData.value || (Array.isArray(oAllegatiData) ? oAllegatiData : []);
+              aAllegatiResult = (oAllegatiData && oAllegatiData.allegati) || [];
             }
           } catch (e) { /* riconoscimento allegati non bloccante */ }
         }

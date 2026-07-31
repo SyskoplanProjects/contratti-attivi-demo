@@ -65,7 +65,16 @@ service ComparatorService @(requires: 'Utente') {
     metadati: array of MetadatoConfermato;
     testo: LargeString;
   };
-  action classificaAllegati(previewID: UUID, allegati: array of AllegatoDaClassificare) returns array of AllegatoClassificato;
+  type ClassificazioneDocumento {
+    categoria  : String;
+    sottoTipo  : String;
+    confidenza : Decimal(5,4);
+  }
+
+  action classificaAllegati(previewID: UUID, allegati: array of AllegatoDaClassificare) returns {
+    documentoPrincipale : ClassificazioneDocumento;
+    allegati            : array of AllegatoClassificato;
+  };
   action getTipologieAllegato() returns array of TipologiaAllegato;
   action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;

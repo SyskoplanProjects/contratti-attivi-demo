@@ -39,10 +39,10 @@ describe('classificaAllegati / confirmCoverage allegati', () => {
     }, { auth: MOCK_USER });
 
     expect(classifica.status).toBe(200);
-    expect(classifica.data.value).toHaveLength(1);
-    expect(classifica.data.value[0].filename).toBe('durc.docx');
-    expect(classifica.data.value[0].tipo).toBe(TIPOLOGIE_ALLEGATO[0].key);
-    expect(classifica.data.value[0].metodoRiconoscimento).toBe('embedding');
+    expect(classifica.data.allegati).toHaveLength(1);
+    expect(classifica.data.allegati[0].filename).toBe('durc.docx');
+    expect(classifica.data.allegati[0].tipo).toBe(TIPOLOGIE_ALLEGATO[0].key);
+    expect(classifica.data.allegati[0].metodoRiconoscimento).toBe('embedding');
 
     const conferma = await POST('/comparator/confirmCoverage', {
       previewID,
@@ -106,6 +106,55 @@ describe('classificaAllegati / confirmCoverage allegati', () => {
     expect(download.status).toBe(200);
     expect(download.headers['x-injected']).toBeUndefined();
     expect(download.headers['content-disposition']).not.toMatch(/[\r\n]/);
+  });
+});
+
+describe('classificaAllegati — classificazione documento principale (RF2)', () => {
+  beforeEach(() => { mockChatJSON.mockReset(); });
+
+  it('classifica il documento principale della preview e ritorna categoria/sottoTipo/confidenza', async () => {
+    const previewID = previewStore.put({
+      templateID: cds.utils.uuid(),
+      filename: 'contratto_test.pdf',
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola.', stato: 'PRESENTE', similarity: 0.9 }],
+      coveragePercent: 100,
+      testo: 'Condizioni Generali di Contratto per Servizi ICT.'
+    });
+
+    const resp = await POST('/comparator/classificaAllegati', { previewID, allegati: [] }, { auth: MOCK_USER });
+
+    expect(resp.status).toBe(200);
+    // embeddings mock -> [1,0,0] -> similarity 1.0 col primo profilo con testoRiferimento
+    // (APPENDICE_CONTRATTO, indice 0), confidenza 1.0.
+    expect(resp.data.documentoPrincipale).toBeDefined();
+    expect(resp.data.documentoPrincipale.categoria).toBe(TIPOLOGIE_ALLEGATO[0].key);
+    expect(resp.data.documentoPrincipale.confidenza).toBe(1);
+    expect(resp.data.allegati).toEqual([]);
+  });
+
+  it('mappa una sotto-tipologia a categoria CONTRATTO via categoriaMacro', () => {
+    const { categoriaMacro } = require('../srv/lib/tipologie-allegato');
+    expect(categoriaMacro('CGC')).toBe('CONTRATTO');
+    expect(categoriaMacro('ALLEGATO_E')).toBe('CONTRATTO');
+    expect(categoriaMacro('MAIL')).toBe('MAIL');
+    expect(categoriaMacro('FATTURA')).toBe('FATTURA');
+    expect(categoriaMacro('DURC')).toBe('DURC');
+  });
+
+  it('non fallisce se la preview non ha testo (documentoPrincipale con campi null)', async () => {
+    const previewID = previewStore.put({
+      templateID: cds.utils.uuid(),
+      filename: 'no-text.pdf',
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'x', stato: 'PRESENTE', similarity: 0.9 }],
+      coveragePercent: 100
+    });
+
+    const resp = await POST('/comparator/classificaAllegati', { previewID, allegati: [] }, { auth: MOCK_USER });
+
+    expect(resp.status).toBe(200);
+    expect(resp.data.documentoPrincipale.categoria).toBeNull();
+    expect(resp.data.documentoPrincipale.sottoTipo).toBeNull();
+    expect(resp.data.allegati).toEqual([]);
   });
 });
 
