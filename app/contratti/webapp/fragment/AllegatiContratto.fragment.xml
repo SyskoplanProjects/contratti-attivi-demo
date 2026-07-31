@@ -1,5 +1,5 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:unified="sap.ui.unified">
-  <Dialog id="dialogAllegatiContratto" title="Allegati contratto" contentWidth="45rem">
+  <Dialog id="dialogAllegatiContratto" title="Allegati contratto" stretch="true">
     <content>
       <VBox class="sapUiSmallMargin">
         <VBox class="app-card app-card-padded sapUiSmallMarginBottom">
