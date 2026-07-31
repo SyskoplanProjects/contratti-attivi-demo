@@ -195,3 +195,29 @@ entity ContrattoVersioneClausola : cuid {
   ordine            : Integer not null;
   rimossa           : Boolean default false;
 }
+
+type StatoAnomalia : String(20) enum { APERTA; ASSEGNATA; IN_LAVORAZIONE; RISOLTA; CHIUSA_SENZA_AZIONE; }
+
+entity EsitoVerificaContratto : cuid, managed {
+  contratto          : Association to Contratto not null;
+  dataVerifica       : DateTime not null;
+  completezzaPercent : Decimal(5,2);
+  allegatiAttesi     : array of { codice: String; presente: Boolean; filename: String; };
+  deroghe            : array of { articolo: String; esito: String; dettaglio: String; riferimentoComma: String; };
+  totaleAllegati     : Integer;
+  allegatiPresenti   : Integer;
+  confidenzaMedia    : Decimal(5,4);
+  fonte              : String(20) enum { AVVIO_VERIFICA; CONTRATTO; };
+}
+
+entity Anomalia : cuid, managed {
+  esitoVerifica   : Association to EsitoVerificaContratto not null;
+  tipo            : String(20) enum { DEROGHE; COMPLETEZZA; CONFIDENZA; };
+  riferimento     : String(200);
+  dettaglio       : LargeString;
+  stato           : StatoAnomalia default 'APERTA';
+  assegnatario    : String(255);
+  notaCorrettiva  : LargeString;
+  allegato        : LargeString;
+  filenameAllegato : String(200);
+}
