@@ -42,7 +42,7 @@
       "**/test/**/*.test.js"
     ],
     "testPathIgnorePatterns": [
-      ".claude/"
+      "<rootDir>/.claude/"
     ]
   },
   "cds": {
