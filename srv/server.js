@@ -17,7 +17,7 @@ cds.on('bootstrap', (app) => {
 
   app.get('/user-info', cds.middlewares.context(), ...cds.middlewares.auth(), (req, res) => {
     const user = req.user;
-    if (!user) return res.status(401).json({ error: { code: '401', message: 'Unauthorized' } });
+    if (!user) return res.set('www-authenticate', 'Basic realm="Users"').status(401).json({ error: { code: '401', message: 'Unauthorized' } });
     res.json({
       email: user.id || '',
       isUtente: !!user.is('Utente'),
