@@ -82,6 +82,8 @@ service ComparatorService @(requires: 'Utente') {
     filename       : String;
   }
 
+  // Nota: in OData v4 il parametro array-of-complex va SEMPRE passato (anche `[]`),
+  // il deserializzatore non gestisce l'omissione; il handler lo tratta come "usa preview".
   action verificaCompletezza(previewID: UUID, allegati: array of AllegatoClassificato null) returns {
     attesi      : array of AllegatoAttesoEsito;
     percentuale : Decimal(5,2);
