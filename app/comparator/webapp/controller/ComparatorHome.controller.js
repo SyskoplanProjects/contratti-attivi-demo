@@ -132,23 +132,23 @@ function (BaseController, MessageBox) {
         } catch (e) { /* compliance non bloccante */ }
 
         var aAllegatiResult = [];
-        if (this._aAllegati.length) {
-          oBusy.setText("Riconoscimento tipo allegati in corso...");
-          try {
-            var aAllegatiPayload = await Promise.all(this._aAllegati.map(async (oAllegato) => ({
-              filename: oAllegato.name, file: await this._fileToBase64(oAllegato)
-            })));
-            var oAllegatiResp = await fetch("/comparator/classificaAllegati", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ previewID: oCoverageData.previewID, allegati: aAllegatiPayload })
-            });
-            if (oAllegatiResp.ok) {
-              var oAllegatiData = await oAllegatiResp.json();
-              aAllegatiResult = (oAllegatiData && oAllegatiData.allegati) || [];
-            }
-          } catch (e) { /* riconoscimento allegati non bloccante */ }
-        }
+        var oDocumentoPrincipale = null;
+        oBusy.setText("Riconoscimento tipo documento in corso...");
+        try {
+          var aAllegatiPayload = await Promise.all(this._aAllegati.map(async (oAllegato) => ({
+            filename: oAllegato.name, file: await this._fileToBase64(oAllegato)
+          })));
+          var oAllegatiResp = await fetch("/comparator/classificaAllegati", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ previewID: oCoverageData.previewID, allegati: aAllegatiPayload })
+          });
+          if (oAllegatiResp.ok) {
+            var oAllegatiData = await oAllegatiResp.json();
+            aAllegatiResult = (oAllegatiData && oAllegatiData.allegati) || [];
+            oDocumentoPrincipale = (oAllegatiData && oAllegatiData.documentoPrincipale) || null;
+          }
+        } catch (e) { /* riconoscimento tipo documento non bloccante */ }
 
         oBusy.setText("Generazione tips AI in corso...");
         var oTipsData = null;
@@ -173,6 +173,7 @@ function (BaseController, MessageBox) {
         sessionStorage.setItem("tipsAIResult", JSON.stringify(oTipsData));
         sessionStorage.setItem("comparatorFilename", oFile.name);
         sessionStorage.setItem("allegatiResult", JSON.stringify(aAllegatiResult));
+        sessionStorage.setItem("documentoPrincipaleResult", JSON.stringify(oDocumentoPrincipale));
 
         setTimeout(() => {
           var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
