@@ -15,7 +15,46 @@ const { POST, GET, axios } = cds.test(path.join(__dirname, '..'));
 const { MOCK_USER } = require('./helpers/auth');
 const { TIPOLOGIE_ALLEGATO } = require('../srv/lib/tipologie-allegato');
 const previewStore = require('../srv/lib/preview-store');
+const openai = require('../srv/modules/openai-module');
 const { Document, Packer, Paragraph } = require('docx');
+
+// Nota: questa describe DEVE restare la prima del file: popola la cache degli embedding
+// di riferimento (srv/lib/allegato-classifier) con vettori one-hot, così la classifica
+// via embedding può raggiungere un profilo qualsiasi (non solo l'indice 0).
+describe('classificaAllegati — sottoTipo CGC end-to-end (RF2)', () => {
+  beforeEach(() => { mockChatJSON.mockReset(); });
+  afterEach(() => {
+    openai.embeddings.mockImplementation((testi) => Promise.resolve(testi.map(() => [1, 0, 0])));
+  });
+
+  it('mappa la sotto-tipologia CGC a categoria CONTRATTO + sottoTipo CGC quando l\'embedding matcha il profilo CGC', async () => {
+    const riferimenti = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
+    const indiceCGC = riferimenti.findIndex(t => t.key === 'CGC');
+    expect(indiceCGC).toBeGreaterThanOrEqual(0);
+
+    openai.embeddings.mockImplementation((testi) => Promise.resolve(testi.map((_, i) => {
+      const v = Array(riferimenti.length).fill(0);
+      if (testi.length === 1) { v[indiceCGC] = 1; return v; }
+      v[i] = 1;
+      return v;
+    })));
+
+    const previewID = previewStore.put({
+      templateID: cds.utils.uuid(),
+      filename: 'contratto_test.pdf',
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola.', stato: 'PRESENTE', similarity: 0.9 }],
+      coveragePercent: 100,
+      testo: 'Condizioni Generali di Contratto per Servizi ICT.'
+    });
+
+    const resp = await POST('/comparator/classificaAllegati', { previewID, allegati: [] }, { auth: MOCK_USER });
+
+    expect(resp.status).toBe(200);
+    expect(resp.data.documentoPrincipale.sottoTipo).toBe('CGC');
+    expect(resp.data.documentoPrincipale.categoria).toBe('CONTRATTO');
+    expect(resp.data.documentoPrincipale.confidenza).toBe(1);
+  });
+});
 
 describe('classificaAllegati / confirmCoverage allegati', () => {
   beforeEach(() => { mockChatJSON.mockReset(); });
@@ -155,6 +194,47 @@ describe('classificaAllegati — classificazione documento principale (RF2)', ()
     expect(resp.data.documentoPrincipale.categoria).toBeNull();
     expect(resp.data.documentoPrincipale.sottoTipo).toBeNull();
     expect(resp.data.allegati).toEqual([]);
+  });
+
+  it('coerziona a 0 la confidenza LLM non numerica', async () => {
+    const dimensione = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null).length;
+    // vettore documento azzerato -> similarity 0 con ogni profilo -> fallback LLM
+    openai.embeddings.mockImplementation((testi) => Promise.resolve(testi.map(() => Array(dimensione).fill(0))));
+    mockChatJSON.mockResolvedValue({ tipo: 'CGC', confidenza: 'alta' });
+
+    const previewID = previewStore.put({
+      templateID: cds.utils.uuid(),
+      filename: 'contratto_test.pdf',
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola.', stato: 'PRESENTE', similarity: 0.9 }],
+      coveragePercent: 100,
+      testo: 'Documento non classificabile via embedding.'
+    });
+
+    const resp = await POST('/comparator/classificaAllegati', { previewID, allegati: [] }, { auth: MOCK_USER });
+
+    expect(resp.status).toBe(200);
+    expect(resp.data.documentoPrincipale.categoria).toBe('CONTRATTO');
+    expect(resp.data.documentoPrincipale.confidenza).toBe(0);
+  });
+
+  it('arrotonda a 4 decimali la confidenza LLM numerica', async () => {
+    const dimensione = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null).length;
+    openai.embeddings.mockImplementation((testi) => Promise.resolve(testi.map(() => Array(dimensione).fill(0))));
+    mockChatJSON.mockResolvedValue({ tipo: 'CGC', confidenza: 0.987654321 });
+
+    const previewID = previewStore.put({
+      templateID: cds.utils.uuid(),
+      filename: 'contratto_test.pdf',
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola.', stato: 'PRESENTE', similarity: 0.9 }],
+      coveragePercent: 100,
+      testo: 'Documento non classificabile via embedding.'
+    });
+
+    const resp = await POST('/comparator/classificaAllegati', { previewID, allegati: [] }, { auth: MOCK_USER });
+
+    expect(resp.status).toBe(200);
+    expect(resp.data.documentoPrincipale.categoria).toBe('CONTRATTO');
+    expect(resp.data.documentoPrincipale.confidenza).toBe(0.9877);
   });
 });
 
