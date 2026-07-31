@@ -170,7 +170,7 @@ cds.on('bootstrap', (app) => {
         console.warn('[uploadCoverage] estrazione metadati fallita, uso fallback:', e.message);
       }
 
-      const previewID = previewStore.put({ templateID, filename, clausole: result.clausole, coveragePercent: result.coveragePercent, metadati });
+      const previewID = previewStore.put({ templateID, filename, clausole: result.clausole, coveragePercent: result.coveragePercent, metadati, testo });
       res.status(200).json({ previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati, testo });
     } catch (e) {
       res.status(500).json({ code: 'COVERAGE_FAILED', message: e.message });

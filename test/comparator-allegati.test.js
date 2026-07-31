@@ -358,4 +358,48 @@ describe('calcolaCoverage / confirmCoverage — metadati contratto principale', 
     expect(typeof coverage.data.testo).toBe('string');
     expect(coverage.data.testo).toContain('Testo clausola per verifica testo.');
   });
+
+  it('calcolaCoverageDaContratto: preview con testo dalle clausole → DEROGHE nello snapshot', async () => {
+    mockChatJSON.mockResolvedValue({
+      risultati: [
+        { articolo: '21', esito: 'derogato', dettaglio: 'Subappalto libero', riferimentoComma: '21.4', segnali: '' }
+      ]
+    });
+
+    const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola, Contratto, ContrattoClausola } = cds.entities('com.reply.contrattiattivi');
+    const templateID = cds.utils.uuid();
+    await INSERT.into(Template).entries({ ID: templateID, nome: 'Template da contratto' });
+    const versionID = cds.utils.uuid();
+    await INSERT.into(TemplateVersion).entries({ ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString() });
+    const clausolaID = cds.utils.uuid();
+    await INSERT.into(Clausola).entries({ ID: clausolaID, codice: 'C1', titolo: 'Oggetto', template_ID: templateID });
+    const clausolaVersioneID = cds.utils.uuid();
+    await INSERT.into(ClausolaVersione).entries({
+      ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: 'Art. 21 — Il subappalto è libero.',
+      dataCreazione: new Date().toISOString(), modificata: false, templateVersionOrigine_ID: versionID
+    });
+    await INSERT.into(TemplateVersionClausola).entries({ ID: cds.utils.uuid(), templateVersion_ID: versionID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1 });
+
+    const contrattoID = cds.utils.uuid();
+    await INSERT.into(Contratto).entries({
+      ID: contrattoID, stato: 'BOZZA', intestatario: 'Contratto esistente', template_ID: templateID, templateVersion_ID: versionID
+    });
+    await INSERT.into(ContrattoClausola).entries({
+      ID: cds.utils.uuid(), contratto_ID: contrattoID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1, rimossa: false
+    });
+
+    const resp = await POST('/comparator/calcolaCoverageDaContratto', { contractID: contrattoID, templateID }, { auth: MOCK_USER });
+    expect(resp.status).toBe(200);
+    const previewID = resp.data.previewID;
+
+    const conferma = await POST('/comparator/confirmCoverage', {
+      previewID, clausole: resp.data.clausole, allegati: [], metadati: []
+    }, { auth: MOCK_USER });
+    expect(conferma.status).toBe(200);
+
+    const { EsitoVerificaContratto, Anomalia } = cds.entities('com.reply.contrattiattivi');
+    const esiti = await SELECT.from(EsitoVerificaContratto).where({ contratto_ID: conferma.data.ID });
+    const anomalie = await SELECT.from(Anomalia).where({ esitoVerifica_ID: esiti[0].ID });
+    expect(anomalie.map(a => a.tipo)).toContain('DEROGHE');
+  });
 });

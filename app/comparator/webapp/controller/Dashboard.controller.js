@@ -94,11 +94,11 @@ function (BaseController, MessageBox) {
       var that = this;
       var sNota = this.byId("notaTextArea").getValue();
       var sFile = null, sFilename = null;
-      if (this._oFile) {
-        sFilename = this._oFile.name;
-        sFile = await this._fileToBase64(this._oFile);
-      }
       try {
+        if (this._oFile) {
+          sFilename = this._oFile.name;
+          sFile = await this._fileToBase64(this._oFile);
+        }
         var oResp = await fetch("/comparator/risolviAnomalia", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ anomaliaID: this._sCurrentAnomaliaID, nota: sNota, file: sFile, filename: sFilename })

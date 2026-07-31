@@ -74,6 +74,16 @@ describe('snapshot-utils / anomalie-utils (RF8/RF9)', () => {
     expect(anomalie[0].riferimento).toBe('allegato_b.pdf');
   });
 
+  it('generaAnomalie: percentuale non numerica trattata come 0 → COMPLETEZZA', () => {
+    const attesi = [
+      { allegatoAtteso: 'ALLEGATO_B', etichetta: 'Allegato B', presente: false, filename: null }
+    ];
+    const anomalie = generaAnomalie({ attesi, percentuale: NaN, deroghe: [], allegati: [] });
+    expect(anomalie).toHaveLength(1);
+    expect(anomalie[0].tipo).toBe('COMPLETEZZA');
+    expect(anomalie[0].riferimento).toBe('ALLEGATO_B');
+  });
+
   it('buildSnapshotData: completa, deroghe e confidenza media dai dati DB', async () => {
     mockChatJSON.mockResolvedValue({
       risultati: [
@@ -93,5 +103,16 @@ describe('snapshot-utils / anomalie-utils (RF8/RF9)', () => {
     expect(snapshot.confidenzaMedia).toBe(0.85);
     expect(snapshot.deroghe[0].esito).toBe('derogato');
     expect(snapshot.attesi.find(a => a.allegatoAtteso === 'CGC').presente).toBe(true);
+  });
+
+  it('buildSnapshotData: confidenza NaN esclusa dalla media', async () => {
+    mockChatJSON.mockResolvedValue({ risultati: [] });
+
+    const snapshot = await buildSnapshotData([
+      { tipo: 'CGC', filename: 'cgc.pdf', confidenza: 0.9 },
+      { tipo: 'CPC', filename: 'cpc.pdf', confidenza: NaN }
+    ], 'Testo senza deroghe.');
+
+    expect(snapshot.confidenzaMedia).toBe(0.9);
   });
 });
