@@ -5,7 +5,7 @@ const { verificaDeroghe } = require('./deroghe-engine');
 // Gli allegati senza confidenza (null) non entrano nel calcolo.
 function _mediaConfidenze(allegati) {
   const valori = (allegati || [])
-    .filter(a => a.confidenza != null)
+    .filter(a => a.confidenza != null && Number.isFinite(Number(a.confidenza)))
     .map(a => Number(a.confidenza));
   if (!valori.length) return 0;
   return Math.round((valori.reduce((somma, v) => somma + v, 0) / valori.length) * 10000) / 10000;

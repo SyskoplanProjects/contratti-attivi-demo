@@ -28,9 +28,11 @@ async function seedSnapshot({ giorniFa, completezzaPercent, deroghe = [], fonte 
   return contrattoID;
 }
 
-async function seedAnomaliaAperta(contrattoID) {
+async function seedAnomaliaAperta(contrattoID, indice = 0) {
   const { EsitoVerificaContratto, Anomalia } = cds.entities('com.reply.contrattiattivi');
-  const esito = (await SELECT.from(EsitoVerificaContratto).where({ contratto_ID: contrattoID }))[0];
+  const esiti = (await SELECT.from(EsitoVerificaContratto).where({ contratto_ID: contrattoID }))
+    .sort((a, b) => new Date(a.dataVerifica) - new Date(b.dataVerifica));
+  const esito = esiti[indice];
   await INSERT.into(Anomalia).entries({
     ID: cds.utils.uuid(), esitoVerifica_ID: esito.ID, tipo: 'COMPLETEZZA',
     riferimento: 'ALLEGATO_B', dettaglio: 'mancante', stato: 'APERTA'
@@ -43,6 +45,7 @@ describe('getDashboardKPIs (RF8)', () => {
     await seedSnapshot({ giorniFa: 2, completezzaPercent: 50, contrattoID: c1 });
     const c2 = await seedSnapshot({ giorniFa: 1, completezzaPercent: 50 });
     await seedAnomaliaAperta(c2);
+    await seedAnomaliaAperta(c1, 0); // anomalia su snapshot VECCHIO di c1: non conta
 
     const resp = await POST('/comparator/getDashboardKPIs', {}, { auth: MOCK_USER });
     expect(resp.status).toBe(200);

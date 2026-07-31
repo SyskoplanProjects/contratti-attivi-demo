@@ -18,7 +18,8 @@ function generaAnomalie({ attesi, percentuale, deroghe, allegati }) {
     anomalie.push({ tipo, riferimento, dettaglio });
   };
 
-  if (Number(percentuale) < 100) {
+  const p = Number.isFinite(Number(percentuale)) ? Number(percentuale) : 0;
+  if (p < 100) {
     const mancanti = _mancanti(attesi);
     aggiungi('COMPLETEZZA', mancanti.join(', ') || 'ALLEGATI_ASSENTI',
       'Allegati attesi mancanti: ' + (mancanti.join(', ') || 'nessun allegato classificato'));

@@ -236,7 +236,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         return confrontaClausoleConTemplate(clausole, templateID, tx);
       });
 
-      const previewID = previewStore.put({ templateID, contractID, clausole: result.clausole, coveragePercent: result.coveragePercent });
+      const previewID = previewStore.put({ templateID, contractID, clausole: result.clausole, coveragePercent: result.coveragePercent, testo: result.clausole.map(c => c.testo).join('\n') });
       return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole };
     });
 
@@ -356,11 +356,11 @@ module.exports = class ComparatorService extends cds.ApplicationService {
           deroghe: snapshot.deroghe,
           allegati: allegatiSalvati
         });
-        for (const a of anomalie) {
-          await tx.run(INSERT.into(Anomalia).entries({
+        if (anomalie.length) {
+          await tx.run(INSERT.into(Anomalia).entries(anomalie.map(a => ({
             ID: cds.utils.uuid(), esitoVerifica_ID: esitoID,
             tipo: a.tipo, riferimento: a.riferimento, dettaglio: a.dettaglio
-          }));
+          }))));
         }
 
         return tx.run(SELECT.one.from(Contratto, contrattoID));
@@ -503,7 +503,9 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         : 0;
       const derogheTotali = ultimi.reduce((n, s) =>
         n + (s.deroghe || []).filter(d => d.esito === 'derogato').length, 0);
+      const ultimiIDs = ultimi.map(s => s.ID);
       const anomalieAperte = anomalie.filter(a =>
+        ultimiIDs.includes(a.esitoVerifica_ID) &&
         ['APERTA', 'ASSEGNATA', 'IN_LAVORAZIONE'].includes(a.stato)).length;
 
       const oggi = new Date();
