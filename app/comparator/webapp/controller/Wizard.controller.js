@@ -10,6 +10,17 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
 
     onInit: function () {
       this._initChatState();
+      var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
+      oRouter.getRoute("wizard").attachPatternMatched(this._onRouteMatched, this);
+    },
+
+    // Il router SAPUI5 riusa l'istanza di view/controller cache per il target "wizard":
+    // onInit non viene richiamato a una seconda navigazione (secondo documento analizzato
+    // nella stessa sessione), quindi la costruzione modelli/step deve avvenire qui.
+    _onRouteMatched: async function () {
+      var oWizard = this.byId("reviewWizard");
+      if (oWizard) oWizard.destroySteps();
+
       var oCoverageData = JSON.parse(sessionStorage.getItem("coverageResult") || "{}");
       var oComplianceData = JSON.parse(sessionStorage.getItem("complianceResult") || "{}");
       var oTipsData = JSON.parse(sessionStorage.getItem("tipsAIResult") || "null");
@@ -19,6 +30,13 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
       });
       var oDocPrincipale = JSON.parse(sessionStorage.getItem("documentoPrincipaleResult") || "null") || { categoria: null, sottoTipo: null, confidenza: null };
       oDocPrincipale.codiceSelezionato = oDocPrincipale.sottoTipo || oDocPrincipale.categoria;
+
+      // pdfBase64 non passa da sessionStorage (vedi ComparatorHome#onAvvia): lo si
+      // recupera dalla cache in-memory sul Component, one-shot.
+      var oPdfCache = this.getOwnerComponent()._wizardPdfCache || {};
+      oCoverageData.pdfBase64 = oPdfCache.contratto || null;
+      aAllegati.forEach(function (a, i) { a.pdfBase64 = (oPdfCache.allegati || [])[i] || null; });
+      delete this.getOwnerComponent()._wizardPdfCache;
 
       this._oCoverageData = oCoverageData;
 
@@ -98,10 +116,12 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
       var sFilename = sessionStorage.getItem("comparatorFilename") || "documento";
 
       var oContractContent = await Fragment.load({
+        id: this.getView().getId(),
         name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizard", controller: this
       });
       oWizard.addStep(new WizardStep({ title: "Contratto: " + sFilename, content: [].concat(oContractContent) }));
 
+      this._aAllegatoPreviews = [];
       for (var i = 0; i < aAllegati.length; i++) {
         var oContent = await Fragment.load({
           name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizardAllegato",
@@ -110,6 +130,7 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
         var aControls = [].concat(oContent);
         aControls.forEach(function (oCtl) { oCtl.setBindingContext(this.getView().getModel("allegati").getContext("/value/" + i), "allegati"); }.bind(this));
         oWizard.addStep(new WizardStep({ title: "Allegato: " + aAllegati[i].filename, content: aControls }));
+        this._aAllegatoPreviews[i] = Fragment.byId(this.getView().getId() + "-allegato" + i, "allegatoPdfPreview");
       }
 
       var oFinalContent = await Fragment.load({
@@ -141,12 +162,12 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
       var oSource = oEvent.getListItem ? oEvent.getListItem() : oEvent.getSource();
       var oCtx = oSource.getBindingContext('allegati');
       if (!oCtx) return;
-      // Ogni istanza di MetadataWizardAllegato è caricata con Fragment.load({id: <prefix>}),
-      // quindi ogni control al suo interno (righe incluse, anche quelle auto-generate dal
-      // binding template) ha id "<prefix>--<localId>": risalgo al prefix per trovare il
-      // PdfPreview gemello di questa specifica istanza di step allegato.
-      var sPrefix = oSource.getId().split("--")[0];
-      var oPreview = sap.ui.core.Element.getElementById(sPrefix + "--allegatoPdfPreview");
+      // La riga cliccata è un ColumnListItem clonato dall'aggregation binding: il suo id
+      // non è affidabile per risalire allo step allegato di appartenenza. Uso invece l'indice
+      // dell'allegato ricavato dal binding context path ("/value/<i>") per pescare la PdfPreview
+      // di quello specifico step dalla lookup costruita una volta in _buildSteps.
+      var iIndex = Number(oCtx.getPath().split('/')[2]);
+      var oPreview = this._aAllegatoPreviews && this._aAllegatoPreviews[iIndex];
       if (oPreview) oPreview.setHighlightPosizione(oCtx.getObject().posizione || null);
     },
 
