@@ -1,5 +1,6 @@
 const cds = require('@sap/cds');
 const { computeDelta, normalizeText } = require('./diff-utils');
+const { computeDocumentoEmbedding } = require('./template-embedding');
 
 async function eseguiImport(tx, templateID, filename, clausoleEstratte) {
   const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } =
@@ -24,8 +25,9 @@ async function eseguiImport(tx, templateID, filename, clausoleEstratte) {
   const prevVersions = await tx.run(SELECT.from(TemplateVersion).where({ template_ID: template.ID }).orderBy('numero desc'));
   const numero = prevVersions.length ? prevVersions[0].numero + 1 : 0;
   const versionID = cds.utils.uuid();
+  const embeddingDocumento = await computeDocumentoEmbedding(clausoleEstratte);
   await tx.run(INSERT.into(TemplateVersion).entries({
-    ID: versionID, template_ID: template.ID, numero, dataCreazione: new Date().toISOString()
+    ID: versionID, template_ID: template.ID, numero, dataCreazione: new Date().toISOString(), embeddingDocumento
   }));
 
   let clausoleCreate = 0, clausoleRiutilizzate = 0, clausoleConDelta = 0;
@@ -103,8 +105,9 @@ async function eseguiImportConfermato(tx, templateID, filename, clausoleConferma
   const prevVersions = await tx.run(SELECT.from(TemplateVersion).where({ template_ID: template.ID }).orderBy('numero desc'));
   const numero = prevVersions.length ? prevVersions[0].numero + 1 : 0;
   const versionID = cds.utils.uuid();
+  const embeddingDocumento = await computeDocumentoEmbedding(clausoleConfermate);
   await tx.run(INSERT.into(TemplateVersion).entries({
-    ID: versionID, template_ID: template.ID, numero, dataCreazione: new Date().toISOString()
+    ID: versionID, template_ID: template.ID, numero, dataCreazione: new Date().toISOString(), embeddingDocumento
   }));
 
   let clausoleCreate = 0, clausoleRiutilizzate = 0, clausoleConDelta = 0;
