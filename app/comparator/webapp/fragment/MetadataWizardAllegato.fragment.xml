@@ -31,7 +31,10 @@
         <l:SplitterLayoutData size="68%" />
       </layoutData>
       <Text text="Anteprima documento" class="app-hint-text sapUiTinyMarginBottom" />
-      <control:PdfPreview id="allegatoPdfPreview" pdfBase64="{allegati>pdfBase64}" />
+      <control:PdfPreview id="allegatoPdfPreview" pdfBase64="{allegati>pdfBase64}"
+        visible="{= !!${allegati>pdfBase64} }" />
+      <TextArea value="{allegati>testo}" editable="false" width="100%" height="55vh"
+        visible="{= !${allegati>pdfBase64} }" />
     </VBox>
   </l:Splitter>
 </core:FragmentDefinition>

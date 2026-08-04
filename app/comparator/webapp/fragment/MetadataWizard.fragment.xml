@@ -31,7 +31,10 @@
         <l:SplitterLayoutData size="68%" />
       </layoutData>
       <Text text="Anteprima documento" class="app-hint-text sapUiTinyMarginBottom" />
-      <control:PdfPreview id="contractPdfPreview" pdfBase64="{wizardDocumento>/pdfBase64}" />
+      <control:PdfPreview id="contractPdfPreview" pdfBase64="{wizardDocumento>/pdfBase64}"
+        visible="{= !!${wizardDocumento>/pdfBase64} }" />
+      <TextArea value="{wizardDocumento>/testo}" editable="false" width="100%" height="55vh"
+        visible="{= !${wizardDocumento>/pdfBase64} }" />
     </VBox>
   </l:Splitter>
 </core:FragmentDefinition>
