@@ -7,6 +7,14 @@ type UtilizzoClausolaEntry {
   variante    : Boolean;
 }
 
+type RiferimentoTrovato {
+  templateID      : UUID;
+  nome            : String;
+  tipo            : String;
+  similarity      : Decimal(5,4);
+  coveragePercent : Decimal(5,2);
+}
+
 type ClausolaCoverageResult {
   numero            : Integer;
   titolo            : String;
@@ -64,6 +72,7 @@ service ComparatorService @(requires: 'Utente') {
     clausole: array of ClausolaCoverageResult;
     metadati: array of MetadatoConfermato;
     testo: LargeString;
+    riferimentoTrovato: RiferimentoTrovato;
   };
   type ClassificazioneDocumento {
     categoria  : String;
