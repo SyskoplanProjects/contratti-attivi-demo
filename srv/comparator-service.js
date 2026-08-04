@@ -12,6 +12,7 @@ const { salvaEsempio } = require('./lib/classificazione-esempi');
 const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
 const { buildSnapshotData } = require('./lib/snapshot-utils');
 const { generaAnomalie } = require('./lib/anomalie-utils');
+const { ottieniPdfEPosizioni } = require('./lib/documento-pdf');
 
 // La confidenza LLM non passa dall'arrotondamento del path embedding: coerziona a 0 i
 // valori non numerici e arrotonda a 4 decimali (campo Decimal(5,4) su DB).
@@ -63,12 +64,16 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         };
       });
 
-      // Estrai metadati del contratto (tipo CONTRATTO, con confidenza per campo) dal testo del documento
+      // Estrai metadati del contratto (tipo CONTRATTO, con confidenza per campo) dal testo del documento,
+      // con bbox per campo quando è disponibile un PDF nativo o convertito da docx.
       let metadati = [];
       let testo = '';
+      let pdfBase64 = null;
       try {
         testo = await extractTextMultiFormato(buffer, mimeType, filename);
-        ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo));
+        const { pdfBase64: b64, testoPosizionato } = await ottieniPdfEPosizioni(buffer, mimeType);
+        pdfBase64 = b64;
+        ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo, testoPosizionato));
       } catch (e) {
         console.warn('[comparator] estrazione metadati fallita, uso fallback:', e.message);
       }
@@ -76,11 +81,11 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       const templateIDFinale = templateID || (result.riferimentoTrovato && result.riferimentoTrovato.templateID) || null;
       const previewID = previewStore.put({
         templateID: templateIDFinale, filename, clausole: result.clausole,
-        coveragePercent: result.coveragePercent, metadati, testo, riferimentoTrovato: result.riferimentoTrovato
+        coveragePercent: result.coveragePercent, metadati, testo, riferimentoTrovato: result.riferimentoTrovato, pdfBase64
       });
       return {
         previewID, coveragePercent: result.coveragePercent, clausole: result.clausole,
-        metadati, testo, riferimentoTrovato: result.riferimentoTrovato
+        metadati, testo, riferimentoTrovato: result.riferimentoTrovato, pdfBase64
       };
     });
 
@@ -114,17 +119,20 @@ module.exports = class ComparatorService extends cds.ApplicationService {
           : 'application/octet-stream';
 
         let testo = '';
+        let pdfBase64 = null;
+        let testoPosizionato = null;
         try {
           testo = await extractTextMultiFormato(buffer, mimeType, a.filename);
+          ({ pdfBase64, testoPosizionato } = await ottieniPdfEPosizioni(buffer, mimeType));
         } catch (e) {
           console.warn('[classificaAllegati] estrazione testo fallita per', a.filename, ':', e.message);
         }
 
         const { tipo, confidenza, metodoRiconoscimento } = await classificaAllegato(testo);
-        const { metadati, dataScadenza } = await estraiCampiAllegato(tipo, testo);
+        const { metadati, dataScadenza } = await estraiCampiAllegato(tipo, testo, testoPosizionato);
         allegatiClassificati.push({
           filename: a.filename, mimeType, contenuto: a.file,
-          tipo, confidenza: _normalizzaConfidenza(confidenza), metodoRiconoscimento, testo, metadati, dataScadenza
+          tipo, confidenza: _normalizzaConfidenza(confidenza), metodoRiconoscimento, testo, metadati, dataScadenza, pdfBase64
         });
       }
 
@@ -132,8 +140,8 @@ module.exports = class ComparatorService extends cds.ApplicationService {
 
       return {
         documentoPrincipale,
-        allegati: allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }) =>
-          ({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza }))
+        allegati: allegatiClassificati.map(({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza, pdfBase64 }) =>
+          ({ filename, tipo, confidenza, metodoRiconoscimento, testo, metadati, dataScadenza, pdfBase64 }))
       };
     });
 

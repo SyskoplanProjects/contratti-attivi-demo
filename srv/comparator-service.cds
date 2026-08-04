@@ -15,6 +15,14 @@ type RiferimentoTrovato {
   coveragePercent : Decimal(5,2);
 }
 
+type PosizioneCampo {
+  pagina : Integer;
+  x      : Decimal(10,4);
+  y      : Decimal(10,4);
+  width  : Decimal(10,4);
+  height : Decimal(10,4);
+}
+
 type ClausolaCoverageResult {
   numero            : Integer;
   titolo            : String;
@@ -41,6 +49,7 @@ type MetadatoConfermato {
   valoreOriginaleAI      : String;
   confidenza             : Decimal(5,4);
   modificatoManualmente  : Boolean;
+  posizione              : PosizioneCampo;
 }
 
 type AllegatoClassificato {
@@ -51,6 +60,7 @@ type AllegatoClassificato {
   testo                : LargeString;
   metadati             : array of MetadatoConfermato;
   dataScadenza         : Date;
+  pdfBase64            : LargeString;
 }
 
 type AllegatoConferma {
@@ -73,6 +83,7 @@ service ComparatorService @(requires: 'Utente') {
     metadati: array of MetadatoConfermato;
     testo: LargeString;
     riferimentoTrovato: RiferimentoTrovato;
+    pdfBase64: LargeString;
   };
   type ClassificazioneDocumento {
     categoria  : String;
