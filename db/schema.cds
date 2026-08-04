@@ -5,6 +5,7 @@ entity Template : cuid, managed {
   nome         : String(200) not null;
   tipoServizio : String(100);
   descrizione  : String(1000);
+  tipoRiferimento : String(20) enum { STANDARD; CLIENTE; } default 'CLIENTE';
   versioni     : Composition of many TemplateVersion on versioni.template = $self;
 }
 
@@ -13,6 +14,7 @@ entity TemplateVersion : cuid, managed {
   numero        : Integer not null;
   dataCreazione : DateTime not null;
   note          : String(500);
+  embeddingDocumento : LargeString;
   righe         : Composition of many TemplateVersionClausola on righe.templateVersion = $self;
 }
 

@@ -102,7 +102,7 @@ service ContrattiService @(requires: ['Utente','Revisore']) {
   @(requires: 'Utente') action importTemplate(templateID: UUID) returns ImportResult;
   @(requires: 'Utente') action previewImportAI(templateID: UUID) returns PreviewImportResult;
   @(requires: 'Utente') action confirmImportAI(previewID: UUID, clausole: array of ClausolaProposta) returns ImportResult;
-  @(requires: 'Utente') action creaTemplateManuale(nome: String, tipoServizio: String, descrizione: String, clausole: array of ClausolaManuale, testata: TestataInput) returns Contratto;
+  @(requires: 'Utente') action creaTemplateManuale(nome: String, tipoServizio: String, descrizione: String, tipoRiferimento: String, clausole: array of ClausolaManuale, testata: TestataInput) returns Contratto;
   @(requires: 'Utente') action creaClausola(codice: String, titolo: String, testo: LargeString, clausolaBaseID: UUID) returns Clausola;
   action getStoricoClausola(clausolaID: UUID) returns array of StoricoClausolaEntry;
   action getContrattiClausola(clausolaID: UUID) returns array of ContrattoUsoClausola;
