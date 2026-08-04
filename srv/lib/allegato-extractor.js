@@ -36,7 +36,10 @@ function _trovaPosizione(valore, testoPosizionato) {
   const right = Math.max(...itemsCoinvolti.map(it => it.x + it.width));
   const bottom = Math.max(...itemsCoinvolti.map(it => it.y + it.height));
 
-  return { pagina, x, y, width: right - x, height: bottom - y };
+  // Arrotondato a 4 decimali: precisione dello schema CDS Decimal(10,4) di PosizioneCampo,
+  // altrimenti il rumore in virgola mobile di pdf.js (es. 172.49999281250004) viene rifiutato.
+  const round4 = n => Math.round(n * 10000) / 10000;
+  return { pagina, x: round4(x), y: round4(y), width: round4(right - x), height: round4(bottom - y) };
 }
 
 // Estrae dal testo grezzo di un allegato (già classificato per tipo) i campi strutturati
