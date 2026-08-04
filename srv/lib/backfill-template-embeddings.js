@@ -1,7 +1,9 @@
 const cds = require('@sap/cds');
+const path = require('path');
 const { computeDocumentoEmbedding } = require('./template-embedding');
 
 async function main() {
+  if (!cds.model) cds.model = await cds.load(path.join(__dirname, '..', '..', 'db', 'schema.cds'));
   await cds.connect.to('db');
   const { TemplateVersion, TemplateVersionClausola, ClausolaVersione } = cds.entities('com.reply.contrattiattivi');
 
