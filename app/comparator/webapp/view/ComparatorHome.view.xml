@@ -21,15 +21,6 @@
           <Text id="contractInfoHint" visible="false" class="app-contract-info sapUiSmallMarginBottom" />
         </VBox>
 
-        <VBox class="app-card app-card-padded sapUiSmallMarginTop">
-          <Label text="Template di riferimento" />
-          <Select id="templateSelect" forceSelection="false" width="100%" class="sapUiSmallMarginTop">
-            <items>
-              <core:Item key="" text="-- Nessun template --" />
-            </items>
-          </Select>
-        </VBox>
-
         <VBox id="fileUploadSection" class="app-card app-card-padded sapUiSmallMarginTop">
           <Label text="File documento" class="sapUiSmallMarginBottom" />
           <unified:FileUploader id="fileUploader" buttonText="Scegli file" placeholder="Nessun file selezionato (docx, xlsx, pdf)" width="100%" change="onFileChange" />
