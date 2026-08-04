@@ -1,6 +1,7 @@
 const cds = require('@sap/cds');
 const { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola } = require('./lib/comparator-engine');
 const previewStore = require('./lib/preview-store');
+const { computeDocumentoEmbedding } = require('./lib/template-embedding');
 const { normalizeText } = require('./lib/diff-utils');
 const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
@@ -265,8 +266,10 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         await tx.run(INSERT.into(Template).entries({ ID: templateID, nome }));
 
         const versionID = cds.utils.uuid();
+        const embeddingDocumento = await computeDocumentoEmbedding(clausoleFinali);
         await tx.run(INSERT.into(TemplateVersion).entries({
-          ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString()
+          ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString(),
+          embeddingDocumento
         }));
 
         const contrattoID = cds.utils.uuid();
