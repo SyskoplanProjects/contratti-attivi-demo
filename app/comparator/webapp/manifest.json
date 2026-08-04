@@ -59,11 +59,13 @@
       "routes": [
         { "pattern": "", "name": "home", "target": "home" },
         { "pattern": "result/{previewID}", "name": "result", "target": "result" },
+        { "pattern": "wizard/{previewID}", "name": "wizard", "target": "wizard" },
         { "pattern": "dashboard", "name": "dashboard", "target": "dashboard" }
       ],
       "targets": {
         "home": { "viewName": "ComparatorHome", "viewLevel": 1 },
         "result": { "viewName": "ComparatorResult", "viewLevel": 2 },
+        "wizard": { "viewName": "Wizard", "viewLevel": 2 },
         "dashboard": { "viewName": "Dashboard", "viewLevel": 1 }
       }
     }

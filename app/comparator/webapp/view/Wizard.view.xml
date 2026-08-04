@@ -1,0 +1,21 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.comparator.controller.Wizard"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Revisione documenti" class="app-header-title" />
+        <ToolbarSpacer />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
+        <Wizard id="reviewWizard" />
+      </VBox>
+      <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.AiPanel" type="XML" />
+    </content>
+  </Page>
+</mvc:View>

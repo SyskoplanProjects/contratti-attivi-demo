@@ -1,0 +1,193 @@
+sap.ui.define([
+  "./BaseController", "sap/m/MessageBox", "sap/m/WizardStep", "sap/ui/model/json/JSONModel",
+  "sap/ui/core/Fragment", "./MetadataWizardHelper"
+],
+function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataWizardHelper) {
+  "use strict";
+
+  return BaseController.extend("com.reply.contrattiattivi.comparator.controller.Wizard", {
+    metadataWizardHelper: metadataWizardHelper,
+
+    onInit: function () {
+      this._initChatState();
+      var oCoverageData = JSON.parse(sessionStorage.getItem("coverageResult") || "{}");
+      var oComplianceData = JSON.parse(sessionStorage.getItem("complianceResult") || "{}");
+      var oTipsData = JSON.parse(sessionStorage.getItem("tipsAIResult") || "null");
+      var sFilename = sessionStorage.getItem("comparatorFilename") || "";
+      var aAllegati = JSON.parse(sessionStorage.getItem("allegatiResult") || "[]").map(function (a) {
+        return Object.assign({}, a, { sezioni: metadataWizardHelper.raggruppaPerSezione(a.metadati || []) });
+      });
+      var oDocPrincipale = JSON.parse(sessionStorage.getItem("documentoPrincipaleResult") || "null") || { categoria: null, sottoTipo: null, confidenza: null };
+      oDocPrincipale.codiceSelezionato = oDocPrincipale.sottoTipo || oDocPrincipale.categoria;
+
+      this._oCoverageData = oCoverageData;
+
+      this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
+      this.getView().setModel(new JSONModel(metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati || [])), "wizardSezioni");
+      this.getView().setModel(new JSONModel({ pdfBase64: oCoverageData.pdfBase64 || null }), "wizardDocumento");
+      this.getView().setModel(new JSONModel({ value: aAllegati }), "allegati");
+      this.getView().setModel(new JSONModel(oDocPrincipale), "documentoPrincipale");
+      var aTips = (oTipsData && oTipsData.value) || (Array.isArray(oTipsData) ? oTipsData : []);
+      this.getView().setModel(new JSONModel({ value: aTips, has: aTips.length > 0 }), "tips");
+
+      this._buildComplianceModel(oCoverageData, oComplianceData);
+
+      fetch("/comparator/getTipologieAllegato", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+        .then(function (oResp) { return oResp.json(); })
+        .then(function (oData) {
+          this.getView().setModel(new JSONModel({ value: oData.value || (Array.isArray(oData) ? oData : []) }), "tipologie");
+        }.bind(this))
+        .catch(function () { console.warn("Impossibile caricare le tipologie allegato"); });
+
+      this._buildSteps(aAllegati);
+    },
+
+    _buildComplianceModel: function (oCoverageData, oComplianceData) {
+      var aComplianceAPI = (oComplianceData && oComplianceData.value) || [];
+      var aComplianceItems = [];
+      var aPresenti = [];
+      var aNonPresenti = [];
+
+      (oCoverageData.clausole || []).forEach(function (c, idx) {
+        var oAPI = idx < aComplianceAPI.length ? aComplianceAPI[idx] : null;
+        var sEsito, sDettaglio, sRif;
+        if (c.stato === "MATCH_TEMPLATE") {
+          sEsito = "PRESENTE"; sDettaglio = oAPI ? oAPI.dettaglio : c.testo; sRif = oAPI ? (oAPI.riferimento || "") : (c.riferimento || "");
+        } else if (c.stato === "VARIANTE") {
+          sEsito = "PARZIALE"; sDettaglio = oAPI ? oAPI.dettaglio : c.testo; sRif = oAPI ? (oAPI.riferimento || "") : (c.riferimento || "");
+        } else if (c.stato === "NUOVA") {
+          sEsito = "NUOVA"; sDettaglio = "Clausola presente nel contratto ma non nel template"; sRif = "";
+        } else {
+          sEsito = "NON PRESENTE"; sDettaglio = "Clausola presente nel template ma non nel contratto"; sRif = c.testo;
+        }
+
+        var sRequisitoFormatted = "";
+        if (sEsito === "NON PRESENTE") {
+          sRequisitoFormatted = (c.templateTitolo || c.titolo || "").replace(/\s*\([^)]*\)/g, "").trim();
+        } else if (sEsito === "NUOVA") {
+          sRequisitoFormatted = c.titolo || "Nuova clausola";
+        } else {
+          var match = (c.templateTitolo || "").match(/^([^(]+)(?:\(([^)]+)\))?/);
+          if (match) {
+            var sCodice = match[1].trim();
+            var sNomeClausola = match[2] ? match[2].trim() : (c.titolo || "");
+            sRequisitoFormatted = (sCodice && sNomeClausola && sCodice !== sNomeClausola) ? (sNomeClausola + " (" + sCodice + ")") : (sNomeClausola || c.templateTitolo || c.titolo);
+          } else {
+            sRequisitoFormatted = c.templateTitolo || c.titolo;
+          }
+        }
+
+        var oItem = {
+          requisito: sRequisitoFormatted, esito: sEsito, dettaglio: sDettaglio, riferimento: sRif,
+          similarity: c.similarity != null ? (Math.round(c.similarity * 10000) / 100) + '%' : '0%',
+          versione: c.versione || 0,
+          clausolaID: c.matchClausolaID ? c.matchClausolaID.substring(0, 8).toUpperCase() : ""
+        };
+        aComplianceItems.push(oItem);
+        (sEsito === "NON PRESENTE" ? aNonPresenti : aPresenti).push(oItem);
+      });
+
+      this.getView().setModel(new JSONModel({
+        value: aComplianceItems, presenti: aPresenti, nonPresenti: aNonPresenti,
+        hasPresenti: aPresenti.length > 0, hasNonPresenti: aNonPresenti.length > 0
+      }), "compliance");
+    },
+
+    _buildSteps: async function (aAllegati) {
+      var oWizard = this.byId("reviewWizard");
+      var sFilename = sessionStorage.getItem("comparatorFilename") || "documento";
+
+      var oContractContent = await Fragment.load({
+        name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizard", controller: this
+      });
+      oWizard.addStep(new WizardStep({ title: "Contratto: " + sFilename, content: [].concat(oContractContent) }));
+
+      for (var i = 0; i < aAllegati.length; i++) {
+        var oContent = await Fragment.load({
+          name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizardAllegato",
+          controller: this, id: this.getView().getId() + "-allegato" + i
+        });
+        var aControls = [].concat(oContent);
+        aControls.forEach(function (oCtl) { oCtl.setBindingContext(this.getView().getModel("allegati").getContext("/value/" + i), "allegati"); }.bind(this));
+        oWizard.addStep(new WizardStep({ title: "Allegato: " + aAllegati[i].filename, content: aControls }));
+      }
+
+      var oFinalContent = await Fragment.load({
+        name: "com.reply.contrattiattivi.comparator.fragment.WizardStepFinale", controller: this
+      });
+      oWizard.addStep(new WizardStep({ title: "Riepilogo e conferma", content: [].concat(oFinalContent) }));
+    },
+
+    onCampoMetadatoModificato: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext('wizardSezioni');
+      if (!oCtx) return;
+      oCtx.getModel().setProperty(oCtx.getPath() + '/modificatoManualmente', true);
+    },
+
+    onCampoMetadatoAllegatoModificato: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext('allegati');
+      if (!oCtx) return;
+      oCtx.getModel().setProperty(oCtx.getPath() + '/modificatoManualmente', true);
+    },
+
+    onCampoMetadatoPress: function (oEvent) {
+      var oCtx = oEvent.getListItem ? oEvent.getListItem().getBindingContext('wizardSezioni') : oEvent.getSource().getBindingContext('wizardSezioni');
+      if (!oCtx) return;
+      var oPreview = this.byId("contractPdfPreview");
+      if (oPreview) oPreview.setHighlightPosizione(oCtx.getObject().posizione || null);
+    },
+
+    onCampoMetadatoAllegatoPress: function (oEvent) {
+      var oSource = oEvent.getListItem ? oEvent.getListItem() : oEvent.getSource();
+      var oCtx = oSource.getBindingContext('allegati');
+      if (!oCtx) return;
+      // Ogni istanza di MetadataWizardAllegato è caricata con Fragment.load({id: <prefix>}),
+      // quindi ogni control al suo interno (righe incluse, anche quelle auto-generate dal
+      // binding template) ha id "<prefix>--<localId>": risalgo al prefix per trovare il
+      // PdfPreview gemello di questa specifica istanza di step allegato.
+      var sPrefix = oSource.getId().split("--")[0];
+      var oPreview = sap.ui.core.Element.getElementById(sPrefix + "--allegatoPdfPreview");
+      if (oPreview) oPreview.setHighlightPosizione(oCtx.getObject().posizione || null);
+    },
+
+    onConfirm: async function () {
+      var oData = this._oCoverageData;
+      var oAllegatiModel = this.getView().getModel("allegati");
+      var aAllegati = oAllegatiModel ? oAllegatiModel.getProperty("/value").map(function (a) {
+        var aMetadatiAllegato = (a.sezioni || []).reduce(function (acc, s) { return acc.concat(s.campi); }, []);
+        return { filename: a.filename, tipo: a.tipo, metadati: aMetadatiAllegato };
+      }) : [];
+      var oWizardModel = this.getView().getModel("wizardSezioni");
+      var aMetadati = oWizardModel ? oWizardModel.getData().reduce(function (acc, s) { return acc.concat(s.campi); }, []) : [];
+      var oDocPrincipaleModel = this.getView().getModel("documentoPrincipale");
+      var sTipoDocumento = oDocPrincipaleModel ? oDocPrincipaleModel.getProperty("/codiceSelezionato") : null;
+
+      try {
+        var oResp = await fetch("/comparator/confirmCoverage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            previewID: oData.previewID, clausole: oData.clausole, allegati: aAllegati, metadati: aMetadati,
+            tipoDocumento: sTipoDocumento
+          })
+        });
+        if (!oResp.ok) {
+          MessageBox.error("Errore salvataggio: " + await oResp.text());
+          return;
+        }
+        var oContratto = await oResp.json();
+        sap.m.MessageToast.show("Contratto '" + oContratto.intestatario + "' creato.");
+        ["coverageResult", "complianceResult", "tipsAIResult", "comparatorFilename", "allegatiResult", "documentoPrincipaleResult"]
+          .forEach(function (k) { sessionStorage.removeItem(k); });
+        window.location.href = "/contratti/webapp/index.html#/detail/" + oContratto.ID;
+      } catch (e) {
+        MessageBox.error("Errore di rete: " + e.message);
+      }
+    },
+
+    onNavBack: function () {
+      ["coverageResult", "complianceResult", "comparatorFilename", "allegatiResult"].forEach(function (k) { sessionStorage.removeItem(k); });
+      sap.ui.core.UIComponent.getRouterFor(this).navTo("home");
+    }
+  });
+});
