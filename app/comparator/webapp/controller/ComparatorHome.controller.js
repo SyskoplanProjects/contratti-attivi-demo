@@ -37,27 +37,6 @@ function (BaseController, MessageBox) {
           this.byId("templateIDHint").setVisible(true);
         }
       }
-
-      var that = this;
-      var oModel = this.getOwnerComponent().getModel();
-      var oSelect = this.byId("templateSelect");
-      fetch(oModel.getServiceUrl() + "Template")
-        .then(function (oResp) { return oResp.json(); })
-        .then(function (oData) {
-          var aResults = oData.value || (Array.isArray(oData) ? oData : []);
-          aResults.forEach(function (oItem) {
-            oSelect.addItem(new sap.ui.core.Item({
-              key: oItem.ID,
-              text: oItem.nome
-            }));
-          });
-          if (sTemplateID) {
-            oSelect.setSelectedKey(sTemplateID);
-          }
-        })
-        .catch(function () {
-          console.warn("Failed to load templates");
-        });
     },
 
     onFileChange: function (oEvent) {
@@ -82,11 +61,7 @@ function (BaseController, MessageBox) {
         return;
       }
 
-      var sTemplateID = this._sTemplateID || this.byId("templateSelect").getSelectedKey();
-      if (!sTemplateID) {
-        MessageBox.error("Seleziona un template.");
-        return;
-      }
+      var sTemplateID = this._sTemplateID || null;
 
       var oBusy = new sap.m.BusyDialog({ text: "Caricamento file..." });
       oBusy.open();
@@ -153,13 +128,14 @@ function (BaseController, MessageBox) {
         oBusy.setText("Generazione tips AI in corso...");
         var oTipsData = null;
         try {
+          var sTemplateIDPerTips = sTemplateID || (oCoverageData.riferimentoTrovato && oCoverageData.riferimentoTrovato.templateID);
           var aClausoleUsate = (oCoverageData.clausole || [])
             .filter(function (c) { return c.matchClausolaID; })
             .map(function (c) { return { clausolaID: c.matchClausolaID, versione: c.versione }; });
           var oTipsResp = await fetch("/comparator/generaTipsAI", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ templateID: sTemplateID, clausole: aClausoleUsate })
+            body: JSON.stringify({ templateID: sTemplateIDPerTips, clausole: aClausoleUsate })
           });
           if (oTipsResp.ok) {
             oTipsData = await oTipsResp.json();
@@ -177,7 +153,7 @@ function (BaseController, MessageBox) {
 
         setTimeout(() => {
           var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
-          oRouter.navTo("result", { previewID: "merged" });
+          oRouter.navTo("wizard", { previewID: "merged" });
         }, 150);
       } catch (e) {
         oBusy.close();
@@ -196,9 +172,8 @@ function (BaseController, MessageBox) {
 
     onAvviaVerificaContratto: async function () {
       var sContractID = this._sContractID;
-      var sTemplateID = this._sTemplateID || this.byId("templateSelect").getSelectedKey();
+      var sTemplateID = this._sTemplateID || null;
       if (!sContractID) { MessageBox.error("ID contratto mancante."); return; }
-      if (!sTemplateID) { MessageBox.error("Seleziona un template."); return; }
 
       var sDefaultPrompt = "Verifica che il documento copra tutti i requisiti previsti dal template di riferimento e dalla normativa applicabile. Per ogni requisito rilevato, indica se presente, parzialmente presente o assente, con riferimento al punto nel documento.";
 
