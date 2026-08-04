@@ -32,7 +32,13 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
 
     init: function () {
       this._aCanvases = [];
+      this._aPages = [];
       this._oOverlay = null;
+      this._oObserver = null;
+    },
+
+    exit: function () {
+      if (this._oObserver) { this._oObserver.disconnect(); this._oObserver = null; }
     },
 
     onAfterRendering: function () {
@@ -52,7 +58,9 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
       if (!oContainer) return;
       oContainer.innerHTML = "";
       this._aCanvases = [];
+      this._aPages = [];
       this._oOverlay = null;
+      if (this._oObserver) { this._oObserver.disconnect(); this._oObserver = null; }
 
       var sBase64 = this.getPdfBase64();
       if (!sBase64) {
@@ -79,33 +87,75 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
 
       try {
         var oDoc = await pdfjsLib.getDocument({ data: aBytes }).promise;
+        // Un canvas per pagina a piena scala pesa parecchio (un contratto di 60 pagine
+        // sarebbero centinaia di MB di backing store); si crea un placeholder dimensionato
+        // per ogni pagina e si rende il canvas vero solo quando entra in viewport.
+        this._oObserver = new IntersectionObserver(this._onPageIntersect.bind(this), {
+          root: oContainer, rootMargin: "200px 0px"
+        });
         for (var i = 1; i <= oDoc.numPages; i++) {
           var oPage = await oDoc.getPage(i);
           var oViewport = oPage.getViewport({ scale: 1.3 });
-          var oCanvas = document.createElement("canvas");
-          oCanvas.width = oViewport.width;
-          oCanvas.height = oViewport.height;
-          oCanvas.dataset.scale = oViewport.scale;
-          oCanvas.style.display = "block";
-          oCanvas.style.marginBottom = "0.5rem";
-          oContainer.appendChild(oCanvas);
-          this._aCanvases.push(oCanvas);
-          await oPage.render({ canvasContext: oCanvas.getContext("2d"), viewport: oViewport }).promise;
+          var oPlaceholder = document.createElement("div");
+          oPlaceholder.style.width = oViewport.width + "px";
+          oPlaceholder.style.height = oViewport.height + "px";
+          oPlaceholder.style.marginBottom = "0.5rem";
+          oPlaceholder.dataset.pageIndex = String(i - 1);
+          oContainer.appendChild(oPlaceholder);
+          this._aPages.push({ oPage: oPage, oViewport: oViewport, oPlaceholder: oPlaceholder, bRendered: false });
+          this._oObserver.observe(oPlaceholder);
         }
+        if (this._aPages.length) await this._renderPage(0);
         this._updateHighlight();
       } catch (e) {
         oContainer.textContent = "Impossibile renderizzare l'anteprima PDF: " + e.message;
       }
     },
 
-    _updateHighlight: function () {
+    _onPageIntersect: function (aEntries) {
+      aEntries.forEach(function (oEntry) {
+        if (!oEntry.isIntersecting) return;
+        this._renderPage(Number(oEntry.target.dataset.pageIndex));
+      }.bind(this));
+    },
+
+    // Sostituisce il placeholder della pagina iIndex con un canvas renderizzato.
+    // Idempotente: chiamabile sia dall'IntersectionObserver sia forzatamente da
+    // _updateHighlight quando serve una pagina non ancora entrata in viewport.
+    _renderPage: async function (iIndex) {
+      var oPageInfo = this._aPages && this._aPages[iIndex];
+      if (!oPageInfo || oPageInfo.bRendered) return;
+      oPageInfo.bRendered = true;
+      if (this._oObserver) this._oObserver.unobserve(oPageInfo.oPlaceholder);
+
+      var oCanvas = document.createElement("canvas");
+      oCanvas.width = oPageInfo.oViewport.width;
+      oCanvas.height = oPageInfo.oViewport.height;
+      oCanvas.dataset.scale = oPageInfo.oViewport.scale;
+      oCanvas.style.display = "block";
+      oCanvas.style.marginBottom = "0.5rem";
+      oPageInfo.oPlaceholder.replaceWith(oCanvas);
+      this._aCanvases[iIndex] = oCanvas;
+
+      try {
+        await oPageInfo.oPage.render({ canvasContext: oCanvas.getContext("2d"), viewport: oPageInfo.oViewport }).promise;
+      } catch (e) {
+        oPageInfo.bRendered = false;
+      }
+    },
+
+    _updateHighlight: async function () {
       if (this._oOverlay) {
         this._oOverlay.remove();
         this._oOverlay = null;
       }
       var oPos = this.getHighlightPosizione();
       if (!oPos || !oPos.pagina) return;
-      var oCanvas = this._aCanvases[oPos.pagina - 1];
+      var iIndex = oPos.pagina - 1;
+      if (this._aPages && this._aPages[iIndex] && !this._aPages[iIndex].bRendered) {
+        await this._renderPage(iIndex);
+      }
+      var oCanvas = this._aCanvases[iIndex];
       if (!oCanvas) return;
 
       var fScale = Number(oCanvas.dataset.scale) || 1;
