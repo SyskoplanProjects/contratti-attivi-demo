@@ -1,0 +1,145 @@
+sap.ui.define(["sap/ui/core/Control"], function (Control) {
+  "use strict";
+
+  var _pdfJsPromise = null;
+
+  // Carica lo script pdf.min.js (build browser di pdfjs-dist) una sola volta,
+  // condiviso da tutte le istanze di PdfPreview nella pagina.
+  function _loadPdfJs() {
+    if (_pdfJsPromise) return _pdfJsPromise;
+    var sBase = sap.ui.require.toUrl("com/reply/contrattiattivi/comparator/lib/pdfjs");
+    _pdfJsPromise = new Promise(function (resolve, reject) {
+      if (window.pdfjsLib) { resolve(window.pdfjsLib); return; }
+      var oScript = document.createElement("script");
+      oScript.src = sBase + "/pdf.min.js";
+      oScript.onload = function () {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = sBase + "/pdf.worker.min.js";
+        resolve(window.pdfjsLib);
+      };
+      oScript.onerror = function () { reject(new Error("Impossibile caricare pdf.min.js")); };
+      document.head.appendChild(oScript);
+    });
+    return _pdfJsPromise;
+  }
+
+  return Control.extend("com.reply.contrattiattivi.comparator.control.PdfPreview", {
+    metadata: {
+      properties: {
+        pdfBase64: { type: "string", defaultValue: null },
+        highlightPosizione: { type: "object", defaultValue: null }
+      }
+    },
+
+    init: function () {
+      this._aCanvases = [];
+      this._oOverlay = null;
+    },
+
+    onAfterRendering: function () {
+      this._renderPdf();
+    },
+
+    // Aggiorna solo l'overlay di evidenziazione, senza re-invalidare/ridisegnare tutto il PDF
+    // (altrimenti ogni click su un campo del pannello metadati ricaricherebbe l'intero documento).
+    setHighlightPosizione: function (oPosizione) {
+      this.setProperty("highlightPosizione", oPosizione, true);
+      this._updateHighlight();
+      return this;
+    },
+
+    _renderPdf: async function () {
+      var oContainer = this.getDomRef("content");
+      if (!oContainer) return;
+      oContainer.innerHTML = "";
+      this._aCanvases = [];
+      this._oOverlay = null;
+
+      var sBase64 = this.getPdfBase64();
+      if (!sBase64) {
+        oContainer.textContent = "Nessuna anteprima disponibile per questo documento.";
+        return;
+      }
+
+      var pdfjsLib;
+      try {
+        pdfjsLib = await _loadPdfJs();
+      } catch (e) {
+        oContainer.textContent = "Anteprima PDF non disponibile: " + e.message;
+        return;
+      }
+
+      var sPure = sBase64.indexOf(",") >= 0 ? sBase64.split(",")[1] : sBase64;
+      var aBytes;
+      try {
+        aBytes = Uint8Array.from(atob(sPure), function (c) { return c.charCodeAt(0); });
+      } catch (e) {
+        oContainer.textContent = "PDF non valido.";
+        return;
+      }
+
+      try {
+        var oDoc = await pdfjsLib.getDocument({ data: aBytes }).promise;
+        for (var i = 1; i <= oDoc.numPages; i++) {
+          var oPage = await oDoc.getPage(i);
+          var oViewport = oPage.getViewport({ scale: 1.3 });
+          var oCanvas = document.createElement("canvas");
+          oCanvas.width = oViewport.width;
+          oCanvas.height = oViewport.height;
+          oCanvas.dataset.scale = oViewport.scale;
+          oCanvas.style.display = "block";
+          oCanvas.style.marginBottom = "0.5rem";
+          oContainer.appendChild(oCanvas);
+          this._aCanvases.push(oCanvas);
+          await oPage.render({ canvasContext: oCanvas.getContext("2d"), viewport: oViewport }).promise;
+        }
+        this._updateHighlight();
+      } catch (e) {
+        oContainer.textContent = "Impossibile renderizzare l'anteprima PDF: " + e.message;
+      }
+    },
+
+    _updateHighlight: function () {
+      if (this._oOverlay) {
+        this._oOverlay.remove();
+        this._oOverlay = null;
+      }
+      var oPos = this.getHighlightPosizione();
+      if (!oPos || !oPos.pagina) return;
+      var oCanvas = this._aCanvases[oPos.pagina - 1];
+      if (!oCanvas) return;
+
+      var fScale = Number(oCanvas.dataset.scale) || 1;
+      var oDiv = document.createElement("div");
+      oDiv.className = "app-pdf-highlight";
+      oDiv.style.position = "absolute";
+      oDiv.style.left = (oCanvas.offsetLeft + oPos.x * fScale) + "px";
+      oDiv.style.top = (oCanvas.offsetTop + oPos.y * fScale) + "px";
+      oDiv.style.width = Math.max(oPos.width * fScale, 4) + "px";
+      oDiv.style.height = Math.max(oPos.height * fScale, 4) + "px";
+      oDiv.style.border = "2px solid #e9730c";
+      oDiv.style.background = "rgba(233, 115, 12, 0.15)";
+      oDiv.style.pointerEvents = "none";
+
+      var oContainer = this.getDomRef("content");
+      oContainer.style.position = "relative";
+      oContainer.appendChild(oDiv);
+      this._oOverlay = oDiv;
+      oCanvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
+
+    renderer: function (oRm, oControl) {
+      oRm.openStart("div", oControl);
+      oRm.class("app-pdf-preview");
+      oRm.style("overflow", "auto");
+      oRm.style("height", "55vh");
+      oRm.style("width", "100%");
+      oRm.style("border", "1px solid var(--sapList_BorderColor, #ccc)");
+      oRm.openEnd();
+      oRm.openStart("div");
+      oRm.attr("id", oControl.getId() + "-content");
+      oRm.openEnd();
+      oRm.close("div");
+      oRm.close("div");
+    }
+  });
+});
