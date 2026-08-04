@@ -62,6 +62,7 @@ Un solo file convertito (o nativo) PDF alimenta sempre la stessa pipeline di pos
 ## Wizard frontend (installer-style)
 
 - Upload resta un unico step iniziale in `ComparatorHome` (contratto + N allegati insieme). **Rimosso** il blocco `Select templateSelect` e relativa label — nessuna selezione template richiesta.
+- Caso allegati in unico PDF: il contratto può arrivare con tutti gli allegati concatenati in un solo file PDF (nessun upload separato per allegato). Nessuna logica di split automatico in questo design — l'intero PDF viene trattato come "contratto" nello Stadio 1/2/3; la separazione contratto/allegati resta compito dell'utente in fase di upload (file multipli) come oggi. Limitazione nota, non bloccante — fuori scope split automatico di un PDF multi-documento.
 - Dopo "Avvia analisi": chiamata Stadio 1 (per tutti i documenti) + Stadio 2/3 in parallelo (contratto). Risultato completo (inclusi PDF convertiti base64 e posizioni) salvato in `previewStore` come oggi, referenziato da `previewID`.
 - Nuova vista `Wizard.view.xml` / `Wizard.controller.js`, basata su `sap.m.Wizard`:
   - Step 0 = contratto: riusa il fragment `MetadataWizard` esistente (Input editabili + confidenza), sostituendo la `TextArea` di testo grezzo con il nuovo `PdfPreview`.
@@ -110,6 +111,7 @@ Un solo file convertito (o nativo) PDF alimenta sempre la stessa pipeline di pos
 
 - Nessuna persistenza di PDF convertito o posizioni bounding-box dopo `confirmCoverage` — non richiesta la ri-apertura della preview Document AI da un contratto già salvato.
 - Nessuna conversione PDF fedele per `.xlsx` — resta il fallback testuale esistente.
+- Nessuno split automatico di un PDF contenente contratto + allegati concatenati — l'utente carica i documenti già separati (file multipli).
 - Nessun tie-break a favore di STANDARD nel matching (deciso: vince sempre lo score più alto).
 - Nessun flusso di caricamento/gestione dedicato per template cliente — il pool si popola solo tramite lo storico clausolario/contratti confermati, come già avviene oggi.
 - Nessuna modifica alla UI/flusso di "verifica contratto esistente" oltre alla rimozione del selector (la logica di confronto contro il proprio template resta invariata).
