@@ -1,0 +1,83 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+  <VBox>
+    <HBox class="sapUiSmallMarginBottom" alignItems="Center">
+      <ObjectStatus text="Copertura: {coverage>/coveragePercent}%" state="{= ${coverage>/coveragePercent} >= 80 ? 'Success' : ${coverage>/coveragePercent} >= 50 ? 'Warning' : 'Error' }" />
+      <Text text="File: {coverage>/filename}" class="sapUiSmallMarginBegin" />
+    </HBox>
+
+    <VBox visible="{= !!${coverage>/riferimentoTrovato} }" class="app-card app-card-padded sapUiSmallMarginBottom">
+      <Label text="Riferimento riconosciuto automaticamente" design="Bold" />
+      <Text text="{coverage>/riferimentoTrovato/nome} ({coverage>/riferimentoTrovato/tipo}) — similarity {= Math.round((${coverage>/riferimentoTrovato/similarity} || 0) * 100) }%" />
+    </VBox>
+
+    <VBox visible="{tips>/has}" class="app-card app-card-padded sapUiSmallMarginBottom">
+      <HBox class="sapUiTinyMarginBottom" alignItems="Center">
+        <core:Icon src="sap-icon://lightbulb" class="sapUiTinyMarginEnd" />
+        <Label text="Tips AI" design="Bold" />
+      </HBox>
+      <List items="{tips>/value}" noDataText="Nessun suggerimento.">
+        <items>
+          <StandardListItem
+            icon="{= ${tips>tipo} === 'AGGIORNAMENTO' ? 'sap-icon://synchronize' : 'sap-icon://add-document' }"
+            title="{tips>messaggio}" wrapping="true" />
+        </items>
+      </List>
+    </VBox>
+
+    <VBox visible="{compliance>/hasPresenti}" class="app-table-wrap sapUiSmallMarginBottom">
+      <Table items="{compliance>/presenti}" growing="true" growingThreshold="50">
+        <columns>
+          <Column><Text text="Parti Contratto" /></Column>
+          <Column width="10rem"><Text text="Esito" /></Column>
+          <Column><Text text="Dettaglio" /></Column>
+          <Column><Text text="Riferimento" /></Column>
+          <Column width="8rem"><Text text="Match % (Similarity)" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <VBox>
+                <Text text="{compliance>requisito}" />
+                <Text text="{compliance>clausolaID}" visible="{= !!${compliance>clausolaID} }" class="app-id-badge" />
+              </VBox>
+              <ObjectStatus text="{compliance>esito}" state="{path: 'compliance>esito', formatter: '.formatter.esitoState'}" />
+              <Text text="{compliance>dettaglio}" />
+              <Text text="{compliance>riferimento}" />
+              <Text text="{compliance>similarity}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+
+    <VBox visible="{compliance>/hasNonPresenti}" class="app-table-wrap sapUiSmallMarginTop sapUiSmallMarginBottom">
+      <Table items="{compliance>/nonPresenti}" growing="true" growingThreshold="50">
+        <columns>
+          <Column><Text text="Parti Contratto Assenti" /></Column>
+          <Column width="10rem"><Text text="Esito" /></Column>
+          <Column><Text text="Dettaglio" /></Column>
+          <Column><Text text="Riferimento" /></Column>
+          <Column width="8rem"><Text text="Match % (Similarity)" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <VBox>
+                <Text text="{compliance>requisito}" />
+                <Text text="{compliance>clausolaID}" visible="{= !!${compliance>clausolaID} }" class="app-id-badge" />
+              </VBox>
+              <ObjectStatus text="{compliance>esito}" state="{path: 'compliance>esito', formatter: '.formatter.esitoState'}" />
+              <Text text="{compliance>dettaglio}" />
+              <Text text="{compliance>riferimento}" />
+              <Text text="{compliance>similarity}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+
+    <HBox class="app-btn-group sapUiSmallMarginTop">
+      <Button text="Digitalizza documento" type="Emphasized" press=".onConfirm" class="app-btn app-btn-primary" />
+    </HBox>
+  </VBox>
+</core:FragmentDefinition>
