@@ -144,11 +144,23 @@ function (BaseController, MessageBox) {
 
         oBusy.close();
 
-        sessionStorage.setItem("coverageResult", JSON.stringify(oCoverageData));
+        // pdfBase64 (contratto + ogni allegato) è tenuto fuori da sessionStorage: su un
+        // contratto scansionato di qualche MB, la codifica base64 (+33%) supera facilmente
+        // la quota ~5MB per-origine di sessionStorage. La navigazione verso il wizard è un
+        // cambio di rotta SPA nello stesso documento, quindi il payload binario può restare
+        // in memoria sul Component invece di fare un giro per sessionStorage come stringa.
+        this.getOwnerComponent()._wizardPdfCache = {
+          contratto: oCoverageData.pdfBase64 || null,
+          allegati: aAllegatiResult.map(function (a) { return a.pdfBase64 || null; })
+        };
+        var oCoverageDataSlim = { ...oCoverageData, pdfBase64: undefined };
+        var aAllegatiResultSlim = aAllegatiResult.map(function (a) { return { ...a, pdfBase64: undefined }; });
+
+        sessionStorage.setItem("coverageResult", JSON.stringify(oCoverageDataSlim));
         sessionStorage.setItem("complianceResult", JSON.stringify(oComplianceData));
         sessionStorage.setItem("tipsAIResult", JSON.stringify(oTipsData));
         sessionStorage.setItem("comparatorFilename", oFile.name);
-        sessionStorage.setItem("allegatiResult", JSON.stringify(aAllegatiResult));
+        sessionStorage.setItem("allegatiResult", JSON.stringify(aAllegatiResultSlim));
         sessionStorage.setItem("documentoPrincipaleResult", JSON.stringify(oDocumentoPrincipale));
 
         setTimeout(() => {
