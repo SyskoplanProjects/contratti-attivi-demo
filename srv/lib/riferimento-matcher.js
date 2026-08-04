@@ -6,6 +6,7 @@ const { confrontaClausoleConTemplate } = require('./comparator-engine');
 const N_SHORTLIST = 3;
 
 function _media(vettori) {
+  if (!vettori || !vettori.length) return null;
   const n = vettori.length;
   const dim = vettori[0].length;
   const somma = new Array(dim).fill(0);
@@ -15,13 +16,25 @@ function _media(vettori) {
   return somma.map(x => x / n);
 }
 
+// confirmCoverage crea un nuovo Template a ogni contratto confermato: il pool cresce
+// senza limite, quindi si evita la query TemplateVersion per-template in loop (1 + N) e
+// si recupera l'ultima versione di ciascun template con un'unica query batched (2 totali,
+// indipendentemente dal numero di template).
 async function _shortlist(embeddingMedio, tx, n) {
   const { Template, TemplateVersion } = cds.entities('com.reply.contrattiattivi');
   const templates = await tx.run(SELECT.from(Template));
+  if (!templates.length) return [];
+  const templateIDs = templates.map(t => t.ID);
+  const tutteLeVersioni = await tx.run(
+    SELECT.from(TemplateVersion).where({ template_ID: { in: templateIDs } }).orderBy('numero desc')
+  );
+  const ultimaPerTemplate = {};
+  for (const v of tutteLeVersioni) {
+    if (!ultimaPerTemplate[v.template_ID]) ultimaPerTemplate[v.template_ID] = v; // orderBy desc -> il primo vince
+  }
   const candidati = [];
   for (const t of templates) {
-    const versioni = await tx.run(SELECT.from(TemplateVersion).where({ template_ID: t.ID }).orderBy('numero desc'));
-    const ultima = versioni[0];
+    const ultima = ultimaPerTemplate[t.ID];
     if (!ultima || !ultima.embeddingDocumento) continue;
     const similarity = Math.round(cosineSimilarity(embeddingMedio, JSON.parse(ultima.embeddingDocumento)) * 10000) / 10000;
     candidati.push({ templateID: t.ID, nome: t.nome, tipo: t.tipoRiferimento, similarity });
@@ -44,6 +57,7 @@ async function trovaRiferimento(clausoleEstratte, tx) {
   // non va confuso con "pool vuoto"/"nessun match" che ritornano null.
   const vettoriClausole = await openai.embeddings(clausoleEstratte.map(c => c.testo));
   const embeddingMedio = _media(vettoriClausole);
+  if (!embeddingMedio) return null;
 
   let candidati = await _shortlist(embeddingMedio, tx, N_SHORTLIST);
   if (!candidati.length) {
