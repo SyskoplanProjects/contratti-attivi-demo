@@ -16,6 +16,7 @@
     "multer": "^2",
     "openai": "^6.48.0",
     "pdfjs-dist": "^3",
+    "puppeteer": "^24.43.1",
     "xlsx": "^0.18"
   },
   "devDependencies": {
