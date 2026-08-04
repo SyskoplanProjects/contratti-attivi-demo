@@ -2,13 +2,50 @@ const openai = require('../modules/openai-module');
 const { TIPOLOGIE_ALLEGATO } = require('./tipologie-allegato');
 const { riconosciTemplateContrattuale } = require('./template-recognizer');
 
+// Cerca lo span di un valore estratto nel testo posizionato: match esatto (case-insensitive)
+// prima, poi fallback su normalizzazione whitespace. Unisce (bounding box) tutti gli item che
+// si sovrappongono allo span trovato. Nessun match -> null, non blocca mai il flusso a monte.
+function _trovaPosizione(valore, testoPosizionato) {
+  if (!valore || !testoPosizionato || !testoPosizionato.items || !testoPosizionato.items.length) return null;
+
+  const { testo, items } = testoPosizionato;
+  const sValore = String(valore);
+
+  let indice = testo.indexOf(sValore);
+  let lunghezza = sValore.length;
+
+  if (indice < 0) {
+    const normalize = s => s.replace(/\s+/g, ' ').trim().toLowerCase();
+    const testoNorm = normalize(testo);
+    const valoreNorm = normalize(sValore);
+    const idxNorm = testoNorm.indexOf(valoreNorm);
+    if (idxNorm < 0) return null;
+    // Approssimazione: sulla stringa normalizzata gli offset non corrispondono 1:1 a `testo`
+    // se ci sono più spazi consecutivi; per i testi PDF (spazi singoli tra item) coincidono.
+    indice = idxNorm;
+    lunghezza = valoreNorm.length;
+  }
+
+  const fine = indice + lunghezza;
+  const itemsCoinvolti = items.filter(it => it.offsetInizio < fine && it.offsetFine > indice);
+  if (!itemsCoinvolti.length) return null;
+
+  const pagina = itemsCoinvolti[0].pagina;
+  const x = Math.min(...itemsCoinvolti.map(it => it.x));
+  const y = Math.min(...itemsCoinvolti.map(it => it.y));
+  const right = Math.max(...itemsCoinvolti.map(it => it.x + it.width));
+  const bottom = Math.max(...itemsCoinvolti.map(it => it.y + it.height));
+
+  return { pagina, x, y, width: right - x, height: bottom - y };
+}
+
 // Estrae dal testo grezzo di un allegato (già classificato per tipo) i campi strutturati
 // definiti in campiChiave per quel tipo. Per ogni campo il modello ritorna { valore, confidenza }
 // invece di un valore nudo: la confidenza è autodichiarata dal modello (0-1), non calibrata,
 // e alimenta il badge nel wizard di verifica. I campi con staticValue e quelli con dynamic
 // (es. templateContrattuale, valorizzato da un motore dedicato — vedi Task 3b) non vengono
 // chiesti al modello insieme agli altri.
-async function estraiCampiAllegato(tipo, testo) {
+async function estraiCampiAllegato(tipo, testo, testoPosizionato = null) {
   const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
   if (!tipologia || !tipologia.campiChiave || !testo || !testo.trim()) {
     return { metadati: [], dataScadenza: null };
@@ -38,9 +75,9 @@ async function estraiCampiAllegato(tipo, testo) {
   const metadatiDinamici = await Promise.all(campiDinamici.map(async (c) => {
     if (c.dynamic === 'riconosciTemplateContrattuale') {
       const { valore, confidenza } = await riconosciTemplateContrattuale(testo);
-      return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore };
+      return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore, posizione: _trovaPosizione(valore, testoPosizionato) };
     }
-    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: null, confidenza: null, valoreOriginaleAI: null };
+    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: null, confidenza: null, valoreOriginaleAI: null, posizione: null };
   }));
 
   const metadati = campiDaChiedere.map(c => {
@@ -48,9 +85,9 @@ async function estraiCampiAllegato(tipo, testo) {
     const valore = (r && typeof r === 'object' && r.valore != null && r.valore !== '') ? String(r.valore) : null;
     const confidenza = (r && typeof r === 'object' && typeof r.confidenza === 'number')
       ? Math.max(0, Math.min(1, r.confidenza)) : 0;
-    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore };
+    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore, posizione: _trovaPosizione(valore, testoPosizionato) };
   }).concat(campiStatici.map(c => ({
-    campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: c.staticValue, confidenza: null, valoreOriginaleAI: c.staticValue
+    campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: c.staticValue, confidenza: null, valoreOriginaleAI: c.staticValue, posizione: null
   }))).concat(metadatiDinamici);
 
   const campoScadenza = tipologia.campiChiave.find(c => c.scadenza);
