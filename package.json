@@ -34,6 +34,7 @@
     "dev": "cds watch",
     "setup-assistant": "node srv/lib/setup-assistant.js",
     "seed-demo": "node srv/lib/seed-demo.js",
+    "backfill-template-embeddings": "node srv/lib/backfill-template-embeddings.js",
     "test": "jest --testTimeout=30000 --forceExit"
   },
   "jest": {
