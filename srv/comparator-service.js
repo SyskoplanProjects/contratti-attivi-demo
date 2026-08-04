@@ -1,5 +1,6 @@
 const cds = require('@sap/cds');
 const { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola, confrontaClausoleConTemplate, estraiClausole } = require('./lib/comparator-engine');
+const { trovaRiferimento } = require('./lib/riferimento-matcher');
 const previewStore = require('./lib/preview-store');
 const { computeDocumentoEmbedding } = require('./lib/template-embedding');
 const { normalizeText } = require('./lib/diff-utils');
@@ -33,8 +34,34 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         : filename.endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         : 'application/octet-stream';
 
-      const result = await cds.tx(req).run(tx =>
-        calcolaCoverage(buffer, filename, mimeType, templateID, tx));
+      const result = await cds.tx(req).run(async (tx) => {
+        // templateID fornito esplicitamente: comportamento identico a oggi (retrocompatibilità/debug).
+        if (templateID) {
+          const r = await calcolaCoverage(buffer, filename, mimeType, templateID, tx);
+          return { clausole: r.clausole, coveragePercent: r.coveragePercent, riferimentoTrovato: null };
+        }
+
+        // Nessun templateID: pipeline automatica (Stadio 1 già completato sopra via extractTextMultiFormato
+        // più sotto per i metadati; qui Stadio 1 per le clausole + Stadio 2/3 per il riferimento).
+        const clausoleEstratte = await estraiClausole(buffer, filename, mimeType);
+        if (!clausoleEstratte.length) return req.reject(400, 'Documento non analizzabile');
+
+        const { Template } = cds.entities('com.reply.contrattiattivi');
+        const tuttiTemplate = await tx.run(SELECT.from(Template));
+        if (!tuttiTemplate.length) return req.reject(400, 'Nessun template di riferimento disponibile in archivio');
+
+        const matched = await trovaRiferimento(clausoleEstratte, tx);
+        if (!matched) return req.reject(400, 'Nessun template di riferimento disponibile in archivio');
+
+        return {
+          clausole: matched.clausole,
+          coveragePercent: matched.coveragePercent,
+          riferimentoTrovato: {
+            templateID: matched.templateID, nome: matched.nome, tipo: matched.tipo,
+            similarity: matched.similarity, coveragePercent: matched.coveragePercent
+          }
+        };
+      });
 
       // Estrai metadati del contratto (tipo CONTRATTO, con confidenza per campo) dal testo del documento
       let metadati = [];
@@ -46,11 +73,15 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         console.warn('[comparator] estrazione metadati fallita, uso fallback:', e.message);
       }
 
+      const templateIDFinale = templateID || (result.riferimentoTrovato && result.riferimentoTrovato.templateID) || null;
       const previewID = previewStore.put({
-        templateID, filename, clausole: result.clausole,
-        coveragePercent: result.coveragePercent, metadati, testo
+        templateID: templateIDFinale, filename, clausole: result.clausole,
+        coveragePercent: result.coveragePercent, metadati, testo, riferimentoTrovato: result.riferimentoTrovato
       });
-      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati, testo };
+      return {
+        previewID, coveragePercent: result.coveragePercent, clausole: result.clausole,
+        metadati, testo, riferimentoTrovato: result.riferimentoTrovato
+      };
     });
 
     this.on('classificaAllegati', async (req) => {
@@ -135,10 +166,17 @@ module.exports = class ComparatorService extends cds.ApplicationService {
     });
 
     this.on('calcolaCoverageDaContratto', async (req) => {
-      const { contractID, templateID } = req.data;
-      if (!contractID || !templateID) return req.reject(400, 'contractID e templateID obbligatori');
+      let { contractID, templateID } = req.data;
+      if (!contractID) return req.reject(400, 'contractID obbligatorio');
 
       const result = await cds.tx(req).run(async (tx) => {
+        const { Contratto } = cds.entities('com.reply.contrattiattivi');
+        if (!templateID) {
+          const contratto = await tx.run(SELECT.one.from(Contratto, contractID));
+          templateID = contratto && contratto.template_ID;
+        }
+        if (!templateID) return req.reject(400, 'Template di riferimento non determinabile per questo contratto');
+
         const righe = await tx.run(SELECT.from(ContrattoClausola)
           .where({ contratto_ID: contractID, rimossa: false })
           .orderBy('ordine'));
