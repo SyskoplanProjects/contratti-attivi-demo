@@ -1,5 +1,5 @@
 const cds = require('@sap/cds');
-const { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola } = require('./lib/comparator-engine');
+const { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola, confrontaClausoleConTemplate, estraiClausole } = require('./lib/comparator-engine');
 const previewStore = require('./lib/preview-store');
 const { computeDocumentoEmbedding } = require('./lib/template-embedding');
 const { normalizeText } = require('./lib/diff-utils');
@@ -18,88 +18,6 @@ function _normalizzaConfidenza(confidenza) {
   const n = Number(confidenza);
   if (!Number.isFinite(n)) return 0;
   return Math.round(n * 10000) / 10000;
-}
-
-async function confrontaClausoleConTemplate(clausole, templateID, tx) {
-  const { Template } = cds.entities('com.reply.contrattiattivi');
-  const oTemplate = await tx.run(SELECT.one.from(Template, templateID));
-  const sNomeTemplate = oTemplate ? oTemplate.nome : "Template";
-
-  const templateMap = await buildTemplateClausoleMap(tx, templateID);
-  const templateEntries = Object.entries(templateMap);
-  if (!templateEntries.length) throw new Error('Template has no clauses');
-
-  const testiDaEmbeddare = [
-    ...clausole.map(c => c.testo),
-    ...templateEntries.map(([, t]) => t.testo)
-  ];
-
-  const { cosineSimilarity } = require('./lib/ai-import');
-  const openai = require('./modules/openai-module');
-  let vettori;
-  try {
-    vettori = await openai.embeddings(testiDaEmbeddare);
-  } catch (e) {
-    console.warn('[comparator] embeddings failed:', e.message);
-    throw e;
-  }
-
-  const SOGLIA_MATCH = 0.92;
-  const SOGLIA_VARIANTE = 0.75;
-  const embClausole = vettori.slice(0, clausole.length);
-  const embTemplate = {};
-  templateEntries.forEach(([codice], i) => {
-    embTemplate[codice] = vettori[clausole.length + i];
-  });
-
-  const matchedTemplateCodici = new Set();
-  const results = clausole.map((c, i) => {
-    let bestSim = 0;
-    let bestMatch = null;
-    let bestCodice = null;
-    templateEntries.forEach(([codice, t]) => {
-      const sim = cosineSimilarity(embClausole[i], embTemplate[codice]);
-      if (sim > bestSim) { bestSim = sim; bestMatch = t; bestCodice = codice; }
-    });
-    bestSim = Math.round(bestSim * 10000) / 10000;
-    if (bestSim >= SOGLIA_MATCH) {
-      matchedTemplateCodici.add(bestCodice);
-      return { ...c, titolo: c.titolo, templateTitolo: bestCodice + " (" + (bestMatch.titolo || "") + ")", stato: 'MATCH_TEMPLATE', similarity: bestSim, matchClausolaID: bestMatch.clausolaID, versione: bestMatch.versione, testoTemplate: bestMatch.testo };
-    }
-    if (bestSim >= SOGLIA_VARIANTE) {
-      matchedTemplateCodici.add(bestCodice);
-      return { ...c, titolo: c.titolo, templateTitolo: bestCodice + " (" + (bestMatch.titolo || "") + ")", stato: 'VARIANTE', similarity: bestSim, matchClausolaID: bestMatch.clausolaID, versione: bestMatch.versione, testoTemplate: bestMatch.testo };
-    }
-    return { ...c, titolo: c.titolo, templateTitolo: "", stato: 'NUOVA', similarity: 0, matchClausolaID: null, versione: 0, testoTemplate: null };
-  });
-
-  const clausoleConStorico = await Promise.all(results.map(async (r) => ({
-    ...r,
-    riferimento: "",
-    utilizzoStorico: r.matchClausolaID ? await cercaUtilizzoClausola(r.matchClausolaID, tx) : []
-  })));
-
-  templateEntries.forEach(([codice, t]) => {
-    if (!matchedTemplateCodici.has(codice)) {
-      clausoleConStorico.push({
-        titolo: codice + " (" + (t.titolo || "") + ")",
-        templateTitolo: codice + " (" + (t.titolo || "") + ")",
-        testo: t.testo,
-        stato: "NON_PRESENTE",
-        similarity: 0,
-        matchClausolaID: t.clausolaID,
-        utilizzoStorico: [],
-        riferimento: sNomeTemplate,
-        versione: 0,
-        testoTemplate: t.testo
-      });
-    }
-  });
-
-  return {
-    clausole: clausoleConStorico,
-    coveragePercent: Math.round((matchedTemplateCodici.size / templateEntries.length) * 10000) / 100
-  };
 }
 
 module.exports = class ComparatorService extends cds.ApplicationService {

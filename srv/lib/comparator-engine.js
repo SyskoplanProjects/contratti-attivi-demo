@@ -64,6 +64,84 @@ async function cercaUtilizzoClausola(clausolaID, tx) {
   return results;
 }
 
+async function confrontaClausoleConTemplate(clausole, templateID, tx) {
+  const { Template } = cds.entities('com.reply.contrattiattivi');
+  const oTemplate = await tx.run(SELECT.one.from(Template, templateID));
+  const sNomeTemplate = oTemplate ? oTemplate.nome : "Template";
+
+  const templateMap = await buildTemplateClausoleMap(tx, templateID);
+  const templateEntries = Object.entries(templateMap);
+  if (!templateEntries.length) throw new Error('Template has no clauses');
+
+  const testiDaEmbeddare = [
+    ...clausole.map(c => c.testo),
+    ...templateEntries.map(([, t]) => t.testo)
+  ];
+
+  let vettori;
+  try {
+    vettori = await openai.embeddings(testiDaEmbeddare);
+  } catch (e) {
+    console.warn('[comparator] embeddings failed:', e.message);
+    throw e;
+  }
+
+  const embClausole = vettori.slice(0, clausole.length);
+  const embTemplate = {};
+  templateEntries.forEach(([codice], i) => {
+    embTemplate[codice] = vettori[clausole.length + i];
+  });
+
+  const matchedTemplateCodici = new Set();
+  const results = clausole.map((c, i) => {
+    let bestSim = 0;
+    let bestMatch = null;
+    let bestCodice = null;
+    templateEntries.forEach(([codice, t]) => {
+      const sim = cosineSimilarity(embClausole[i], embTemplate[codice]);
+      if (sim > bestSim) { bestSim = sim; bestMatch = t; bestCodice = codice; }
+    });
+    bestSim = Math.round(bestSim * 10000) / 10000;
+    if (bestSim >= SOGLIA_MATCH) {
+      matchedTemplateCodici.add(bestCodice);
+      return { ...c, titolo: c.titolo, templateTitolo: bestCodice + " (" + (bestMatch.titolo || "") + ")", stato: 'MATCH_TEMPLATE', similarity: bestSim, matchClausolaID: bestMatch.clausolaID, versione: bestMatch.versione, testoTemplate: bestMatch.testo };
+    }
+    if (bestSim >= SOGLIA_VARIANTE) {
+      matchedTemplateCodici.add(bestCodice);
+      return { ...c, titolo: c.titolo, templateTitolo: bestCodice + " (" + (bestMatch.titolo || "") + ")", stato: 'VARIANTE', similarity: bestSim, matchClausolaID: bestMatch.clausolaID, versione: bestMatch.versione, testoTemplate: bestMatch.testo };
+    }
+    return { ...c, titolo: c.titolo, templateTitolo: "", stato: 'NUOVA', similarity: 0, matchClausolaID: null, versione: 0, testoTemplate: null };
+  });
+
+  const clausoleConStorico = await Promise.all(results.map(async (r) => ({
+    ...r,
+    riferimento: "",
+    utilizzoStorico: r.matchClausolaID ? await cercaUtilizzoClausola(r.matchClausolaID, tx) : []
+  })));
+
+  templateEntries.forEach(([codice, t]) => {
+    if (!matchedTemplateCodici.has(codice)) {
+      clausoleConStorico.push({
+        titolo: codice + " (" + (t.titolo || "") + ")",
+        templateTitolo: codice + " (" + (t.titolo || "") + ")",
+        testo: t.testo,
+        stato: "NON_PRESENTE",
+        similarity: 0,
+        matchClausolaID: t.clausolaID,
+        utilizzoStorico: [],
+        riferimento: sNomeTemplate,
+        versione: 0,
+        testoTemplate: t.testo
+      });
+    }
+  });
+
+  return {
+    clausole: clausoleConStorico,
+    coveragePercent: Math.round((matchedTemplateCodici.size / templateEntries.length) * 10000) / 100
+  };
+}
+
 async function calcolaCoverage(buffer, filename, mimeType, templateID, tx) {
   const { Template } = cds.entities('com.reply.contrattiattivi');
   const oTemplate = await tx.run(SELECT.one.from(Template, templateID));
@@ -143,4 +221,4 @@ async function calcolaCoverage(buffer, filename, mimeType, templateID, tx) {
   };
 }
 
-module.exports = { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola };
+module.exports = { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola, confrontaClausoleConTemplate, estraiClausole };
