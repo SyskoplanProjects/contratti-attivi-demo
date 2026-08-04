@@ -69,7 +69,7 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({
         nome: TEMPLATE.nome, tipoServizio: TEMPLATE.tipoServizio,
-        descrizione: TEMPLATE.descrizione, clausole: TEMPLATE.clausole,
+        descrizione: TEMPLATE.descrizione, tipoRiferimento: 'STANDARD', clausole: TEMPLATE.clausole,
         testata: { intestatario: 'Seed DORA' }
       })
     });

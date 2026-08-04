@@ -82,13 +82,15 @@ module.exports = class ContrattiService extends cds.ApplicationService {
     });
 
     this.on('creaTemplateManuale', async (req) => {
-      const { nome, tipoServizio, descrizione, clausole, testata } = req.data;
+      const { nome, tipoServizio, descrizione, tipoRiferimento, clausole, testata } = req.data;
       if (!nome) return req.reject(400, 'Nome template obbligatorio');
       if (!clausole || !clausole.length) return req.reject(400, 'Almeno una clausola richiesta');
       if (!testata || !testata.intestatario) return req.reject(400, 'Intestatario obbligatorio');
 
       const templateID = cds.utils.uuid();
-      await INSERT.into(Template).entries({ ID: templateID, nome, tipoServizio, descrizione });
+      const datiTemplate = { ID: templateID, nome, tipoServizio, descrizione };
+      if (tipoRiferimento) datiTemplate.tipoRiferimento = tipoRiferimento;
+      await INSERT.into(Template).entries(datiTemplate);
 
       const versionID = cds.utils.uuid();
       await INSERT.into(TemplateVersion).entries({
