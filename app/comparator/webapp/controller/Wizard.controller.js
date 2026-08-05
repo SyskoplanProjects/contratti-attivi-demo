@@ -1,8 +1,8 @@
 sap.ui.define([
   "./BaseController", "sap/m/MessageBox", "sap/m/WizardStep", "sap/ui/model/json/JSONModel",
-  "sap/ui/core/Fragment", "./MetadataWizardHelper"
+  "sap/ui/core/Fragment", "sap/ui/core/Element", "./MetadataWizardHelper"
 ],
-function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataWizardHelper) {
+function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, metadataWizardHelper) {
   "use strict";
 
   return BaseController.extend("com.reply.contrattiattivi.comparator.controller.Wizard", {
@@ -159,23 +159,53 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
     },
 
     onCampoMetadatoPress: function (oEvent) {
-      var oCtx = oEvent.getListItem ? oEvent.getListItem().getBindingContext('wizardSezioni') : oEvent.getSource().getBindingContext('wizardSezioni');
-      if (!oCtx) return;
-      var oPreview = this.byId("contractPdfPreview");
-      if (oPreview) oPreview.setHighlightPosizione(oCtx.getObject().posizione || null);
+      var oRow = oEvent.getListItem ? oEvent.getListItem() : oEvent.getSource();
+      this._evidenziaDaRiga(oRow);
     },
 
     onCampoMetadatoAllegatoPress: function (oEvent) {
-      var oSource = oEvent.getListItem ? oEvent.getListItem() : oEvent.getSource();
-      var oCtx = oSource.getBindingContext('allegati');
+      var oRow = oEvent.getListItem ? oEvent.getListItem() : oEvent.getSource();
+      this._evidenziaDaRiga(oRow);
+    },
+
+    // Risolve la posizione da evidenziare a partire dalla riga (ColumnListItem) di una delle
+    // due tabelle metadati (contratto o allegato) e aggiorna la PdfPreview corrispondente.
+    // Condiviso tra click (press) e passaggio del mouse (hover, vedi onAfterRendering/_onRowHover).
+    _evidenziaDaRiga: function (oRow) {
+      if (!oRow || !oRow.getBindingContext) return;
+      var oCtx = oRow.getBindingContext('wizardSezioni');
+      if (oCtx) {
+        var oPreview = this.byId("contractPdfPreview");
+        if (oPreview) oPreview.setHighlightPosizione(oCtx.getObject().posizione || null);
+        return;
+      }
+      oCtx = oRow.getBindingContext('allegati');
       if (!oCtx) return;
-      // La riga cliccata è un ColumnListItem clonato dall'aggregation binding: il suo id
-      // non è affidabile per risalire allo step allegato di appartenenza. Uso invece l'indice
-      // dell'allegato ricavato dal binding context path ("/value/<i>") per pescare la PdfPreview
-      // di quello specifico step dalla lookup costruita una volta in _buildSteps.
+      // La riga è un ColumnListItem clonato dall'aggregation binding: il suo id non è
+      // affidabile per risalire allo step allegato di appartenenza. Uso invece l'indice
+      // dell'allegato ricavato dal binding context path ("/value/<i>") per pescare la
+      // PdfPreview di quello specifico step dalla lookup costruita una volta in _buildSteps.
       var iIndex = Number(oCtx.getPath().split('/')[2]);
-      var oPreview = this._aAllegatoPreviews && this._aAllegatoPreviews[iIndex];
-      if (oPreview) oPreview.setHighlightPosizione(oCtx.getObject().posizione || null);
+      var oAllegatoPreview = this._aAllegatoPreviews && this._aAllegatoPreviews[iIndex];
+      if (oAllegatoPreview) oAllegatoPreview.setHighlightPosizione(oCtx.getObject().posizione || null);
+    },
+
+    // Passaggio del mouse su una riga della tabella metadati (contratto o allegato):
+    // stesso comportamento del click, un solo listener nativo delegato sulla view intera
+    // invece di uno per riga (le righe sono clonate dinamicamente dal binding).
+    onAfterRendering: function () {
+      if (this._bHoverAttached) return;
+      var oDomRef = this.getView().getDomRef();
+      if (!oDomRef) return;
+      this._bHoverAttached = true;
+      oDomRef.addEventListener("mouseover", this._onRowHover.bind(this));
+    },
+
+    _onRowHover: function (oEvent) {
+      var oRowEl = oEvent.target.closest("tr[id]");
+      if (!oRowEl) return;
+      var oRow = Element.getElementById(oRowEl.id);
+      this._evidenziaDaRiga(oRow);
     },
 
     onConfirm: async function () {
