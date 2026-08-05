@@ -41,7 +41,14 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
       this._oCoverageData = oCoverageData;
 
       this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
-      this.getView().setModel(new JSONModel(metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati || [])), "wizardSezioni");
+      var aSezioni = metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati || []);
+      var aClausoleRischio = (oCoverageData.clausole || []).map(function (c) {
+        return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: null };
+      });
+      if (aClausoleRischio.length) {
+        aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
+      }
+      this.getView().setModel(new JSONModel(aSezioni), "wizardSezioni");
       this.getView().setModel(new JSONModel({ pdfBase64: oCoverageData.pdfBase64 || null }), "wizardDocumento");
       this.getView().setModel(new JSONModel({ value: aAllegati }), "allegati");
       this.getView().setModel(new JSONModel(oDocPrincipale), "documentoPrincipale");
@@ -179,7 +186,9 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, metadataW
         return { filename: a.filename, tipo: a.tipo, metadati: aMetadatiAllegato };
       }) : [];
       var oWizardModel = this.getView().getModel("wizardSezioni");
-      var aMetadati = oWizardModel ? oWizardModel.getData().reduce(function (acc, s) { return acc.concat(s.campi); }, []) : [];
+      var aMetadati = oWizardModel ? oWizardModel.getData()
+        .filter(function (s) { return s.sezione !== "Clausole di rischio"; })
+        .reduce(function (acc, s) { return acc.concat(s.campi); }, []) : [];
       var oDocPrincipaleModel = this.getView().getModel("documentoPrincipale");
       var sTipoDocumento = oDocPrincipaleModel ? oDocPrincipaleModel.getProperty("/codiceSelezionato") : null;
 
