@@ -41,10 +41,14 @@ function _trovaPosizione(valore, testoPosizionato) {
   }
 
   const fine = indice + lunghezza;
-  const itemsCoinvolti = items.filter(it => it.offsetInizio < fine && it.offsetFine > indice);
-  if (!itemsCoinvolti.length) return null;
+  const itemsSpan = items.filter(it => it.offsetInizio < fine && it.offsetFine > indice);
+  if (!itemsSpan.length) return null;
 
-  const pagina = itemsCoinvolti[0].pagina;
+  // Se lo span attraversa un salto pagina, limita il box alla sola pagina del primo item:
+  // le coordinate y ripartono da 0 su ogni pagina, mescolarle produrrebbe un box enorme
+  // (min/max su y di pagine diverse) invece di uno span sulla singola pagina.
+  const pagina = itemsSpan[0].pagina;
+  const itemsCoinvolti = itemsSpan.filter(it => it.pagina === pagina);
   const x = Math.min(...itemsCoinvolti.map(it => it.x));
   const y = Math.min(...itemsCoinvolti.map(it => it.y));
   const right = Math.max(...itemsCoinvolti.map(it => it.x + it.width));
