@@ -6,7 +6,7 @@ const { computeDocumentoEmbedding } = require('./lib/template-embedding');
 const { normalizeText } = require('./lib/diff-utils');
 const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato } = require('./lib/allegato-classifier');
-const { estraiCampiAllegato } = require('./lib/allegato-extractor');
+const { estraiCampiAllegato, trovaPosizione } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
 const { salvaEsempio } = require('./lib/classificazione-esempi');
 const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
@@ -69,14 +69,21 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       let metadati = [];
       let testo = '';
       let pdfBase64 = null;
+      let testoPosizionato = null;
       try {
         testo = await extractTextMultiFormato(buffer, mimeType, filename);
-        const { pdfBase64: b64, testoPosizionato } = await ottieniPdfEPosizioni(buffer, mimeType);
-        pdfBase64 = b64;
+        const oPosizioni = await ottieniPdfEPosizioni(buffer, mimeType);
+        pdfBase64 = oPosizioni.pdfBase64;
+        testoPosizionato = oPosizioni.testoPosizionato;
         ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo, testoPosizionato));
       } catch (e) {
         console.warn('[comparator] estrazione metadati fallita, uso fallback:', e.message);
       }
+
+      // Le clausole vengono estratte dal testo semplice (estraiClausole), senza bbox: si
+      // localizzano qui sull'anteprima PDF cercando il testo della clausola nel testo posizionato
+      // già calcolato sopra per i metadati, stesso meccanismo di _trovaPosizione.
+      result.clausole.forEach(function (c) { c.posizione = trovaPosizione(c.testo, testoPosizionato); });
 
       const templateIDFinale = templateID || (result.riferimentoTrovato && result.riferimentoTrovato.templateID) || null;
       const previewID = previewStore.put({

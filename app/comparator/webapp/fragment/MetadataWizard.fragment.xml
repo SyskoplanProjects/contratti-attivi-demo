@@ -11,15 +11,17 @@
           <columns>
             <Column width="30%"><Text text="Campo" /></Column>
             <Column><Text text="Valore" /></Column>
-            <Column width="8rem"><Text text="Confidenza" /></Column>
           </columns>
           <items>
             <ColumnListItem type="Active" press=".onCampoMetadatoPress">
               <cells>
                 <Text text="{wizardSezioni>etichetta}" />
-                <Input value="{wizardSezioni>valore}" liveChange=".onCampoMetadatoModificato" />
-                <ObjectStatus text="{= ${wizardSezioni>confidenza} !== null &amp;&amp; ${wizardSezioni>confidenza} !== undefined ? Math.round(${wizardSezioni>confidenza} * 100) + '%' : '—' }"
-                  state="{path: 'wizardSezioni>confidenza', formatter: '.metadataWizardHelper.statoConfidenza'}" />
+                <VBox>
+                  <Input value="{wizardSezioni>valore}" liveChange=".onCampoMetadatoModificato"
+                    visible="{= !${wizardSezioni>isClausola} }" />
+                  <TextArea value="{wizardSezioni>valore}" liveChange=".onCampoMetadatoModificato"
+                    rows="3" width="100%" visible="{= !!${wizardSezioni>isClausola} }" />
+                </VBox>
               </cells>
             </ColumnListItem>
           </items>

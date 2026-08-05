@@ -14,6 +14,8 @@ async function estraiTestoPosizionato(buffer) {
 
   const items = [];
   let testo = '';
+  let prevY = null;
+  let prevPagina = null;
 
   for (let pagina = 1; pagina <= doc.numPages; pagina++) {
     const page = await doc.getPage(pagina);
@@ -29,12 +31,23 @@ async function estraiTestoPosizionato(buffer) {
       // per allineare la bbox a come pdf.js browser disegna il canvas in PdfPreview.
       const y = viewport.height - yBase - height;
 
+      // Cambio riga rispetto all'item precedente (nuovo paragrafo o a capo): pdf.js non marca
+      // sempre hasEOL tra blocchi separati (es. titolo seguito dal corpo testo in un paragrafo
+      // diverso, tipico nei PDF generati da Puppeteer/Chromium via docx-to-pdf), lasciando
+      // l'ultima parola di una riga e la prima della successiva incollate senza spazio: si
+      // rileva quindi anche dal cambio di coordinata y, non solo da hasEOL.
+      if (prevY !== null && (pagina !== prevPagina || Math.abs(y - prevY) > 1) && !/\s$/.test(testo)) {
+        testo += '\n';
+      }
+
       const offsetInizio = testo.length;
       testo += it.str;
       const offsetFine = testo.length;
       if (it.hasEOL) testo += '\n';
 
       items.push({ testo: it.str, pagina, x, y, width, height, offsetInizio, offsetFine });
+      prevY = y;
+      prevPagina = pagina;
     }
   }
 

@@ -187,7 +187,7 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
       oContainer.style.position = "relative";
       oContainer.appendChild(oDiv);
       this._oOverlay = oDiv;
-      oCanvas.scrollIntoView({ behavior: "smooth", block: "center" });
+      oDiv.scrollIntoView({ behavior: "smooth", block: "center" });
     },
 
     renderer: function (oRm, oControl) {
