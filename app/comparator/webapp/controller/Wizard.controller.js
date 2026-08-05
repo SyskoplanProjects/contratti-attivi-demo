@@ -43,7 +43,7 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
       var aSezioni = metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati || []);
       var aClausoleRischio = (oCoverageData.clausole || []).map(function (c) {
-        return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: null };
+        return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true };
       });
       if (aClausoleRischio.length) {
         aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
@@ -247,6 +247,8 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
     },
 
     onConfirm: async function () {
+      var oBusy = new sap.m.BusyDialog({ text: "Digitalizzazione contratto in corso..." });
+      oBusy.open();
       var oData = this._oCoverageData;
       var oAllegatiModel = this.getView().getModel("allegati");
       var aAllegati = oAllegatiModel ? oAllegatiModel.getProperty("/value").map(function (a) {
@@ -270,15 +272,18 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
           })
         });
         if (!oResp.ok) {
+          oBusy.close();
           MessageBox.error("Errore salvataggio: " + await oResp.text());
           return;
         }
         var oContratto = await oResp.json();
+        oBusy.close();
         sap.m.MessageToast.show("Contratto '" + oContratto.intestatario + "' creato.");
         ["coverageResult", "complianceResult", "tipsAIResult", "comparatorFilename", "allegatiResult", "documentoPrincipaleResult"]
           .forEach(function (k) { sessionStorage.removeItem(k); });
         window.location.href = "/contratti/webapp/index.html#/detail/" + oContratto.ID;
       } catch (e) {
+        oBusy.close();
         MessageBox.error("Errore di rete: " + e.message);
       }
     },

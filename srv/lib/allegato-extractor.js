@@ -15,15 +15,29 @@ function _trovaPosizione(valore, testoPosizionato) {
   let lunghezza = sValore.length;
 
   if (indice < 0) {
-    const normalize = s => s.replace(/\s+/g, ' ').trim().toLowerCase();
-    const testoNorm = normalize(testo);
-    const valoreNorm = normalize(sValore);
+    // Normalizza run di spazi/newline in un singolo spazio, mantenendo per ogni carattere
+    // della stringa normalizzata l'indice corrispondente in `testo` (mappa): senza la mappa,
+    // collassare run multipli (es. gli "\n" a cavallo di paragrafi diversi) sposta l'offset
+    // trovato rispetto al testo originale, e itemsCoinvolti sotto usa offset sul testo originale.
+    let testoNorm = '';
+    const mappa = [];
+    let ultimoEraSpazio = false;
+    for (let i = 0; i < testo.length; i++) {
+      const ch = testo[i];
+      if (/\s/.test(ch)) {
+        if (!ultimoEraSpazio) { testoNorm += ' '; mappa.push(i); }
+        ultimoEraSpazio = true;
+      } else {
+        testoNorm += ch.toLowerCase();
+        mappa.push(i);
+        ultimoEraSpazio = false;
+      }
+    }
+    const valoreNorm = sValore.replace(/\s+/g, ' ').trim().toLowerCase();
     const idxNorm = testoNorm.indexOf(valoreNorm);
-    if (idxNorm < 0) return null;
-    // Approssimazione: sulla stringa normalizzata gli offset non corrispondono 1:1 a `testo`
-    // se ci sono più spazi consecutivi; per i testi PDF (spazi singoli tra item) coincidono.
-    indice = idxNorm;
-    lunghezza = valoreNorm.length;
+    if (idxNorm < 0 || !valoreNorm.length) return null;
+    indice = mappa[idxNorm];
+    lunghezza = mappa[idxNorm + valoreNorm.length - 1] - indice + 1;
   }
 
   const fine = indice + lunghezza;
@@ -63,8 +77,8 @@ async function estraiCampiAllegato(tipo, testo, testoPosizionato = null) {
     const elencoCampi = campiDaChiedere.map(c => `- ${c.campo}: ${c.descrizione}`).join('\n');
     const systemPrompt = `Sei un estrattore di dati da documenti amministrativi/contrattuali italiani (${tipologia.label}). ` +
       `Dal testo fornito estrai ESATTAMENTE questi campi. Per ciascun campo rispondi con un oggetto ` +
-      `{ "valore": <stringa o numero o null>, "confidenza": <numero tra 0 e 1> }. Usa valore null e ` +
-      `confidenza 0 se il campo non è presente nel testo, non inventare mai valori. Rispondi in JSON ` +
+      `{ "valore": <stringa o numero o null>, "confidenza": <numero tra 0 e 1>, "testoOriginale": <stringa: porzione di testo letterale, esattamente come appare nel documento, da cui è stato ricavato il valore (es. per una data riformattata in ISO, riporta qui la data come scritta nel testo originale); null se il campo non è presente> }. ` +
+      `Usa valore null e confidenza 0 se il campo non è presente nel testo, non inventare mai valori. Rispondi in JSON ` +
       `con un oggetto che ha come chiavi questi campi:\n${elencoCampi}`;
 
     try {
@@ -88,7 +102,11 @@ async function estraiCampiAllegato(tipo, testo, testoPosizionato = null) {
     const valore = (r && typeof r === 'object' && r.valore != null && r.valore !== '') ? String(r.valore) : null;
     const confidenza = (r && typeof r === 'object' && typeof r.confidenza === 'number')
       ? Math.max(0, Math.min(1, r.confidenza)) : 0;
-    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore, posizione: _trovaPosizione(valore, testoPosizionato) };
+    // Per campi che il modello riformatta (es. date in ISO, importi come numero puro) il valore
+    // normalizzato non compare mai letteralmente nel testo del PDF: si cerca invece la posizione
+    // usando lo span verbatim restituito dal modello, con fallback al valore stesso.
+    const testoOriginale = (r && typeof r === 'object' && r.testoOriginale) ? String(r.testoOriginale) : valore;
+    return { campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore, confidenza, valoreOriginaleAI: valore, posizione: _trovaPosizione(testoOriginale, testoPosizionato) };
   }).concat(campiStatici.map(c => ({
     campo: c.campo, etichetta: c.etichetta, sezione: c.sezione, valore: c.staticValue, confidenza: null, valoreOriginaleAI: c.staticValue, posizione: null
   }))).concat(metadatiDinamici);
@@ -101,4 +119,4 @@ async function estraiCampiAllegato(tipo, testo, testoPosizionato = null) {
   return { metadati, dataScadenza };
 }
 
-module.exports = { estraiCampiAllegato };
+module.exports = { estraiCampiAllegato, trovaPosizione: _trovaPosizione };

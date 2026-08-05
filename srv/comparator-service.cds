@@ -34,6 +34,7 @@ type ClausolaCoverageResult {
   riferimento       : String;
   templateTitolo    : String;
   versione          : Integer;
+  posizione         : PosizioneCampo;
 }
 
 type AllegatoDaClassificare {

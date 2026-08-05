@@ -5,6 +5,7 @@ const openai = require('../modules/openai-module');
 
 const SEGMENTAZIONE_SYSTEM_PROMPT = `Sei un assistente che segmenta un documento contrattuale italiano in clausole numerate.
 Rispondi SOLO con un oggetto JSON nella forma: { "clausole": [ { "numero": <intero progressivo a partire da 1>, "titolo": <stringa breve>, "testo": <testo completo della clausola> } ] }.
+Il campo "testo" deve riportare il contenuto della clausola COPIATO LETTERALMENTE dal documento originale (stessa punteggiatura, stesse parole, nessuna correzione, riformulazione o riassunto): viene usato per localizzare la clausola nell'anteprima del documento tramite ricerca testuale, quindi anche piccole modifiche al testo impediscono di trovarla.
 Se il documento non contiene clausole riconoscibili, rispondi con { "clausole": [] }.`;
 
 const SOGLIA_RIUSO = 0.92;
