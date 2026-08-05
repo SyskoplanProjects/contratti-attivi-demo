@@ -57,14 +57,17 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
 
       this._buildComplianceModel(oCoverageData, oComplianceData);
 
-      fetch("/comparator/getTipologieAllegato", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
-        .then(function (oResp) { return oResp.json(); })
-        .then(function (oData) {
-          this.getView().setModel(new JSONModel({ value: oData.value || (Array.isArray(oData) ? oData : []) }), "tipologie");
-        }.bind(this))
-        .catch(function () { console.warn("Impossibile caricare le tipologie allegato"); });
+      var aTipologie = [];
+      try {
+        var oTipologieResp = await fetch("/comparator/getTipologieAllegato", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        var oTipologieData = await oTipologieResp.json();
+        aTipologie = oTipologieData.value || (Array.isArray(oTipologieData) ? oTipologieData : []);
+      } catch (e) { console.warn("Impossibile caricare le tipologie allegato"); }
+      this.getView().setModel(new JSONModel({ value: aTipologie }), "tipologie");
+      this._mTipologieLabel = {};
+      aTipologie.forEach(function (t) { this._mTipologieLabel[t.codice] = t.label; }.bind(this));
 
-      this._buildSteps(aAllegati);
+      this._buildSteps(aAllegati, oDocPrincipale);
     },
 
     _buildComplianceModel: function (oCoverageData, oComplianceData) {
@@ -118,15 +121,16 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       }), "compliance");
     },
 
-    _buildSteps: async function (aAllegati) {
+    _buildSteps: async function (aAllegati, oDocPrincipale) {
       var oWizard = this.byId("reviewWizard");
       var sFilename = sessionStorage.getItem("comparatorFilename") || "documento";
+      var sContrattoLabel = this._mTipologieLabel[oDocPrincipale && oDocPrincipale.codiceSelezionato] || "Non classificato";
 
       var oContractContent = await Fragment.load({
         id: this.getView().getId(),
         name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizard", controller: this
       });
-      oWizard.addStep(new WizardStep({ title: "Contratto: " + sFilename, content: [].concat(oContractContent) }));
+      oWizard.addStep(new WizardStep({ title: "Contratto: " + sFilename + " [" + sContrattoLabel + "]", content: [].concat(oContractContent) }));
 
       this._aAllegatoPreviews = [];
       for (var i = 0; i < aAllegati.length; i++) {
@@ -136,7 +140,8 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         });
         var aControls = [].concat(oContent);
         aControls.forEach(function (oCtl) { oCtl.setBindingContext(this.getView().getModel("allegati").getContext("/value/" + i), "allegati"); }.bind(this));
-        oWizard.addStep(new WizardStep({ title: "Allegato: " + aAllegati[i].filename, content: aControls }));
+        var sAllegatoLabel = this._mTipologieLabel[aAllegati[i].tipo] || "Non classificato";
+        oWizard.addStep(new WizardStep({ title: "Allegato: " + aAllegati[i].filename + " [" + sAllegatoLabel + "]", content: aControls }));
         this._aAllegatoPreviews[i] = Fragment.byId(this.getView().getId() + "-allegato" + i, "allegatoPdfPreview");
       }
 
