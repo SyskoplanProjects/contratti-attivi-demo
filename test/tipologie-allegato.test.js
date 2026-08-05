@@ -3,9 +3,9 @@ const { TIPOLOGIE_ALLEGATO } = require('../srv/lib/tipologie-allegato');
 describe('tipologie-allegato — tipo CONTRATTO', () => {
   const contratto = TIPOLOGIE_ALLEGATO.find(t => t.key === 'CONTRATTO');
 
-  it('esiste ed ha 31 campiChiave', () => {
+  it('esiste ed ha 28 campiChiave', () => {
     expect(contratto).toBeDefined();
-    expect(contratto.campiChiave).toHaveLength(31);
+    expect(contratto.campiChiave).toHaveLength(28);
   });
 
   it('ogni campoChiave ha campo, etichetta e sezione', () => {

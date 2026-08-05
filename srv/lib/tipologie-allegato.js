@@ -95,11 +95,7 @@ const TIPOLOGIE_ALLEGATO = [
       { campo: 'conservazioneDati', etichetta: 'Conservazione dei Dati', sezione: 'Compliance e sicurezza', descrizione: 'Periodo/modalità/condizioni di conservazione dati: retention, cancellazione, distruzione, restituzione' },
       { campo: 'ubicazioneDati', etichetta: 'Ubicazione dei Dati', sezione: 'Compliance e sicurezza', descrizione: 'Paese/regione/data center dove i dati sono archiviati/trattati; hosting, cloud region, trasferimenti internazionali' },
       { campo: 'changeOfControl', etichetta: 'Change of Control', sezione: 'Compliance e sicurezza', descrizione: 'Cosa accade in caso di cambio del soggetto controllante una delle parti (tipicamente il fornitore) — Art. 21 CGC' },
-      { campo: 'attivitaIspettiveEVerifiche', etichetta: 'Attività Ispettive e Verifiche', sezione: 'Compliance e sicurezza', descrizione: 'Obblighi dell\'Appaltatore su monitoraggio, reportistica, audit e diritti di accesso — Art. 17 CGC' },
-
-      { campo: 'articoloPenali', etichetta: 'Articolo: Penali', sezione: 'Clausole di rischio', descrizione: 'Articolo/allegato relativo a penali per sospensione/risoluzione anticipata/inadempimento' },
-      { campo: 'articoloRisoluzione', etichetta: 'Articolo: Risoluzione Contrattuale', sezione: 'Clausole di rischio', descrizione: 'Articolo/allegato con eventi che portano a risoluzione del contratto' },
-      { campo: 'articoloTempoAssistenza', etichetta: 'Articolo: Tempo Assistenza Dopo Interruzione', sezione: 'Clausole di rischio', descrizione: 'Articolo/allegato sul periodo di assistenza post-risoluzione' }
+      { campo: 'attivitaIspettiveEVerifiche', etichetta: 'Attività Ispettive e Verifiche', sezione: 'Compliance e sicurezza', descrizione: 'Obblighi dell\'Appaltatore su monitoraggio, reportistica, audit e diritti di accesso — Art. 17 CGC' }
     ]
   },
   {
