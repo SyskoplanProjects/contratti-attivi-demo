@@ -54,6 +54,13 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
     },
 
     _renderPdf: async function () {
+      // onAfterRendering può scattare più volte (es. wizard che passa da invisible a
+      // visible e re-render di step in renderMode="Page"): senza guardia, due chiamate
+      // concorrenti si intrecciano sugli await e corrompono _aPages (es. due entry per la
+      // stessa pagina) lasciando l'anteprima vuota. Ogni chiamata incrementa il token;
+      // quella piu' recente vince, le piu' vecchie si fermano ai checkpoint dopo ogni await.
+      this._iRenderToken = (this._iRenderToken || 0) + 1;
+      var iRenderToken = this._iRenderToken;
       var oContainer = this.getDomRef("content");
       if (!oContainer) return;
       oContainer.innerHTML = "";
@@ -72,9 +79,11 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
       try {
         pdfjsLib = await _loadPdfJs();
       } catch (e) {
+        if (iRenderToken !== this._iRenderToken) return;
         oContainer.textContent = "Anteprima PDF non disponibile: " + e.message;
         return;
       }
+      if (iRenderToken !== this._iRenderToken) return;
 
       var sPure = sBase64.indexOf(",") >= 0 ? sBase64.split(",")[1] : sBase64;
       var aBytes;
@@ -87,6 +96,7 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
 
       try {
         var oDoc = await pdfjsLib.getDocument({ data: aBytes }).promise;
+        if (iRenderToken !== this._iRenderToken) return;
         // Un canvas per pagina a piena scala pesa parecchio (un contratto di 60 pagine
         // sarebbero centinaia di MB di backing store); si crea un placeholder dimensionato
         // per ogni pagina e si rende il canvas vero solo quando entra in viewport.
@@ -95,6 +105,7 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
         });
         for (var i = 1; i <= oDoc.numPages; i++) {
           var oPage = await oDoc.getPage(i);
+          if (iRenderToken !== this._iRenderToken) return;
           var oViewport = oPage.getViewport({ scale: 1.3 });
           var oPlaceholder = document.createElement("div");
           oPlaceholder.style.width = oViewport.width + "px";
@@ -106,8 +117,10 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
           this._oObserver.observe(oPlaceholder);
         }
         if (this._aPages.length) await this._renderPage(0);
+        if (iRenderToken !== this._iRenderToken) return;
         this._updateHighlight();
       } catch (e) {
+        if (iRenderToken !== this._iRenderToken) return;
         oContainer.textContent = "Impossibile renderizzare l'anteprima PDF: " + e.message;
       }
     },
