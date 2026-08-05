@@ -149,6 +149,39 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         name: "com.reply.contrattiattivi.comparator.fragment.WizardStepFinale", controller: this
       });
       oWizard.addStep(new WizardStep({ title: "Riepilogo e conferma", content: [].concat(oFinalContent) }));
+      oWizard.setVisible(true);
+
+      this._updateFooterButtons(0, oWizard.getSteps().length);
+    },
+
+    onWizardStepActivate: function () {
+      var oWizard = this.byId("reviewWizard");
+      var oCurrentStep = oWizard.getProgressStep();
+      var iIndex = oWizard.getSteps().indexOf(oCurrentStep);
+      this._updateFooterButtons(iIndex, oWizard.getSteps().length);
+    },
+
+    _updateFooterButtons: function (iIndex, iTotalSteps) {
+      this._iCurrentStepIndex = iIndex;
+      this.byId("btnWizardIndietro").setEnabled(iIndex > 0);
+      var bUltimo = iIndex === iTotalSteps - 1;
+      this.byId("btnWizardAvanti").setText(bUltimo ? "Conferma e digitalizza" : "Avanti");
+    },
+
+    onWizardIndietro: function () {
+      this.byId("reviewWizard").previousStep();
+      var oWizard = this.byId("reviewWizard");
+      this._updateFooterButtons(oWizard.getSteps().indexOf(oWizard.getProgressStep()), oWizard.getSteps().length);
+    },
+
+    onWizardAvanti: function () {
+      var oWizard = this.byId("reviewWizard");
+      var iTotalSteps = oWizard.getSteps().length;
+      if (this._iCurrentStepIndex >= iTotalSteps - 1) {
+        this.onConfirm();
+      } else {
+        oWizard.nextStep();
+      }
     },
 
     onCampoMetadatoModificato: function (oEvent) {

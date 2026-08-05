@@ -75,9 +75,5 @@
         </items>
       </Table>
     </VBox>
-
-    <HBox class="app-btn-group sapUiSmallMarginTop">
-      <Button text="Digitalizza documento" type="Emphasized" press=".onConfirm" class="app-btn app-btn-primary" />
-    </HBox>
   </VBox>
 </core:FragmentDefinition>

@@ -13,9 +13,16 @@
     </customHeader>
     <content>
       <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
-        <Wizard id="reviewWizard" />
+        <Wizard id="reviewWizard" renderMode="Page" showNextButton="false" visible="false" stepActivate=".onWizardStepActivate" />
       </VBox>
       <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.AiPanel" type="XML" />
     </content>
+    <footer>
+      <Toolbar class="app-btn-group sapUiSmallMargin">
+        <ToolbarSpacer />
+        <Button id="btnWizardIndietro" text="Indietro" press=".onWizardIndietro" enabled="false" class="app-btn" />
+        <Button id="btnWizardAvanti" text="Avanti" press=".onWizardAvanti" type="Emphasized" class="app-btn app-btn-primary" />
+      </Toolbar>
+    </footer>
   </Page>
 </mvc:View>
