@@ -45,9 +45,10 @@ describe('verificaDeroghe — articoli vessatori CGC (RF6 / obiettivo Analisi De
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
-    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('conforme');
-    expect(resp.data.value.find(r => r.articolo === '21').esito).toBe('derogato');
+    expect(resp.data.deroghe).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.deroghe.find(r => r.articolo === '17').esito).toBe('conforme');
+    expect(resp.data.deroghe.find(r => r.articolo === '21').esito).toBe('derogato');
+    expect(resp.data.esitoComplessivo).toBe('ANOMALIA');
   });
 
   it('fallback a non_determinabile se la preview non ha testo', async () => {
@@ -61,8 +62,8 @@ describe('verificaDeroghe — articoli vessatori CGC (RF6 / obiettivo Analisi De
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
-    expect(resp.data.value.every(d => d.esito === 'non_determinabile')).toBe(true);
+    expect(resp.data.deroghe).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.deroghe.every(d => d.esito === 'non_determinabile')).toBe(true);
   });
 
   it('fallback a non_determinabile se il LLM fallisce', async () => {
@@ -79,8 +80,8 @@ describe('verificaDeroghe — articoli vessatori CGC (RF6 / obiettivo Analisi De
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
-    expect(resp.data.value.every(d => d.esito === 'non_determinabile')).toBe(true);
+    expect(resp.data.deroghe).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.deroghe.every(d => d.esito === 'non_determinabile')).toBe(true);
   });
 
   it('reject 410 se la preview non esiste', async () => {
@@ -104,10 +105,10 @@ describe('verificaDeroghe — articoli vessatori CGC (RF6 / obiettivo Analisi De
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
-    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('conforme');
-    expect(resp.data.value.find(r => r.articolo === '21').esito).toBe('non_determinabile');
-    expect(resp.data.value.find(r => r.articolo === '3').esito).toBe('non_determinabile');
+    expect(resp.data.deroghe).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.deroghe.find(r => r.articolo === '17').esito).toBe('conforme');
+    expect(resp.data.deroghe.find(r => r.articolo === '21').esito).toBe('non_determinabile');
+    expect(resp.data.deroghe.find(r => r.articolo === '3').esito).toBe('non_determinabile');
   });
 
   it('normalizza: filtra gli articoli non critici restituiti dal LLM', async () => {
@@ -129,9 +130,9 @@ describe('verificaDeroghe — articoli vessatori CGC (RF6 / obiettivo Analisi De
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
-    expect(resp.data.value.map(r => r.articolo)).not.toContain('99');
-    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('derogato');
+    expect(resp.data.deroghe).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.deroghe.map(r => r.articolo)).not.toContain('99');
+    expect(resp.data.deroghe.find(r => r.articolo === '17').esito).toBe('derogato');
   });
 
   it('normalizza: esito fuori enum coercizzato a non_determinabile', async () => {
@@ -153,7 +154,7 @@ describe('verificaDeroghe — articoli vessatori CGC (RF6 / obiettivo Analisi De
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('non_determinabile');
-    expect(resp.data.value.find(r => r.articolo === '21').esito).toBe('conforme');
+    expect(resp.data.deroghe.find(r => r.articolo === '17').esito).toBe('non_determinabile');
+    expect(resp.data.deroghe.find(r => r.articolo === '21').esito).toBe('conforme');
   });
 });

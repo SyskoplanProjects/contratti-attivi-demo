@@ -152,4 +152,14 @@ async function verificaDeroghe(testoDocumento) {
   }
 }
 
-module.exports = { verificaDeroghe, ARTICOLI_CRITICI };
+// Esito complessivo richiesto dal use case: "se le condizioni sono rimaste immutate rispetto
+// allo standard di Gruppo segnala OK, altrimenti anomalia" — un'unica sintesi booleana sopra
+// il dettaglio articolo-per-articolo già restituito da verificaDeroghe.
+function esitoComplessivoDeroghe(risultati) {
+  const lista = risultati || [];
+  if (lista.some(r => r.esito === 'derogato')) return 'ANOMALIA';
+  if (lista.length && lista.every(r => r.esito === 'conforme')) return 'OK';
+  return 'NON_DETERMINATO';
+}
+
+module.exports = { verificaDeroghe, ARTICOLI_CRITICI, esitoComplessivoDeroghe };

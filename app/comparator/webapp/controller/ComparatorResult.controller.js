@@ -41,12 +41,14 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
         }), "wizardDocumento");
       }
 
+      // Solo le clausole realmente presenti nel documento caricato: le clausole NON_PRESENTE
+      // (di un template auto-matchato ma assenti dal documento) non vengono più mostrate qui,
+      // vedi lo stesso commento in Wizard.controller.js#_buildComplianceModel.
       var aComplianceAPI = (oComplianceData && oComplianceData.value) || [];
       var aComplianceItems = [];
-      var aPresenti = [];
-      var aNonPresenti = [];
 
       (oCoverageData.clausole || []).forEach(function (c, idx) {
+        if (c.stato === "NON_PRESENTE") return;
         var oAPI = idx < aComplianceAPI.length ? aComplianceAPI[idx] : null;
         var sEsito, sDettaglio, sRif;
         if (c.stato === "MATCH_TEMPLATE") {
@@ -57,21 +59,14 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
           sEsito = "PARZIALE";
           sDettaglio = oAPI ? oAPI.dettaglio : c.testo;
           sRif = oAPI ? (oAPI.riferimento || "") : (c.riferimento || "");
-        } else if (c.stato === "NUOVA") {
+        } else {
           sEsito = "NUOVA";
           sDettaglio = "Clausola presente nel contratto ma non nel template";
           sRif = "";
-        } else {
-          sEsito = "NON PRESENTE";
-          sDettaglio = "Clausola presente nel template ma non nel contratto";
-          sRif = c.testo;
         }
 
         var sRequisitoFormatted = "";
-        if (sEsito === "NON PRESENTE") {
-          var sReq = c.templateTitolo || c.titolo || "";
-          sRequisitoFormatted = sReq.replace(/\s*\([^)]*\)/g, "").trim();
-        } else if (sEsito === "NUOVA") {
+        if (sEsito === "NUOVA") {
           sRequisitoFormatted = c.titolo || "Nuova clausola";
         } else {
           var sTemplateTitolo = c.templateTitolo || "";
@@ -92,7 +87,7 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
           }
         }
 
-        var oItem = {
+        aComplianceItems.push({
           requisito: sRequisitoFormatted,
           esito: sEsito,
           dettaglio: sDettaglio,
@@ -100,27 +95,16 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
           similarity: c.similarity != null ? (Math.round(c.similarity * 10000) / 100) + '%' : '0%',
           versione: c.versione || 0,
           clausolaID: c.matchClausolaID ? c.matchClausolaID.substring(0, 8).toUpperCase() : ""
-        };
-
-        aComplianceItems.push(oItem);
-
-        if (sEsito === "NON PRESENTE") {
-          aNonPresenti.push(oItem);
-        } else {
-          aPresenti.push(oItem);
-        }
+        });
       });
 
       if (aComplianceItems.length) {
         this.byId("complianceTableWrap").setVisible(true);
         this.getView().setModel(new JSONModel({
           value: aComplianceItems,
-          presenti: aPresenti,
-          nonPresenti: aNonPresenti,
-          hasPresenti: aPresenti.length > 0,
-          hasNonPresenti: aNonPresenti.length > 0,
-          countPresenti: aPresenti.length,
-          countNonPresenti: aNonPresenti.length
+          presenti: aComplianceItems,
+          hasPresenti: aComplianceItems.length > 0,
+          countPresenti: aComplianceItems.length
         }), "compliance");
       }
 
@@ -138,7 +122,10 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       var oCompletezzaData = JSON.parse(sessionStorage.getItem("completezzaResult") || "null") || { attesi: [], percentuale: null };
       this.getView().setModel(new JSONModel(oCompletezzaData), "completezza");
       var oDerogheData = JSON.parse(sessionStorage.getItem("derogheResult") || "null");
-      this.getView().setModel(new JSONModel({ value: (oDerogheData && oDerogheData.value) || [] }), "deroghe");
+      this.getView().setModel(new JSONModel({
+        value: (oDerogheData && oDerogheData.deroghe) || [],
+        esitoComplessivo: (oDerogheData && oDerogheData.esitoComplessivo) || "NON_DETERMINATO"
+      }), "deroghe");
       this.getView().setModel(new JSONModel(this._buildSubfornitoriModel(oCoverageData)), "subfornitori");
       this.getView().setModel(new JSONModel(this._buildDoraModel(oCoverageData)), "dora");
 

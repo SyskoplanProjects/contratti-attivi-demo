@@ -58,7 +58,10 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       var oCompletezzaData = JSON.parse(sessionStorage.getItem("completezzaResult") || "null") || { attesi: [], percentuale: null };
       this.getView().setModel(new JSONModel(oCompletezzaData), "completezza");
       var oDerogheData = JSON.parse(sessionStorage.getItem("derogheResult") || "null");
-      this.getView().setModel(new JSONModel({ value: (oDerogheData && oDerogheData.value) || [] }), "deroghe");
+      this.getView().setModel(new JSONModel({
+        value: (oDerogheData && oDerogheData.deroghe) || [],
+        esitoComplessivo: (oDerogheData && oDerogheData.esitoComplessivo) || "NON_DETERMINATO"
+      }), "deroghe");
       this.getView().setModel(new JSONModel(this._buildSubfornitoriModel(oCoverageData)), "subfornitori");
       this.getView().setModel(new JSONModel(this._buildDoraModel(oCoverageData)), "dora");
 
@@ -77,29 +80,30 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       this._buildSteps(aAllegati, oDocPrincipale);
     },
 
+    // Solo le clausole realmente presenti nel documento caricato (MATCH_TEMPLATE/VARIANTE/NUOVA):
+    // le clausole NON_PRESENTE (di un template auto-matchato ma assenti dal documento) non
+    // vengono più mostrate qui — "cosa manca rispetto allo standard" è responsabilità delle
+    // tips AI, gated sulla classificazione riuscita del documento (vedi onAvvia in
+    // ComparatorHome.controller.js), non di un confronto silenzioso con un template potenzialmente
+    // non correlato.
     _buildComplianceModel: function (oCoverageData, oComplianceData) {
       var aComplianceAPI = (oComplianceData && oComplianceData.value) || [];
       var aComplianceItems = [];
-      var aPresenti = [];
-      var aNonPresenti = [];
 
       (oCoverageData.clausole || []).forEach(function (c, idx) {
+        if (c.stato === "NON_PRESENTE") return;
         var oAPI = idx < aComplianceAPI.length ? aComplianceAPI[idx] : null;
         var sEsito, sDettaglio, sRif;
         if (c.stato === "MATCH_TEMPLATE") {
           sEsito = "PRESENTE"; sDettaglio = oAPI ? oAPI.dettaglio : c.testo; sRif = oAPI ? (oAPI.riferimento || "") : (c.riferimento || "");
         } else if (c.stato === "VARIANTE") {
           sEsito = "PARZIALE"; sDettaglio = oAPI ? oAPI.dettaglio : c.testo; sRif = oAPI ? (oAPI.riferimento || "") : (c.riferimento || "");
-        } else if (c.stato === "NUOVA") {
-          sEsito = "NUOVA"; sDettaglio = "Clausola presente nel contratto ma non nel template"; sRif = "";
         } else {
-          sEsito = "NON PRESENTE"; sDettaglio = "Clausola presente nel template ma non nel contratto"; sRif = c.testo;
+          sEsito = "NUOVA"; sDettaglio = "Clausola presente nel contratto ma non nel template"; sRif = "";
         }
 
         var sRequisitoFormatted = "";
-        if (sEsito === "NON PRESENTE") {
-          sRequisitoFormatted = (c.templateTitolo || c.titolo || "").replace(/\s*\([^)]*\)/g, "").trim();
-        } else if (sEsito === "NUOVA") {
+        if (sEsito === "NUOVA") {
           sRequisitoFormatted = c.titolo || "Nuova clausola";
         } else {
           var match = (c.templateTitolo || "").match(/^([^(]+)(?:\(([^)]+)\))?/);
@@ -112,19 +116,16 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
           }
         }
 
-        var oItem = {
+        aComplianceItems.push({
           requisito: sRequisitoFormatted, esito: sEsito, dettaglio: sDettaglio, riferimento: sRif,
           similarity: c.similarity != null ? (Math.round(c.similarity * 10000) / 100) + '%' : '0%',
           versione: c.versione || 0,
           clausolaID: c.matchClausolaID ? c.matchClausolaID.substring(0, 8).toUpperCase() : ""
-        };
-        aComplianceItems.push(oItem);
-        (sEsito === "NON PRESENTE" ? aNonPresenti : aPresenti).push(oItem);
+        });
       });
 
       this.getView().setModel(new JSONModel({
-        value: aComplianceItems, presenti: aPresenti, nonPresenti: aNonPresenti,
-        hasPresenti: aPresenti.length > 0, hasNonPresenti: aNonPresenti.length > 0
+        value: aComplianceItems, presenti: aComplianceItems, hasPresenti: aComplianceItems.length > 0
       }), "compliance");
     },
 
