@@ -59,7 +59,7 @@ function (BaseController, MessageBox) {
         aItems.forEach(function (oItem) { this.byId("templateSelect").addItem(oItem); }.bind(this));
         if (this._sTemplateID) {
           this.byId("templateSelect").setSelectedKey(this._sTemplateID);
-          if (this.byId("templateSelect").getSelectedKey() !== this._sTemplateID) {
+          if (!this.byId("templateSelect").getSelectedItem()) {
             this._sTemplateID = null;
           }
         }
