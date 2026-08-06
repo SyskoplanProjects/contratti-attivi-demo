@@ -16,3 +16,4 @@ db.sqlite.bak*
 .superpowers/
 mta_archives/
 docs/.worktrees/
+docs/
