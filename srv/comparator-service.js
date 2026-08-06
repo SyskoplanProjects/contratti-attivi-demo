@@ -212,8 +212,50 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       if (!previewID) return req.reject(400, 'previewID obbligatorio');
       const preview = previewStore.get(previewID);
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
-      const { verificaDeroghe } = require('./lib/deroghe-engine');
-      return verificaDeroghe(preview.testo || '');
+      const { verificaDeroghe, esitoComplessivoDeroghe } = require('./lib/deroghe-engine');
+      const deroghe = await verificaDeroghe(preview.testo || '');
+      return { deroghe, esitoComplessivo: esitoComplessivoDeroghe(deroghe) };
+    });
+
+    // Step 1-2 del flusso (gate a monte): se il documento non è riconosciuto come contratto,
+    // il flusso NON deve proseguire alla verifica di completezza — si registra invece
+    // un'anomalia bloccante nel repository documenti classificati (DocumentoClassificato,
+    // vedi db/schema.cds). Richiede che classificaAllegati sia già stato invocato sulla preview.
+    this.on('verificaDocumento', async (req) => {
+      const { previewID } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+      if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
+
+      const dp = preview.documentoPrincipale || {};
+      const categoria = dp.categoria || null;
+      const esitoGate = (!categoria || categoria === 'CONTRATTO') ? 'CONTRATTO' : 'ANOMALIA';
+      const gravita = esitoGate === 'ANOMALIA' ? 'BLOCCANTE' : null;
+      const dettaglio = esitoGate === 'ANOMALIA'
+        ? `Documento classificato come ${categoria} (non un contratto): impossibile procedere alla verifica di completezza allegati.`
+        : null;
+
+      const { DocumentoClassificato } = cds.entities('com.reply.contrattiattivi');
+      const documentoID = cds.utils.uuid();
+      await cds.tx(req).run(INSERT.into(DocumentoClassificato).entries({
+        ID: documentoID, filename: preview.filename || null, categoria: categoria || 'ALTRO',
+        sottoTipo: dp.sottoTipo || null, confidenza: dp.confidenza != null ? dp.confidenza : null,
+        esitoGate, gravita, dettaglioAnomalia: dettaglio
+      }));
+      previewStore.update(previewID, { documentoClassificatoID: documentoID });
+
+      return { documentoID, esitoGate, categoria, sottoTipo: dp.sottoTipo || null, gravita, dettaglio };
+    });
+
+    this.on('verificaAllineamentoSAP', async (req) => {
+      const { previewID, dataDecorrenzaSAP, dataScadenzaSAP, importoSAP } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+      if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
+      const { verificaAllineamentoSAP } = require('./lib/sap-reconcile');
+      return verificaAllineamentoSAP(preview.metadati || [], {
+        dataDecorrenza: dataDecorrenzaSAP, dataScadenza: dataScadenzaSAP, importoContrattuale: importoSAP
+      });
     });
 
     this.on('calcolaCoverageDaContratto', async (req) => {
@@ -250,7 +292,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
     });
 
     this.on('confirmCoverage', async (req) => {
-      const { previewID, clausole, allegati, tipoDocumento } = req.data;
+      const { previewID, clausole, allegati, tipoDocumento, dataDecorrenzaSAP, dataScadenzaSAP, importoSAP } = req.data;
       const preview = previewStore.get(previewID);
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
 
@@ -355,12 +397,22 @@ module.exports = class ComparatorService extends cds.ApplicationService {
           allegatiSalvati, preview.tipiRilevati, preview.documentoPrincipale, preview.filename);
         const snapshot = await buildSnapshotData(allegatiConPrincipale, preview.testo || '', contestoContratto);
 
+        const { verificaAllineamentoSAP } = require('./lib/sap-reconcile');
+        const allineamentoSAP = (dataDecorrenzaSAP || dataScadenzaSAP || importoSAP != null)
+          ? verificaAllineamentoSAP(metadatiFinali, {
+              dataDecorrenza: dataDecorrenzaSAP, dataScadenza: dataScadenzaSAP, importoContrattuale: importoSAP
+            })
+          : [];
+
         const esitoID = cds.utils.uuid();
         await tx.run(INSERT.into(EsitoVerificaContratto).entries({
           ID: esitoID, contratto_ID: contrattoID, dataVerifica: new Date().toISOString(),
           completezzaPercent: snapshot.percentuale,
           allegatiAttesi: snapshot.attesi.map(a => ({ codice: a.allegatoAtteso, presente: a.presente, filename: a.filename })),
           deroghe: snapshot.deroghe.map(d => ({ articolo: d.articolo, esito: d.esito, dettaglio: d.dettaglio, riferimentoComma: d.riferimentoComma })),
+          esitoDeroghe: snapshot.esitoDeroghe,
+          standardApplicato: snapshot.standardApplicato,
+          allineamentoSAP,
           totaleAllegati: snapshot.totaleAllegati,
           allegatiPresenti: snapshot.allegatiPresenti,
           confidenzaMedia: snapshot.confidenzaMedia,
@@ -369,15 +421,20 @@ module.exports = class ComparatorService extends cds.ApplicationService {
 
         const anomalie = generaAnomalie({
           attesi: snapshot.attesi,
-          percentuale: snapshot.percentuale,
           deroghe: snapshot.deroghe,
-          allegati: allegatiSalvati
+          allegati: allegatiSalvati,
+          allineamentoSAP
         });
         if (anomalie.length) {
           await tx.run(INSERT.into(Anomalia).entries(anomalie.map(a => ({
             ID: cds.utils.uuid(), esitoVerifica_ID: esitoID,
-            tipo: a.tipo, riferimento: a.riferimento, dettaglio: a.dettaglio
+            tipo: a.tipo, gravita: a.gravita, riferimento: a.riferimento, dettaglio: a.dettaglio
           }))));
+        }
+
+        if (preview.documentoClassificatoID) {
+          const { DocumentoClassificato } = cds.entities('com.reply.contrattiattivi');
+          await tx.run(UPDATE(DocumentoClassificato, preview.documentoClassificatoID).with({ contratto_ID: contrattoID }));
         }
 
         return tx.run(SELECT.one.from(Contratto, contrattoID));
@@ -508,17 +565,81 @@ module.exports = class ComparatorService extends cds.ApplicationService {
     });
 
     this.on('getAnomalie', async (req) => {
-      const { stato, tipo } = req.data;
+      const { stato, tipo, gravita } = req.data;
       const where = {};
       if (stato) where.stato = stato;
       if (tipo) where.tipo = tipo;
+      if (gravita) where.gravita = gravita;
       return SELECT.from(Anomalia)
         .columns(
-          'ID as anomaliaID', 'tipo', 'riferimento', 'stato', 'assegnatario', 'createdAt as dataApertura',
+          'ID as anomaliaID', 'tipo', 'gravita', 'riferimento', 'stato', 'assegnatario', 'createdAt as dataApertura',
           'esitoVerifica.contratto.ID as contrattoID',
           'esitoVerifica.contratto.intestatario as intestatario'
         )
         .where(where);
+    });
+
+    // Report richiesti dal use case (Risultati Attesi): ciascuna riga riporta anche il referente
+    // responsabile della remediation (assegnatario dell'anomalia collegata, se già assegnata).
+    this.on('getOrdiniPriviDiContratto', async (req) => {
+      const { DocumentoClassificato } = cds.entities('com.reply.contrattiattivi');
+      const righe = await cds.tx(req).run(SELECT.from(DocumentoClassificato).where({ categoria: 'ODA', contratto_ID: null }));
+      return righe.map(r => ({ documentoID: r.ID, filename: r.filename, dataRilievo: r.createdAt, referente: null }));
+    });
+
+    this.on('getContrattiIncompleti', async (req) => {
+      const { EsitoVerificaContratto, Contratto } = cds.entities('com.reply.contrattiattivi');
+      const snapshots = await cds.tx(req).run(SELECT.from(EsitoVerificaContratto).orderBy('dataVerifica desc'));
+      const ultimoPerContratto = new Map();
+      for (const s of snapshots) if (!ultimoPerContratto.has(s.contratto_ID)) ultimoPerContratto.set(s.contratto_ID, s);
+      const incompleti = [...ultimoPerContratto.values()].filter(s => Number(s.completezzaPercent) < 100);
+      if (!incompleti.length) return [];
+
+      const contratti = await cds.tx(req).run(SELECT.from(Contratto).where({ ID: { in: incompleti.map(s => s.contratto_ID) } }));
+      const nomeMap = new Map(contratti.map(c => [c.ID, c.intestatario]));
+      const anomalie = await cds.tx(req).run(SELECT.from(Anomalia)
+        .where({ esitoVerifica_ID: { in: incompleti.map(s => s.ID) }, tipo: 'COMPLETEZZA' }));
+      const referentePerEsito = new Map();
+      for (const a of anomalie) if (a.assegnatario && !referentePerEsito.has(a.esitoVerifica_ID)) referentePerEsito.set(a.esitoVerifica_ID, a.assegnatario);
+
+      return incompleti.map(s => ({
+        contrattoID: s.contratto_ID,
+        intestatario: nomeMap.get(s.contratto_ID) || null,
+        completezzaPercent: s.completezzaPercent,
+        standardApplicato: s.standardApplicato || null,
+        allegatiMancanti: (s.allegatiAttesi || []).filter(a => !a.presente).map(a => a.codice).join(', '),
+        referente: referentePerEsito.get(s.ID) || null
+      }));
+    });
+
+    this.on('getDerogheContrattuali', async (req) => {
+      const { EsitoVerificaContratto, Contratto } = cds.entities('com.reply.contrattiattivi');
+      const snapshots = await cds.tx(req).run(SELECT.from(EsitoVerificaContratto).orderBy('dataVerifica desc'));
+      const ultimoPerContratto = new Map();
+      for (const s of snapshots) if (!ultimoPerContratto.has(s.contratto_ID)) ultimoPerContratto.set(s.contratto_ID, s);
+      const derogati = [...ultimoPerContratto.values()].filter(s => (s.deroghe || []).some(d => d.esito === 'derogato'));
+      if (!derogati.length) return [];
+
+      const contratti = await cds.tx(req).run(SELECT.from(Contratto).where({ ID: { in: derogati.map(s => s.contratto_ID) } }));
+      const nomeMap = new Map(contratti.map(c => [c.ID, c.intestatario]));
+      const anomalie = await cds.tx(req).run(SELECT.from(Anomalia)
+        .where({ esitoVerifica_ID: { in: derogati.map(s => s.ID) }, tipo: 'DEROGHE' }));
+      const referentePerRiferimento = new Map();
+      for (const a of anomalie) if (a.assegnatario) referentePerRiferimento.set(a.esitoVerifica_ID + '|' + a.riferimento, a.assegnatario);
+
+      const righe = [];
+      for (const s of derogati) {
+        for (const d of (s.deroghe || [])) {
+          if (d.esito !== 'derogato') continue;
+          const riferimento = 'Art. ' + d.articolo + (d.riferimentoComma ? ' comma ' + d.riferimentoComma : '');
+          righe.push({
+            contrattoID: s.contratto_ID, intestatario: nomeMap.get(s.contratto_ID) || null,
+            articolo: d.articolo, dettaglio: d.dettaglio, riferimentoComma: d.riferimentoComma,
+            referente: referentePerRiferimento.get(s.ID + '|' + riferimento) || null
+          });
+        }
+      }
+      return righe;
     });
 
     this.on('getDashboardKPIs', async () => {

@@ -206,15 +206,21 @@ entity EsitoVerificaContratto : cuid, managed {
   completezzaPercent : Decimal(5,2);
   allegatiAttesi     : array of { codice: String; presente: Boolean; filename: String; };
   deroghe            : array of { articolo: String; esito: String; dettaglio: String; riferimentoComma: String; };
+  esitoDeroghe       : String(20) enum { OK; ANOMALIA; NON_DETERMINATO; };
+  standardApplicato  : String(200);
+  allineamentoSAP    : array of { campo: String; valoreContratto: String; valoreSAP: String; esito: String; };
   totaleAllegati     : Integer;
   allegatiPresenti   : Integer;
   confidenzaMedia    : Decimal(5,4);
   fonte              : String(20) enum { AVVIO_VERIFICA; CONTRATTO; };
 }
 
+type GravitaAnomalia : String(20) enum { BLOCCANTE; ALTA; MEDIA; BASSA; }
+
 entity Anomalia : cuid, managed {
   esitoVerifica   : Association to EsitoVerificaContratto not null;
-  tipo            : String(20) enum { DEROGHE; COMPLETEZZA; CONFIDENZA; };
+  tipo            : String(30) enum { DEROGHE; COMPLETEZZA; CONFIDENZA; DATI_SAP; };
+  gravita         : GravitaAnomalia default 'MEDIA';
   riferimento     : String(200);
   dettaglio       : LargeString;
   stato           : StatoAnomalia default 'APERTA';
@@ -222,6 +228,22 @@ entity Anomalia : cuid, managed {
   notaCorrettiva  : LargeString;
   allegato        : LargeString;
   filenameAllegato : String(200);
+}
+
+// Repository documenti classificati (Risultati Attesi): traccia OGNI documento passato dal gate
+// di classificazione a monte, sia i contratti (che proseguono nel flusso di verifica) sia i
+// documenti non contrattuali (mail/OdA/offerta/fattura/altro), per cui non esiste un Contratto e
+// quindi nessun EsitoVerificaContratto — da cui i campi esitoGate/gravita/dettaglioAnomalia sono
+// qui e non su Anomalia (che richiede sempre un EsitoVerificaContratto).
+entity DocumentoClassificato : cuid, managed {
+  filename          : String(200) not null;
+  categoria         : String(50) not null;
+  sottoTipo         : String(50);
+  confidenza        : Decimal(5,4);
+  esitoGate         : String(20) enum { CONTRATTO; ANOMALIA; } not null;
+  gravita           : GravitaAnomalia;
+  dettaglioAnomalia : LargeString;
+  contratto         : Association to Contratto;
 }
 
 entity EsempioClassificazione : cuid, managed {

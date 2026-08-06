@@ -1,5 +1,5 @@
 const { verificaCompletezza } = require('./allegati-attesi');
-const { verificaDeroghe } = require('./deroghe-engine');
+const { verificaDeroghe, esitoComplessivoDeroghe } = require('./deroghe-engine');
 
 // Confidenza media delle classificazioni degli allegati salvati (Decimal(5,4)).
 // Gli allegati senza confidenza (null) non entrano nel calcolo.
@@ -17,12 +17,14 @@ function _mediaConfidenze(allegati) {
 // contestoContratto: { accordoQuadroOAutonomo } opzionale, per selezionare il set di
 // allegati attesi in funzione del tipo contratto (vedi allegati-attesi.js).
 async function buildSnapshotData(allegati, testoDocumento, contestoContratto) {
-  const { attesi, percentuale } = verificaCompletezza(allegati, contestoContratto);
+  const { attesi, percentuale, standardApplicato } = verificaCompletezza(allegati, contestoContratto);
   const deroghe = await verificaDeroghe(testoDocumento || '');
   return {
     attesi,
     percentuale,
+    standardApplicato,
     deroghe,
+    esitoDeroghe: esitoComplessivoDeroghe(deroghe),
     totaleAllegati: attesi.length,
     allegatiPresenti: attesi.filter(a => a.presente).length,
     confidenzaMedia: _mediaConfidenze(allegati)

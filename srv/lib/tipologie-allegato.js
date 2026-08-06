@@ -126,6 +126,7 @@ const TIPOLOGIE_ALLEGATO = [
     key: 'ALLEGATO_C',
     label: 'Allegato C — Livelli di Servizio, KPI e penali',
     sottoTipologia: true,
+    nonCritico: true,
     testoRiferimento: 'Allegato C. Livelli di servizio, indicatori chiave di prestazione (KPI) e penali.'
   },
   {
@@ -154,6 +155,7 @@ const TIPOLOGIE_ALLEGATO = [
     key: 'ALLEGATO_G',
     label: 'Allegato G — Indirizzi delle Parti e PEC',
     sottoTipologia: true,
+    nonCritico: true,
     testoRiferimento: 'Allegato G. Indirizzi delle Parti e PEC.'
   },
   {

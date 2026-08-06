@@ -118,7 +118,37 @@ service ComparatorService @(requires: 'Utente') {
     segnali           : String;
   }
 
-  action verificaDeroghe(previewID: UUID) returns array of EsitoDeroga;
+  action verificaDeroghe(previewID: UUID) returns {
+    deroghe          : array of EsitoDeroga;
+    esitoComplessivo : String;
+  };
+
+  // Step 1-2 del flusso: gate di classificazione a monte. Se il documento caricato non è
+  // riconosciuto come contratto (categoria macro diversa da CONTRATTO), il flusso si interrompe
+  // e viene registrata un'anomalia bloccante invece di procedere alla verifica di completezza.
+  type EsitoGateDocumento {
+    documentoID : UUID;
+    esitoGate   : String;
+    categoria   : String;
+    sottoTipo   : String;
+    gravita     : String;
+    dettaglio   : String;
+  }
+
+  action verificaDocumento(previewID: UUID) returns EsitoGateDocumento;
+
+  type EsitoAllineamentoSAPCampo {
+    campo           : String;
+    valoreContratto : String;
+    valoreSAP       : String;
+    esito           : String;
+  }
+
+  // Step "riconciliazione SAP": confronta i metadati estratti dal contratto (già in preview)
+  // con i valori SAP inseriti manualmente (nessuna integrazione SAP disponibile in questa fase,
+  // vedi 03-requisiti-evoluzione-gap-analysis.md RF7 — input manuale è il confine onesto finché
+  // non è definito un connettore).
+  action verificaAllineamentoSAP(previewID: UUID, dataDecorrenzaSAP: Date, dataScadenzaSAP: Date, importoSAP: Decimal(15,2)) returns array of EsitoAllineamentoSAPCampo;
 
   type KPIAndamento {
     data              : Date;
@@ -140,6 +170,7 @@ service ComparatorService @(requires: 'Utente') {
     contrattoID   : UUID;
     intestatario  : String;
     tipo          : String;
+    gravita       : String;
     riferimento   : String;
     stato         : String;
     assegnatario  : String;
@@ -147,17 +178,47 @@ service ComparatorService @(requires: 'Utente') {
   }
 
   action getDashboardKPIs() returns DashboardKPIs;
-  action getAnomalie(stato: String, tipo: String) returns array of AnomaliaRow;
+  action getAnomalie(stato: String, tipo: String, gravita: String) returns array of AnomaliaRow;
   action assegnaAnomalia(anomaliaID: UUID, assegnatario: String) returns Anomalia;
   action avviaLavorazione(anomaliaID: UUID) returns Anomalia;
   action risolviAnomalia(anomaliaID: UUID, nota: String, file: LargeString, filename: String) returns Anomalia;
   action chiudiAnomalia(anomaliaID: UUID, nota: String) returns Anomalia;
 
+  // Report richiesti dal use case (Risultati Attesi): ciascuna riga riporta anche il referente
+  // responsabile della remediation (assegnatario dell'anomalia collegata, se già assegnata).
+  type OrdinePrivoDiContratto {
+    documentoID  : UUID;
+    filename     : String;
+    dataRilievo  : DateTime;
+    referente    : String;
+  }
+  type ContrattoIncompleto {
+    contrattoID       : UUID;
+    intestatario      : String;
+    completezzaPercent : Decimal(5,2);
+    standardApplicato : String;
+    allegatiMancanti  : String;
+    referente         : String;
+  }
+  type DerogaContrattuale {
+    contrattoID      : UUID;
+    intestatario     : String;
+    articolo         : String;
+    dettaglio        : String;
+    riferimentoComma : String;
+    referente        : String;
+  }
+
+  action getOrdiniPriviDiContratto() returns array of OrdinePrivoDiContratto;
+  action getContrattiIncompleti() returns array of ContrattoIncompleto;
+  action getDerogheContrattuali() returns array of DerogaContrattuale;
+
   @readonly entity EsitoVerificaContratto as projection on db.EsitoVerificaContratto;
   @readonly entity Anomalia as projection on db.Anomalia;
+  @readonly entity DocumentoClassificato as projection on db.DocumentoClassificato;
 
   action getTipologieAllegato() returns array of TipologiaAllegato;
-  action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato, tipoDocumento: String null) returns Contratto;
+  action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato, tipoDocumento: String null, dataDecorrenzaSAP: Date null, dataScadenzaSAP: Date null, importoSAP: Decimal(15,2) null) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
 
   type ComplianceResult {

@@ -125,20 +125,50 @@ function (BaseController, MessageBox) {
           }
         } catch (e) { /* riconoscimento tipo documento non bloccante */ }
 
+        // Gate step 1-2 del flusso: se il documento non è riconosciuto come contratto, si
+        // interrompe qui e si registra l'anomalia bloccante invece di proseguire alla
+        // verifica di completezza (che presuppone un contratto già identificato).
+        try {
+          var oGateResp = await fetch("/comparator/verificaDocumento", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ previewID: oCoverageData.previewID })
+          });
+          if (oGateResp.ok) {
+            var oGateData = await oGateResp.json();
+            if (oGateData.esitoGate === "ANOMALIA") {
+              oBusy.close();
+              MessageBox.error(oGateData.dettaglio || "Documento non riconosciuto come contratto.", {
+                title: "Anomalia bloccante — " + (oGateData.categoria || "documento non contrattuale")
+              });
+              return;
+            }
+          }
+        } catch (e) { /* gate non disponibile: non blocca l'analisi in corso */ }
+
         oBusy.setText("Generazione tips AI in corso...");
         var oTipsData = null;
         try {
-          var sTemplateIDPerTips = sTemplateID || (oCoverageData.riferimentoTrovato && oCoverageData.riferimentoTrovato.templateID);
-          var aClausoleUsate = (oCoverageData.clausole || [])
-            .filter(function (c) { return c.matchClausolaID; })
-            .map(function (c) { return { clausolaID: c.matchClausolaID, versione: c.versione }; });
-          var oTipsResp = await fetch("/comparator/generaTipsAI", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ templateID: sTemplateIDPerTips, clausole: aClausoleUsate })
-          });
-          if (oTipsResp.ok) {
-            oTipsData = await oTipsResp.json();
+          // Le tips AI confrontano il documento con un template/altri contratti: farlo solo se
+          // il documento è stato classificato come contratto (sottoTipo determinato) e il
+          // riferimento auto-matchato è abbastanza coerente col documento (coveragePercent >= 50,
+          // stessa soglia usata per il banner "riferimento potenzialmente non affidabile" nel
+          // wizard) — altrimenti si confronterebbe con un template scelto a caso, non correlato.
+          var bDocumentoCategorizzato = !!(oDocumentoPrincipale && oDocumentoPrincipale.sottoTipo);
+          var bRiferimentoAffidabile = sTemplateID ||
+            (oCoverageData.riferimentoTrovato && oCoverageData.riferimentoTrovato.templateID && oCoverageData.coveragePercent >= 50);
+          if (bDocumentoCategorizzato && bRiferimentoAffidabile) {
+            var sTemplateIDPerTips = sTemplateID || oCoverageData.riferimentoTrovato.templateID;
+            var aClausoleUsate = (oCoverageData.clausole || [])
+              .filter(function (c) { return c.matchClausolaID; })
+              .map(function (c) { return { clausolaID: c.matchClausolaID, versione: c.versione }; });
+            var oTipsResp = await fetch("/comparator/generaTipsAI", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ templateID: sTemplateIDPerTips, clausole: aClausoleUsate })
+            });
+            if (oTipsResp.ok) {
+              oTipsData = await oTipsResp.json();
+            }
           }
         } catch (e) { /* tips AI non bloccante */ }
 

@@ -33,6 +33,9 @@
 
     <VBox visible="{= !!${deroghe>/value} &amp;&amp; ${deroghe>/value}.length > 0 }" class="app-card app-card-padded sapUiSmallMarginBottom">
       <Title text="Deroghe rispetto alle CGC standard" level="H4" class="sapUiTinyMarginBottom" />
+      <ObjectStatus class="sapUiTinyMarginBottom"
+        text="{= ${deroghe>/esitoComplessivo} === 'OK' ? 'OK — condizioni standard invariate' : ${deroghe>/esitoComplessivo} === 'ANOMALIA' ? 'Anomalia — condizioni negoziate rispetto allo standard' : 'Non determinabile' }"
+        state="{= ${deroghe>/esitoComplessivo} === 'OK' ? 'Success' : ${deroghe>/esitoComplessivo} === 'ANOMALIA' ? 'Error' : 'None' }" />
       <Table items="{deroghe>/value}" growing="true" growingThreshold="20">
         <columns>
           <Column width="6rem"><Text text="Articolo" /></Column>

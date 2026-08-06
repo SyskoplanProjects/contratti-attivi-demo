@@ -32,16 +32,43 @@ describe('snapshot-utils / anomalie-utils (RF8/RF9)', () => {
     expect(anomalie).toEqual([]);
   });
 
-  it('generaAnomalie: completezza < 100 → COMPLETEZZA con riferimento lista mancanti', () => {
+  it('generaAnomalie: allegato atteso mancante → una COMPLETEZZA per allegato, con gravità', () => {
     const attesi = [
       { allegatoAtteso: 'CGC', etichetta: 'CGC', presente: true, filename: 'cgc.pdf' },
       { allegatoAtteso: 'ALLEGATO_B', etichetta: 'Allegato B', presente: false, filename: null },
       { allegatoAtteso: 'ALLEGATO_E', etichetta: 'Allegato E', presente: false, filename: null }
     ];
-    const anomalie = generaAnomalie({ attesi, percentuale: 33.33, deroghe: [], allegati: [] });
+    const anomalie = generaAnomalie({ attesi, deroghe: [], allegati: [] });
+    expect(anomalie).toHaveLength(2);
+    expect(anomalie.every(a => a.tipo === 'COMPLETEZZA')).toBe(true);
+    expect(anomalie.map(a => a.riferimento).sort()).toEqual(['ALLEGATO_B', 'ALLEGATO_E']);
+    expect(anomalie.every(a => a.gravita === 'MEDIA')).toBe(true);
+  });
+
+  it('generaAnomalie: allegato non critico mancante (Allegato C) → gravità BASSA', () => {
+    const attesi = [{ allegatoAtteso: 'ALLEGATO_C', etichetta: 'Allegato C', presente: false, filename: null }];
+    const anomalie = generaAnomalie({ attesi, deroghe: [], allegati: [] });
+    expect(anomalie[0].gravita).toBe('BASSA');
+  });
+
+  it('generaAnomalie: CGC/CPC mancanti → gravità ALTA', () => {
+    const attesi = [{ allegatoAtteso: 'CGC', etichetta: 'CGC', presente: false, filename: null }];
+    const anomalie = generaAnomalie({ attesi, deroghe: [], allegati: [] });
+    expect(anomalie[0].gravita).toBe('ALTA');
+  });
+
+  it('generaAnomalie: allineamentoSAP incoerente → DATI_SAP gravità ALTA', () => {
+    const anomalie = generaAnomalie({
+      attesi: [], deroghe: [], allegati: [],
+      allineamentoSAP: [
+        { campo: 'importoContrattuale', valoreContratto: '100', valoreSAP: '200', esito: 'incoerente' },
+        { campo: 'dataDecorrenza', valoreContratto: '2025-01-01', valoreSAP: '2025-01-01', esito: 'allineato' }
+      ]
+    });
     expect(anomalie).toHaveLength(1);
-    expect(anomalie[0].tipo).toBe('COMPLETEZZA');
-    expect(anomalie[0].riferimento).toBe('ALLEGATO_B, ALLEGATO_E');
+    expect(anomalie[0].tipo).toBe('DATI_SAP');
+    expect(anomalie[0].gravita).toBe('ALTA');
+    expect(anomalie[0].riferimento).toBe('importoContrattuale');
   });
 
   it('generaAnomalie: una anomalia DEROGHE per articolo derogato', () => {
@@ -72,16 +99,6 @@ describe('snapshot-utils / anomalie-utils (RF8/RF9)', () => {
     expect(anomalie).toHaveLength(1);
     expect(anomalie[0].tipo).toBe('CONFIDENZA');
     expect(anomalie[0].riferimento).toBe('allegato_b.pdf');
-  });
-
-  it('generaAnomalie: percentuale non numerica trattata come 0 → COMPLETEZZA', () => {
-    const attesi = [
-      { allegatoAtteso: 'ALLEGATO_B', etichetta: 'Allegato B', presente: false, filename: null }
-    ];
-    const anomalie = generaAnomalie({ attesi, percentuale: NaN, deroghe: [], allegati: [] });
-    expect(anomalie).toHaveLength(1);
-    expect(anomalie[0].tipo).toBe('COMPLETEZZA');
-    expect(anomalie[0].riferimento).toBe('ALLEGATO_B');
   });
 
   it('buildSnapshotData: completa, deroghe e confidenza media dai dati DB', async () => {

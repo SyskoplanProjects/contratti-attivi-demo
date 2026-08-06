@@ -84,10 +84,11 @@ describe('confirmCoverage — snapshot EsitoVerificaContratto e anomalie (RF8/RF
     const esiti = await SELECT.from(EsitoVerificaContratto).where({ contratto_ID: resp.data.ID });
     const anomalie = await SELECT.from(Anomalia).where({ esitoVerifica_ID: esiti[0].ID });
 
-    const tipi = anomalie.map(a => a.tipo).sort();
-    expect(tipi).toEqual(['COMPLETEZZA', 'CONFIDENZA']);
-    const completa = anomalie.find(a => a.tipo === 'COMPLETEZZA');
-    expect(completa.riferimento).not.toContain('CGC');
+    const tipi = new Set(anomalie.map(a => a.tipo));
+    expect(tipi).toEqual(new Set(['COMPLETEZZA', 'CONFIDENZA']));
+    const completezza = anomalie.filter(a => a.tipo === 'COMPLETEZZA');
+    expect(completezza.map(a => a.riferimento)).not.toContain('CGC');
+    expect(completezza).toHaveLength(7); // 9 attesi - CGC e ALLEGATO_B presenti
     const confidenza = anomalie.find(a => a.tipo === 'CONFIDENZA');
     expect(confidenza.riferimento).toBe('allegato_b.pdf');
   });

@@ -55,31 +55,5 @@
     </VBox>
 
     <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.EsitiVerifica" type="XML" />
-
-    <VBox visible="{compliance>/hasNonPresenti}" class="app-table-wrap sapUiSmallMarginTop sapUiSmallMarginBottom">
-      <Table items="{ path: 'compliance>/nonPresenti', templateShareable: true }" growing="true" growingThreshold="50">
-        <columns>
-          <Column><Text text="Parti Contratto Assenti" /></Column>
-          <Column width="10rem"><Text text="Esito" /></Column>
-          <Column><Text text="Dettaglio" /></Column>
-          <Column><Text text="Riferimento" /></Column>
-          <Column width="8rem"><Text text="Match % (Similarity)" /></Column>
-        </columns>
-        <items>
-          <ColumnListItem>
-            <cells>
-              <VBox>
-                <Text text="{compliance>requisito}" />
-                <Text text="{compliance>clausolaID}" visible="{= !!${compliance>clausolaID} }" class="app-id-badge" />
-              </VBox>
-              <ObjectStatus text="{compliance>esito}" state="{path: 'compliance>esito', formatter: '.formatter.esitoState'}" />
-              <Text text="{compliance>dettaglio}" />
-              <Text text="{compliance>riferimento}" />
-              <Text text="{compliance>similarity}" />
-            </cells>
-          </ColumnListItem>
-        </items>
-      </Table>
-    </VBox>
   </VBox>
 </core:FragmentDefinition>
