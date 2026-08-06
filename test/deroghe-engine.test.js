@@ -13,8 +13,18 @@ const { POST } = cds.test(path.join(__dirname, '..'));
 const { MOCK_USER } = require('./helpers/auth');
 const previewStore = require('../srv/lib/preview-store');
 
-describe('verificaDeroghe — Art. 17 e 21 CGC (RF6)', () => {
+const { ARTICOLI_CRITICI } = require('../srv/lib/deroghe-engine');
+const NUM_ARTICOLI = ARTICOLI_CRITICI.length; // 19 articoli vessatori (Art. 3,4,7,9,10,11,12,13,15,16,17,18,19,20,21,25,26,28,29)
+
+describe('verificaDeroghe — articoli vessatori CGC (RF6 / obiettivo Analisi Deroghe)', () => {
   beforeEach(() => { mockChatJSON.mockReset(); });
+
+  it('copre tutti gli articoli vessatori dello standard di Gruppo', () => {
+    expect(NUM_ARTICOLI).toBe(19);
+    expect(ARTICOLI_CRITICI.map(a => a.articolo)).toEqual(
+      ['3', '4', '7', '9', '10', '11', '12', '13', '15', '16', '17', '18', '19', '20', '21', '25', '26', '28', '29']
+    );
+  });
 
   it('ritorna esiti per articolo quando il LLM risponde', async () => {
     mockChatJSON.mockResolvedValue({
@@ -35,11 +45,9 @@ describe('verificaDeroghe — Art. 17 e 21 CGC (RF6)', () => {
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(2);
-    expect(resp.data.value[0].articolo).toBe('17');
-    expect(resp.data.value[0].esito).toBe('conforme');
-    expect(resp.data.value[1].articolo).toBe('21');
-    expect(resp.data.value[1].esito).toBe('derogato');
+    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('conforme');
+    expect(resp.data.value.find(r => r.articolo === '21').esito).toBe('derogato');
   });
 
   it('fallback a non_determinabile se la preview non ha testo', async () => {
@@ -53,7 +61,7 @@ describe('verificaDeroghe — Art. 17 e 21 CGC (RF6)', () => {
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(2);
+    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
     expect(resp.data.value.every(d => d.esito === 'non_determinabile')).toBe(true);
   });
 
@@ -71,7 +79,7 @@ describe('verificaDeroghe — Art. 17 e 21 CGC (RF6)', () => {
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(2);
+    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
     expect(resp.data.value.every(d => d.esito === 'non_determinabile')).toBe(true);
   });
 
@@ -96,11 +104,10 @@ describe('verificaDeroghe — Art. 17 e 21 CGC (RF6)', () => {
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(2);
-    expect(resp.data.value[0].articolo).toBe('17');
-    expect(resp.data.value[0].esito).toBe('conforme');
-    expect(resp.data.value[1].articolo).toBe('21');
-    expect(resp.data.value[1].esito).toBe('non_determinabile');
+    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('conforme');
+    expect(resp.data.value.find(r => r.articolo === '21').esito).toBe('non_determinabile');
+    expect(resp.data.value.find(r => r.articolo === '3').esito).toBe('non_determinabile');
   });
 
   it('normalizza: filtra gli articoli non critici restituiti dal LLM', async () => {
@@ -122,9 +129,9 @@ describe('verificaDeroghe — Art. 17 e 21 CGC (RF6)', () => {
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value).toHaveLength(2);
-    expect(resp.data.value.map(r => r.articolo)).toEqual(['17', '21']);
-    expect(resp.data.value[1].esito).toBe('non_determinabile');
+    expect(resp.data.value).toHaveLength(NUM_ARTICOLI);
+    expect(resp.data.value.map(r => r.articolo)).not.toContain('99');
+    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('derogato');
   });
 
   it('normalizza: esito fuori enum coercizzato a non_determinabile', async () => {
@@ -146,9 +153,7 @@ describe('verificaDeroghe — Art. 17 e 21 CGC (RF6)', () => {
     const resp = await POST('/comparator/verificaDeroghe', { previewID }, { auth: MOCK_USER });
 
     expect(resp.status).toBe(200);
-    expect(resp.data.value[0].articolo).toBe('17');
-    expect(resp.data.value[0].esito).toBe('non_determinabile');
-    expect(resp.data.value[1].articolo).toBe('21');
-    expect(resp.data.value[1].esito).toBe('conforme');
+    expect(resp.data.value.find(r => r.articolo === '17').esito).toBe('non_determinabile');
+    expect(resp.data.value.find(r => r.articolo === '21').esito).toBe('conforme');
   });
 });

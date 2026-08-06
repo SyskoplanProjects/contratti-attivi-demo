@@ -119,9 +119,14 @@ async function chat(systemPrompt, userPrompt) {
 
 async function embeddings(testi) {
   const client = await getClient();
+  // L'API rifiuta stringhe vuote nell'array `input` (400 "input cannot be an empty string"):
+  // capita con clausole/testi vuoti prodotti dallo split di documenti reali (es. intestazioni
+  // senza corpo). Placeholder neutro per non rompere l'array di ritorno, su cui tutti i
+  // chiamanti assumono testi[i] <-> vettori[i] allineati per indice.
+  const testiSicuri = testi.map(t => (t && String(t).trim()) ? t : ' ');
   const response = await client.embeddings.create({
     model: 'text-embedding-3-small',
-    input: testi
+    input: testiSicuri
   });
   return response.data.map(d => d.embedding);
 }

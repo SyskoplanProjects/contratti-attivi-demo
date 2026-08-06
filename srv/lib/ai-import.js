@@ -123,17 +123,45 @@ async function extractTextMultiFormato(buffer, mimeType, filename) {
   throw err;
 }
 
+// Il prompt chiede al modello di copiare il testo letteralmente, ma nulla lo impedisce di
+// riformulare o inventare una clausola plausibile (specialmente su documenti lunghi): senza
+// verifica, capita che vengano restituite clausole che nel documento non ci sono affatto.
+// Normalizza gli spazi bianchi (whitespace/newline collassati, case-insensitive) e verifica che
+// il testo della clausola sia effettivamente un sottostringa del documento originale.
+function _normalizzaSpazi(testo) {
+  return String(testo || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function _clausolaPresenteNelTesto(testoClausola, testoDocumento) {
+  const normClausola = _normalizzaSpazi(testoClausola);
+  if (!normClausola) return false;
+  return _normalizzaSpazi(testoDocumento).includes(normClausola);
+}
+
 async function estraiClausoleAI(testoDocumento) {
   const result = await openai.chatJSON(SEGMENTAZIONE_SYSTEM_PROMPT, testoDocumento);
   const clausole = Array.isArray(result?.clausole) ? result.clausole : [];
   if (!clausole.length) throw new Error('AI non ha estratto nessuna clausola');
-  return clausole
+
+  const scartate = [];
+  const valide = clausole
     .map((c, i) => ({
       numero: Number(c.numero) || i + 1,
       titolo: String(c.titolo || `Clausola ${i + 1}`),
       testo: String(c.testo || '')
     }))
-    .filter(c => c.testo);
+    .filter(c => c.testo)
+    .filter(c => {
+      const presente = _clausolaPresenteNelTesto(c.testo, testoDocumento);
+      if (!presente) scartate.push(c.titolo);
+      return presente;
+    });
+
+  if (scartate.length) {
+    console.warn('[ai-import] clausole scartate perché non trovate letteralmente nel documento:', scartate.join('; '));
+  }
+  if (!valide.length) throw new Error('AI non ha estratto nessuna clausola verificabile nel documento');
+  return valide;
 }
 
 async function estraiClausoleConFallback(buffer, filename, mimeType) {

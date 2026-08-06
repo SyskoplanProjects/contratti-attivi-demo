@@ -1,0 +1,62 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+  <VBox>
+    <HBox class="app-card app-card-padded sapUiSmallMarginBottom" alignItems="Center">
+      <Label text="Qualifica DORA:" design="Bold" class="sapUiTinyMarginEnd" />
+      <ObjectStatus
+        text="{= !${dora>/determinato} ? 'Non determinabile dal documento' : ${dora>/dora} ? 'Contratto DORA' : 'Non DORA' }"
+        state="{= !${dora>/determinato} ? 'None' : ${dora>/dora} ? 'Warning' : 'Success' }"
+        icon="{= ${dora>/determinato} ? (${dora>/dora} ? 'sap-icon://alert' : 'sap-icon://accept') : '' }" />
+    </HBox>
+
+    <VBox visible="{= !!${completezza>/attesi} }" class="app-card app-card-padded sapUiSmallMarginBottom">
+      <Title text="Completezza allegati contrattuali" level="H4" class="sapUiTinyMarginBottom" />
+      <Text text="Standard verificato: {completezza>/standardApplicato}" class="sapUiTinyMarginBottom" />
+      <ObjectStatus text="{completezza>/percentuale}% completo" class="sapUiTinyMarginBottom"
+        state="{= ${completezza>/percentuale} >= 100 ? 'Success' : ${completezza>/percentuale} >= 50 ? 'Warning' : 'Error' }" />
+      <Table items="{completezza>/attesi}" growing="true" growingThreshold="20">
+        <columns>
+          <Column><Text text="Allegato atteso" /></Column>
+          <Column width="8rem"><Text text="Presente" /></Column>
+          <Column><Text text="File" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <Text text="{completezza>etichetta}" />
+              <ObjectStatus text="{= ${completezza>presente} ? 'Sì' : 'No' }" state="{= ${completezza>presente} ? 'Success' : 'Error' }" />
+              <Text text="{completezza>filename}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+
+    <VBox visible="{= !!${deroghe>/value} &amp;&amp; ${deroghe>/value}.length > 0 }" class="app-card app-card-padded sapUiSmallMarginBottom">
+      <Title text="Deroghe rispetto alle CGC standard" level="H4" class="sapUiTinyMarginBottom" />
+      <Table items="{deroghe>/value}" growing="true" growingThreshold="20">
+        <columns>
+          <Column width="6rem"><Text text="Articolo" /></Column>
+          <Column width="10rem"><Text text="Esito" /></Column>
+          <Column><Text text="Dettaglio" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <Text text="Art. {deroghe>articolo}" />
+              <ObjectStatus text="{deroghe>esito}"
+                state="{= ${deroghe>esito} === 'derogato' ? 'Error' : ${deroghe>esito} === 'conforme' ? 'Success' : 'None' }" />
+              <Text text="{deroghe>dettaglio}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+
+    <VBox class="app-card app-card-padded sapUiSmallMarginBottom">
+      <Title text="Sub Fornitori" level="H4" class="sapUiTinyMarginBottom" />
+      <ObjectStatus text="{= ${subfornitori>/presente} ? 'Subfornitori presenti' : 'Nessun subfornitore indicato' }"
+        state="{= ${subfornitori>/presente} ? 'Warning' : 'Success' }" class="sapUiTinyMarginBottom" />
+      <Text text="{subfornitori>/elenco}" visible="{subfornitori>/presente}" />
+    </VBox>
+  </VBox>
+</core:FragmentDefinition>

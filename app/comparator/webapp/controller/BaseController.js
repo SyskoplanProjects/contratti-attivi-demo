@@ -14,6 +14,27 @@ function (Controller, MessageBox, JSONModel, ODataModel) {
       }
     },
 
+    // Presenza subfornitori: letta direttamente dal metadato "subfornitori" già estratto dal
+    // documento (vedi tipologie-allegato.js, tipo CONTRATTO) — nessuna verifica esterna, solo
+    // indicare se il contratto ne dichiara o no.
+    _buildSubfornitoriModel: function (oCoverageData) {
+      var oMeta = ((oCoverageData && oCoverageData.metadati) || []).find(function (m) { return m.campo === "subfornitori"; });
+      var sValore = oMeta && oMeta.valore ? String(oMeta.valore).trim() : "";
+      return { presente: sValore.length > 0, elenco: sValore };
+    },
+
+    // Stato DORA: letto dal metadato "presenzaClausoleDORA" già estratto (si/no/testo libero
+    // del modello) — va indicato in modo chiaro e prominente, non lasciato in mezzo alla
+    // tabella dei 28 metadati generici. determinato:false quando il campo non è stato
+    // valorizzato dal modello (nessun segnale nel documento, non equivale a "no").
+    _buildDoraModel: function (oCoverageData) {
+      var oMeta = ((oCoverageData && oCoverageData.metadati) || []).find(function (m) { return m.campo === "presenzaClausoleDORA"; });
+      var sValore = oMeta && oMeta.valore ? String(oMeta.valore).trim().toLowerCase() : "";
+      var bDetermined = sValore.length > 0;
+      var bDora = sValore.indexOf("s") === 0; // "si" / "sì"
+      return { determinato: bDetermined, dora: bDetermined && bDora };
+    },
+
     _initChatState: function () {
       this._threadId = null;
       this._messages = [];

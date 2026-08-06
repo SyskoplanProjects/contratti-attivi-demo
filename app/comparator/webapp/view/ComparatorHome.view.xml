@@ -11,7 +11,6 @@
         <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
         <Title text="Contract Comparator" class="app-header-title" />
         <ToolbarSpacer />
-        <Button text="Dashboard" icon="sap-icon://business-objects-experience" press="onOpenDashboard" />
       </Toolbar>
     </customHeader>
     <content>

@@ -101,7 +101,7 @@ describe('snapshot-utils / anomalie-utils (RF8/RF9)', () => {
     expect(snapshot.totaleAllegati).toBe(9);
     expect(snapshot.allegatiPresenti).toBe(2);
     expect(snapshot.confidenzaMedia).toBe(0.85);
-    expect(snapshot.deroghe[0].esito).toBe('derogato');
+    expect(snapshot.deroghe.find(d => d.articolo === '17').esito).toBe('derogato');
     expect(snapshot.attesi.find(a => a.allegatoAtteso === 'CGC').presente).toBe(true);
   });
 

@@ -5,7 +5,7 @@ const previewStore = require('./lib/preview-store');
 const { computeDocumentoEmbedding } = require('./lib/template-embedding');
 const { normalizeText } = require('./lib/diff-utils');
 const { extractTextMultiFormato } = require('./lib/ai-import');
-const { classificaAllegato } = require('./lib/allegato-classifier');
+const { classificaAllegato, rilevaTipiPresenti } = require('./lib/allegato-classifier');
 const { estraiCampiAllegato, trovaPosizione } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
 const { salvaEsempio } = require('./lib/classificazione-esempi');
@@ -20,6 +20,25 @@ function _normalizzaConfidenza(confidenza) {
   const n = Number(confidenza);
   if (!Number.isFinite(n)) return 0;
   return Math.round(n * 10000) / 10000;
+}
+
+// Il documento principale caricato può essere esso stesso un CGC/CPC/Allegato, o persino un
+// fascicolo che li contiene tutti concatenati in un unico file (es. OdA+CGC+CPC+Allegati A-G in
+// un solo PDF, caso reale NOMIOS 71 pagine): senza questo, verificaCompletezza verifica solo gli
+// allegati caricati a parte e ignora completamente cosa c'è nel documento principale, segnalando
+// "CPC assente" anche quando il documento caricato È la CPC (bug reale osservato in sessione).
+// tipiRilevati (da rilevaTipiPresenti, multi-tipo) ha priorità; documentoPrincipale.sottoTipo
+// (singolo tipo dominante) resta come fallback se la rilevazione multi-tipo non ha trovato nulla.
+// Voci sintetiche SENZA campo confidenza: chi le consuma per anomalie di CONFIDENZA deve usare
+// la lista originale non arricchita, non questa.
+function _conTipiDocumentoPrincipale(allegati, tipiRilevati, documentoPrincipale, filenamePrincipale) {
+  const lista = allegati || [];
+  const tipiPresenti = new Set(lista.map(a => a.tipo));
+  const tipi = (tipiRilevati && tipiRilevati.length) ? tipiRilevati
+    : (documentoPrincipale && documentoPrincipale.sottoTipo) ? [documentoPrincipale.sottoTipo] : [];
+  const nuovi = tipi.filter(t => t && !tipiPresenti.has(t));
+  if (!nuovi.length) return lista;
+  return [...lista, ...nuovi.map(tipo => ({ tipo, filename: filenamePrincipale || null }))];
 }
 
 module.exports = class ComparatorService extends cds.ApplicationService {
@@ -103,6 +122,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente, ripetere l\'analisi');
 
       let documentoPrincipale = { categoria: null, sottoTipo: null, confidenza: null };
+      let tipiRilevati = [];
       if (preview.testo && preview.testo.trim()) {
         const { tipo, confidenza } = await classificaAllegato(preview.testo);
         const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
@@ -111,10 +131,14 @@ module.exports = class ComparatorService extends cds.ApplicationService {
           sottoTipo: (tipologia && tipologia.sottoTipologia) ? tipo : null,
           confidenza: _normalizzaConfidenza(confidenza)
         };
+        // Il documento può essere un fascicolo con più sezioni (CGC+CPC+Allegati concatenati
+        // in un unico file, vedi _conTipiDocumentoPrincipale): rileva tutte le tipologie
+        // riconoscibili, non solo quella dominante restituita da classificaAllegato sopra.
+        tipiRilevati = await rilevaTipiPresenti(preview.testo);
       }
 
       if (!allegati || !allegati.length) {
-        previewStore.update(previewID, { documentoPrincipale, allegati: [] });
+        previewStore.update(previewID, { documentoPrincipale, tipiRilevati, allegati: [] });
         return { documentoPrincipale, allegati: [] };
       }
 
@@ -143,7 +167,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         });
       }
 
-      previewStore.update(previewID, { allegati: allegatiClassificati, documentoPrincipale });
+      previewStore.update(previewID, { allegati: allegatiClassificati, documentoPrincipale, tipiRilevati });
 
       return {
         documentoPrincipale,
@@ -166,9 +190,21 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
       const { verificaCompletezza } = require('./lib/allegati-attesi');
       // Gli allegati corretti arrivano dal wizard (parametro): la preview può contenere
-      // tipi stale se l'utente ha corretto la classificazione a mano.
-      const allegatiEffettivi = (allegati && allegati.length) ? allegati : (preview.allegati || []);
-      return verificaCompletezza(allegatiEffettivi);
+      // tipi stale se l'utente ha corretto la classificazione a mano. Per il flusso "verifica
+      // contratto esistente" (calcolaCoverageDaContratto) la preview non ha allegati propri:
+      // si recuperano quelli già salvati su ContrattoAllegato tramite preview.contractID.
+      let allegatiEffettivi = (allegati && allegati.length) ? allegati : (preview.allegati || []);
+      let metadatiContratto = preview.metadati || [];
+      if (!allegatiEffettivi.length && preview.contractID) {
+        const { ContrattoAllegato, MetadatoDocumento } = cds.entities('com.reply.contrattiattivi');
+        allegatiEffettivi = await cds.tx(req).run(SELECT.from(ContrattoAllegato).where({ contratto_ID: preview.contractID }));
+        metadatiContratto = await cds.tx(req).run(SELECT.from(MetadatoDocumento).where({ contratto_ID: preview.contractID }));
+      }
+      const metaAccordo = metadatiContratto.find(m => m.campo === 'accordoQuadroOAutonomo');
+      const contestoContratto = { accordoQuadroOAutonomo: metaAccordo && metaAccordo.valore };
+      const allegatiConPrincipale = _conTipiDocumentoPrincipale(
+        allegatiEffettivi, preview.tipiRilevati, preview.documentoPrincipale, preview.filename);
+      return verificaCompletezza(allegatiConPrincipale, contestoContratto);
     });
 
     this.on('verificaDeroghe', async (req) => {
@@ -311,7 +347,13 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         const { EsitoVerificaContratto, Anomalia, ContrattoAllegato } = cds.entities('com.reply.contrattiattivi');
 
         const allegatiSalvati = await tx.run(SELECT.from(ContrattoAllegato).where({ contratto_ID: contrattoID }));
-        const snapshot = await buildSnapshotData(allegatiSalvati, preview.testo || '');
+        const metaAccordo = metadatiFinali.find(m => m.campo === 'accordoQuadroOAutonomo');
+        const contestoContratto = { accordoQuadroOAutonomo: metaAccordo && metaAccordo.valore };
+        // Solo per il calcolo di completezza: le anomalie di CONFIDENZA più sotto devono restare
+        // sulla lista grezza allegatiSalvati (le voci sintetiche non hanno confidenza propria).
+        const allegatiConPrincipale = _conTipiDocumentoPrincipale(
+          allegatiSalvati, preview.tipiRilevati, preview.documentoPrincipale, preview.filename);
+        const snapshot = await buildSnapshotData(allegatiConPrincipale, preview.testo || '', contestoContratto);
 
         const esitoID = cds.utils.uuid();
         await tx.run(INSERT.into(EsitoVerificaContratto).entries({

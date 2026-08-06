@@ -58,7 +58,7 @@ describe('calcolaCoverage senza templateID (pipeline automatica)', () => {
       .mockResolvedValueOnce([[1, 0, 0], [1, 0, 0]]);
 
     const res = await POST('/comparator/calcolaCoverage', {
-      file: await bufferDocx('contratto di prova'), filename: 'contratto.docx'
+      file: await bufferDocx('Testo A.'), filename: 'contratto.docx'
     }, { auth: MOCK_USER });
 
     expect(res.status).toBe(200);
@@ -71,7 +71,7 @@ describe('calcolaCoverage senza templateID (pipeline automatica)', () => {
     mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo A.' }] });
 
     await expect(
-      POST('/comparator/calcolaCoverage', { file: await bufferDocx('contratto'), filename: 'contratto.docx' }, { auth: MOCK_USER })
+      POST('/comparator/calcolaCoverage', { file: await bufferDocx('Testo A.'), filename: 'contratto.docx' }, { auth: MOCK_USER })
     ).rejects.toMatchObject({ response: { status: 400, data: { error: { message: 'Nessun template di riferimento disponibile in archivio' } } } });
   });
 
@@ -81,7 +81,7 @@ describe('calcolaCoverage senza templateID (pipeline automatica)', () => {
     mockEmbeddings.mockResolvedValueOnce([[1, 0, 0], [1, 0, 0]]);
 
     const res = await POST('/comparator/calcolaCoverage', {
-      file: await bufferDocx('contratto'), filename: 'contratto.docx', templateID
+      file: await bufferDocx('Testo A.'), filename: 'contratto.docx', templateID
     }, { auth: MOCK_USER });
 
     expect(res.status).toBe(200);
