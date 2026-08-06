@@ -80,8 +80,8 @@ describe('classificaAllegati / confirmCoverage allegati', () => {
     expect(classifica.status).toBe(200);
     expect(classifica.data.allegati).toHaveLength(1);
     expect(classifica.data.allegati[0].filename).toBe('durc.docx');
-    expect(classifica.data.allegati[0].tipo).toBe(TIPOLOGIE_ALLEGATO[0].key);
-    expect(classifica.data.allegati[0].metodoRiconoscimento).toBe('embedding');
+    expect(classifica.data.allegati[0].tipo).toBe('DURC');
+    expect(classifica.data.allegati[0].metodoRiconoscimento).toBe('nomeEsplicito');
 
     const conferma = await POST('/comparator/confirmCoverage', {
       previewID,

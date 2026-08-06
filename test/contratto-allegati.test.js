@@ -39,8 +39,8 @@ describe('classificaAllegatoContratto / aggiungiAllegatoContratto', () => {
     }, { auth: MOCK_USER });
 
     expect(classifica.status).toBe(200);
-    expect(classifica.data.tipo).toBe(TIPOLOGIE_ALLEGATO[0].key);
-    expect(classifica.data.metodoRiconoscimento).toBe('embedding');
+    expect(classifica.data.tipo).toBe('DURC');
+    expect(classifica.data.metodoRiconoscimento).toBe('nomeEsplicito');
     expect(classifica.data.testo).toContain('Documento Unico di Regolarità Contributiva');
     expect(Array.isArray(classifica.data.metadati)).toBe(true);
 

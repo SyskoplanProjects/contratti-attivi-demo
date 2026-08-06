@@ -5,6 +5,33 @@ const { caricaEsempi } = require('./classificazione-esempi');
 
 let _embeddingsRiferimentoCache = null;
 
+// Regola DURC/DURF: un documento è DURC SOLO se contiene il nome esplicito
+// ("Documento Unico di Regolarità Contributiva" o sigla "DURC"); altrimenti è DURF.
+// I profili embedding di DURC e DURF sono quasi identici ("Documento Unico di
+// Regolarità ...") e il fallback LLM li confonde: il nome esplicito è l'unico
+// discriminante affidabile.
+const RE_NOME_DURC = /documento unico (di )?regolarit[àa] contributiva/i;
+const RE_NOME_DURF = /documento unico (di )?regolarit[àa] fiscale/i;
+const RE_SIGLA_DURC = /\bdurc\b/i;
+const RE_SIGLA_DURF = /\bdurf\b/i;
+
+function _nomeEsplicito(testo) {
+  if (RE_NOME_DURC.test(testo) || RE_SIGLA_DURC.test(testo)) return 'DURC';
+  if (RE_NOME_DURF.test(testo) || RE_SIGLA_DURF.test(testo)) return 'DURF';
+  return null;
+}
+
+// Se la classificazione (embedding o LLM) ricade nel dominio DURC/DURF,
+// applica la regola del nome esplicito. Ritorna la coppia {tipo, cambiato}.
+function _applicaRegolaDurc(tipo, testo) {
+  if (tipo !== 'DURC' && tipo !== 'DURF') return { tipo, cambiato: false };
+  const esplicito = _nomeEsplicito(testo);
+  if (esplicito) return { tipo: esplicito, cambiato: esplicito !== tipo };
+  // Nessun nome esplicito nel documento: altrimenti è DURF.
+  if (tipo !== 'DURF') return { tipo: 'DURF', cambiato: true };
+  return { tipo, cambiato: false };
+}
+
 async function _embeddingsRiferimento() {
   if (!_embeddingsRiferimentoCache) {
     // Filter out entries without testoRiferimento to avoid sending undefined/null to OpenAI API
@@ -40,6 +67,13 @@ async function _classificaConLLM(testo) {
 async function classificaAllegato(testo) {
   if (!testo || !testo.trim()) return { tipo: 'ALTRO', confidenza: null, metodoRiconoscimento: 'nessuno' };
 
+  // Pre-check: nome esplicito DURC/DURF nel testo -> decisione immediata,
+  // senza chiamate AI (embedding/LLM).
+  const esplicito = _nomeEsplicito(testo);
+  if (esplicito) {
+    return { tipo: esplicito, confidenza: 1, metodoRiconoscimento: 'nomeEsplicito' };
+  }
+
   const pool = await _poolEmbeddings();
   const [embeddingTesto] = await openai.embeddings([testo]);
 
@@ -50,10 +84,20 @@ async function classificaAllegato(testo) {
   }
   bestSim = Math.round(bestSim * 10000) / 10000;
 
+  let tipo, confidenza, metodoRiconoscimento;
   if (bestSim >= SOGLIA_TIPO_ALLEGATO) {
-    return { tipo: bestKey, confidenza: bestSim, metodoRiconoscimento: 'embedding' };
+    tipo = bestKey; confidenza = bestSim; metodoRiconoscimento = 'embedding';
+  } else {
+    const llm = await _classificaConLLM(testo);
+    tipo = llm.tipo; confidenza = llm.confidenza; metodoRiconoscimento = llm.metodoRiconoscimento;
   }
-  return _classificaConLLM(testo);
+
+  // Regola DURC/DURF: se la classificazione ricade nel dominio, il nome esplicito decide.
+  const regola = _applicaRegolaDurc(tipo, testo);
+  if (regola.cambiato) {
+    return { tipo: regola.tipo, confidenza, metodoRiconoscimento: 'nomeEsplicito' };
+  }
+  return { tipo: regola.tipo, confidenza, metodoRiconoscimento };
 }
 
 // Un singolo file caricato può essere un fascicolo che raccoglie più documenti concatenati
