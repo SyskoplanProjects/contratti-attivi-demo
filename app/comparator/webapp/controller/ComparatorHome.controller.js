@@ -37,6 +37,41 @@ function (BaseController, MessageBox) {
           this.byId("templateIDHint").setVisible(true);
         }
       }
+      this._caricaTemplateList();
+    },
+
+    _caricaTemplateList: async function () {
+      try {
+        var oResp = await fetch("/comparator/getTemplates", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
+        });
+        if (!oResp.ok) { console.warn("Impossibile caricare template"); return; }
+        var oData = await oResp.json();
+        var aTemplate = oData.value || (Array.isArray(oData) ? oData : []);
+        var aItems = aTemplate.map(function (t) {
+          return new sap.ui.core.Item({ key: t.ID, text: t.nome });
+        });
+        this.byId("templateSelect").destroyItems();
+        aItems.forEach(function (oItem) { this.byId("templateSelect").addItem(oItem); }.bind(this));
+        if (this._sTemplateID) {
+          this.byId("templateSelect").setSelectedKey(this._sTemplateID);
+        }
+        this._aggiornaHintTemplate();
+      } catch (e) { console.warn("Errore caricamento template:", e); }
+    },
+
+    onTemplateChange: function (oEvent) {
+      var sKey = oEvent.getSource().getSelectedKey();
+      this._sTemplateID = sKey || null;
+      this._aggiornaHintTemplate();
+    },
+
+    _aggiornaHintTemplate: function () {
+      var oSel = this.byId("templateSelect");
+      var sNome = oSel && oSel.getSelectedItem() ? oSel.getSelectedItem().getText() : null;
+      this.byId("templateSelectHint").setText(sNome
+        ? "Confronto verso template: " + sNome
+        : "Analisi automatica (contratti e template in archivio)");
     },
 
     onFileChange: function (oEvent) {

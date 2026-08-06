@@ -33,6 +33,14 @@
           <Text id="allegatiNameText" class="sapUiTinyMarginTop" />
         </VBox>
 
+        <VBox id="templateSelectSection" class="app-card app-card-padded sapUiSmallMarginTop">
+          <Label text="Template di riferimento (opzionale)" class="sapUiSmallMarginBottom" />
+          <Text class="app-hint-text sapUiTinyMarginBottom"
+            text="Se non selezionato, l'analisi confronta il documento con i contratti e i template presenti in archivio." />
+          <Select id="templateSelect" width="100%" change="onTemplateChange" />
+          <Text id="templateSelectHint" class="app-hint-text sapUiTinyMarginTop" />
+        </VBox>
+
         <HBox class="app-btn-group">
           <Button id="btnAvvia" text="Avvia analisi" type="Emphasized" press="onAvvia" class="app-btn app-btn-primary" />
           <Button id="btnAvviaContratto" text="Avvia verifica contratto" type="Emphasized" press="onAvviaVerificaContratto" class="app-btn app-btn-primary" visible="false" />
