@@ -183,6 +183,10 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       ];
     });
 
+    this.on('getTemplates', () =>
+      SELECT.from(Template).columns('ID', 'nome', 'tipoRiferimento').orderBy('nome')
+    );
+
     this.on('verificaCompletezza', async (req) => {
       const { previewID, allegati } = req.data;
       if (!previewID) return req.reject(400, 'previewID obbligatorio');

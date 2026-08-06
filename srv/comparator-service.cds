@@ -218,6 +218,7 @@ service ComparatorService @(requires: 'Utente') {
   @readonly entity DocumentoClassificato as projection on db.DocumentoClassificato;
 
   action getTipologieAllegato() returns array of TipologiaAllegato;
+  action getTemplates() returns array of Template;
   action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato, tipoDocumento: String null, dataDecorrenzaSAP: Date null, dataScadenzaSAP: Date null, importoSAP: Decimal(15,2) null) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
 
