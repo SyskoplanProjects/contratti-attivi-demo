@@ -15,4 +15,4 @@ db.sqlite.bak*
 .claude/
 .superpowers/
 mta_archives/
-docs/
+docs/.worktrees/
