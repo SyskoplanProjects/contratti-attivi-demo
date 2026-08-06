@@ -136,6 +136,80 @@ describe('estraiClausoleAI — filtro anti-allucinazione (le clausole devono esi
   });
 });
 
+describe('estraiClausoleAI — clausole con sezioni (es. clausola 5 con 5.1, 5.2)', () => {
+  beforeEach(() => { openai.chatJSON.mockReset(); });
+
+  const sDocumento =
+    'Clausola 5 Requisiti di sicurezza.\n' +
+    '5.1 Governance: il fornitore applica una governance della sicurezza ICT.\n' +
+    '5.2 Protezione dati: il fornitore protegge i dati personali.\n' +
+    'Clausola 6 Clausola finale.';
+
+  it('mantiene le sezioni dentro il testo della clausola madre quando il modello le restituisce già incluse', async () => {
+    openai.chatJSON.mockResolvedValue({
+      clausole: [{
+        numero: 5, titolo: 'Requisiti di sicurezza',
+        testo: 'Requisiti di sicurezza.\n5.1 Governance: il fornitore applica una governance della sicurezza ICT.\n5.2 Protezione dati: il fornitore protegge i dati personali.'
+      }]
+    });
+
+    const clausole = await estraiClausoleAI(sDocumento);
+
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].numero).toBe(5);
+    expect(clausole[0].testo).toContain('5.1 Governance');
+    expect(clausole[0].testo).toContain('5.2 Protezione dati');
+  });
+
+  it('fonde le sezioni restituite come clausole separate (numero decimale) nel testo della clausola madre', async () => {
+    openai.chatJSON.mockResolvedValue({
+      clausole: [
+        { numero: 5, titolo: 'Requisiti di sicurezza', testo: 'Requisiti di sicurezza.' },
+        { numero: 5.1, titolo: '5.1 Governance', testo: '5.1 Governance: il fornitore applica una governance della sicurezza ICT.' },
+        { numero: 5.2, titolo: '5.2 Protezione dati', testo: '5.2 Protezione dati: il fornitore protegge i dati personali.' }
+      ]
+    });
+
+    const clausole = await estraiClausoleAI(sDocumento);
+
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].numero).toBe(5);
+    expect(clausole[0].testo.split('\n').length).toBeGreaterThanOrEqual(3);
+    expect(clausole[0].testo).toContain('5.1 Governance');
+    expect(clausole[0].testo).toContain('5.2 Protezione dati');
+  });
+
+  it('sezione senza clausola madre esplicita viene aggregata nella clausola con numero intero immediatamente precedente', async () => {
+    openai.chatJSON.mockResolvedValue({
+      clausole: [
+        { numero: 5.1, titolo: '5.1 Governance', testo: '5.1 Governance: il fornitore applica una governance della sicurezza ICT.' },
+        { numero: 5, titolo: 'Requisiti di sicurezza', testo: 'Requisiti di sicurezza.' }
+      ]
+    });
+
+    const clausole = await estraiClausoleAI(sDocumento);
+
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].numero).toBe(5);
+    expect(clausole[0].testo).toContain('5.1 Governance');
+  });
+
+  it('clausole senza sezioni restano invariate', async () => {
+    openai.chatJSON.mockResolvedValue({
+      clausole: [
+        { numero: 5, titolo: 'Requisiti di sicurezza', testo: 'Requisiti di sicurezza.' },
+        { numero: 6, titolo: 'Clausola finale', testo: 'Clausola finale.' }
+      ]
+    });
+
+    const clausole = await estraiClausoleAI(sDocumento);
+
+    expect(clausole).toHaveLength(2);
+    expect(clausole[0].numero).toBe(5);
+    expect(clausole[1].numero).toBe(6);
+  });
+});
+
 describe('cosineSimilarity', () => {
   it('returns 1 for identical vectors', () => {
     expect(cosineSimilarity([1, 0, 0], [1, 0, 0])).toBeCloseTo(1);
