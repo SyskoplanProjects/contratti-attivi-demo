@@ -5,6 +5,7 @@ const openai = require('../modules/openai-module');
 
 const SEGMENTAZIONE_SYSTEM_PROMPT = `Sei un assistente che segmenta un documento contrattuale italiano in clausole numerate.
 Rispondi SOLO con un oggetto JSON nella forma: { "clausole": [ { "numero": <intero progressivo a partire da 1>, "titolo": <stringa breve>, "testo": <testo completo della clausola> } ] }.
+Le sottosezioni di una clausola (es. commi 5.1, 5.2 dentro l'articolo 5) NON vanno restituite come clausole separate: il numero resta quello della clausola madre e tutte le sottosezioni vanno incluse nel campo "testo" della clausola madre, nell'ordine in cui compaiono nel documento.
 Il campo "testo" deve riportare il contenuto della clausola COPIATO LETTERALMENTE dal documento originale (stessa punteggiatura, stesse parole, nessuna correzione, riformulazione o riassunto): viene usato per localizzare la clausola nell'anteprima del documento tramite ricerca testuale, quindi anche piccole modifiche al testo impediscono di trovarla.
 Se il documento non contiene clausole riconoscibili, rispondi con { "clausole": [] }.`;
 
@@ -138,6 +139,41 @@ function _clausolaPresenteNelTesto(testoClausola, testoDocumento) {
   return _normalizzaSpazi(testoDocumento).includes(normClausola);
 }
 
+// Il modello può restituire le sottosezioni di una clausola (5.1, 5.2) come clausole separate con
+// numero decimale: se lasciate così l'anteprima mostra commi orfani e la clausola madre senza
+// contenuto. La riportiamo dentro la clausola madre (numero = parte intera), nell'ordine del
+// documento. Se la madre non c'è, la sezione va aggregata alla clausola con numero intero
+// immediatamente precedente (comportamento del parser regex).
+function _fondeSezioni(clausole) {
+  const madri = [];
+  const sezioni = [];
+  for (const c of clausole) {
+    (Number.isInteger(c.numero) ? madri : sezioni).push(c);
+  }
+  if (!sezioni.length) return clausole;
+
+  const perNumero = new Map(madri.map(c => [c.numero, c]));
+  const risultato = [...madri];
+
+  const madrePerSezione = s => {
+    const madre = perNumero.get(Math.floor(s.numero));
+    if (madre) return madre;
+    let precedente = null;
+    for (const m of madri) {
+      if (m.numero < s.numero) precedente = m;
+    }
+    return precedente;
+  };
+
+  for (const s of sezioni) {
+    const madre = madrePerSezione(s);
+    if (!madre) { risultato.push(s); continue; }
+    madre.testo = madre.testo ? `${madre.testo}\n${s.testo}` : s.testo;
+  }
+
+  return risultato.sort((a, b) => a.numero - b.numero);
+}
+
 async function estraiClausoleAI(testoDocumento) {
   const result = await openai.chatJSON(SEGMENTAZIONE_SYSTEM_PROMPT, testoDocumento);
   const clausole = Array.isArray(result?.clausole) ? result.clausole : [];
@@ -161,7 +197,7 @@ async function estraiClausoleAI(testoDocumento) {
     console.warn('[ai-import] clausole scartate perché non trovate letteralmente nel documento:', scartate.join('; '));
   }
   if (!valide.length) throw new Error('AI non ha estratto nessuna clausola verificabile nel documento');
-  return valide;
+  return _fondeSezioni(valide);
 }
 
 async function estraiClausoleConFallback(buffer, filename, mimeType) {
