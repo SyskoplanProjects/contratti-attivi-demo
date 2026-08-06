@@ -9,6 +9,12 @@
 
   var DEFAULT_COLORS = ["#0a6ed1", "#e9730c", "#107e3e", "#bb0000", "#6a6d70"];
 
+  function escapeHtml(sText) {
+    return String(sText == null ? "" : sText)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   function matchFornitore(sNomeFornitore, sIntestatario) {
     if (!sNomeFornitore || !sIntestatario) return false;
     var a = String(sNomeFornitore).trim().toLowerCase();
@@ -36,8 +42,8 @@
     var sLegend = aSegments.map(function (s) {
       var fPct = fTotal ? Math.round(s.value / fTotal * 1000) / 10 : 0;
       return '<div class="app-donut-legend-row">' +
-        '<span class="app-donut-dot" style="background:' + s.color + '"></span>' +
-        '<span class="app-donut-legend-label">' + s.label + '</span>' +
+        '<span class="app-donut-dot" style="background:' + escapeHtml(s.color) + '"></span>' +
+        '<span class="app-donut-legend-label">' + escapeHtml(s.label) + '</span>' +
         '<span class="app-donut-legend-value">' + s.value + ' (' + fPct + '%)</span>' +
         '</div>';
     }).join('');
@@ -58,7 +64,7 @@
         '<div class="app-trend-bar app-trend-bar-attivati" style="height:' + fHAttivati + '%" title="Attivati: ' + m.attivati + '"></div>' +
         '<div class="app-trend-bar app-trend-bar-scadenza" style="height:' + fHScadenza + '%" title="In scadenza: ' + m.scadenza + '"></div>' +
         '</div>' +
-        '<span class="app-trend-month">' + m.mese + '</span>' +
+        '<span class="app-trend-month">' + escapeHtml(m.mese) + '</span>' +
         '</div>';
     }).join('');
     return '<div class="app-trend-chart">' + sCols + '</div>';
@@ -81,7 +87,7 @@
       var fWA = Math.round(r.a / fMax * 100);
       var fWP = Math.round(r.p / fMax * 100);
       return '<div class="app-topf-row">' +
-        '<span class="app-topf-name">' + r.nome + '</span>' +
+        '<span class="app-topf-name">' + escapeHtml(r.nome) + '</span>' +
         '<div class="app-topf-bars">' +
         '<div class="app-topf-bar app-topf-bar-attivi" style="width:' + fWA + '%"><span>' + fmt(r.a) + '</span></div>' +
         '<div class="app-topf-bar app-topf-bar-passivi" style="width:' + fWP + '%"><span>' + fmt(r.p) + '</span></div>' +
