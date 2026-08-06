@@ -36,15 +36,103 @@ describe('allegato-classifier', () => {
     const n = TIPOLOGIE_ALLEGATO.length;
     // prima chiamata: embedding dei testi di riferimento (una per categoria)
     mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
-    // seconda chiamata: embedding del testo del documento, identico al profilo indice 1 (DURC)
-    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(1, n)]);
+    // seconda chiamata: embedding del testo del documento, identico al profilo CAMERA_COMMERCIO (indice 3)
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(3, n)]);
 
-    const result = await classificaAllegato('Documento Unico di Regolarità Contributiva rilasciato da INPS.');
+    const result = await classificaAllegato('Visura camerale ordinaria di Acme S.p.A. con data di estrazione.');
 
-    expect(result.tipo).toBe(TIPOLOGIE_ALLEGATO[1].key);
+    expect(result.tipo).toBe(TIPOLOGIE_ALLEGATO[3].key);
     expect(result.metodoRiconoscimento).toBe('embedding');
     expect(result.confidenza).toBeGreaterThanOrEqual(0.75);
     expect(mockChatJSON).not.toHaveBeenCalled();
+  });
+
+  it('nome esplicito DURC nel testo -> DURC via pre-check, senza chiamate AI', async () => {
+    const result = await classificaAllegato('DOCUMENTO UNICO DI REGOLARITÀ CONTRIBUTIVA. Protocollo INAIL 12345. Denominazione: Acme S.p.A.');
+
+    expect(result.tipo).toBe('DURC');
+    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
+    expect(result.confidenza).toBe(1);
+    expect(mockEmbeddings).not.toHaveBeenCalled();
+    expect(mockChatJSON).not.toHaveBeenCalled();
+  });
+
+  it('sigla DURC nel testo con embedding che sbaglia verso DURF -> DURC via regola', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(2, n)]); // embedding dice DURF (sbagliato)
+
+    const result = await classificaAllegato('Richiesta DURC del 12/03/2026. Impresa: Acme S.p.A.');
+
+    expect(result.tipo).toBe('DURC');
+    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
+  });
+
+  it('nome esplicito DURF nel testo -> DURF via pre-check, senza chiamate AI', async () => {
+    const result = await classificaAllegato('Documento Unico di Regolarità Fiscale rilasciato dall\'Agenzia delle Entrate.');
+
+    expect(result.tipo).toBe('DURF');
+    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
+    expect(result.confidenza).toBe(1);
+    expect(mockEmbeddings).not.toHaveBeenCalled();
+  });
+
+  it('sigla DURF nel testo con embedding che sbaglia verso DURC -> DURF via regola', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(1, n)]); // embedding dice DURC (sbagliato)
+
+    const result = await classificaAllegato('Certificato DURF periodico emesso dall\'Agenzia delle Entrate.');
+
+    expect(result.tipo).toBe('DURF');
+    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
+  });
+
+  it('embedding matcha profilo DURC ma senza nome esplicito -> DURF (regola: altrimenti è durf)', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(1, n)]); // identico al profilo DURC
+
+    const result = await classificaAllegato('Attestazione di regolarità contributiva dell\'impresa Acme S.p.A.');
+
+    expect(result.tipo).toBe('DURF');
+    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
+    expect(mockChatJSON).not.toHaveBeenCalled();
+  });
+
+  it('LLM propone DURC ma senza nome esplicito nel testo -> DURF', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([new Array(n).fill(0.01)]); // sotto soglia
+    mockChatJSON.mockResolvedValueOnce({ tipo: 'DURC', confidenza: 0.9 });
+
+    const result = await classificaAllegato('Attestazione di regolarità contributiva dell\'impresa Acme S.p.A.');
+
+    expect(result.tipo).toBe('DURF');
+    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
+  });
+
+  it('LLM propone DURF senza nome esplicito -> resta DURF (regola conferma)', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([new Array(n).fill(0.01)]);
+    mockChatJSON.mockResolvedValueOnce({ tipo: 'DURF', confidenza: 0.9 });
+
+    const result = await classificaAllegato('Attestazione di regolarità fiscale dell\'impresa Acme S.p.A.');
+
+    expect(result.tipo).toBe('DURF');
+    expect(result.metodoRiconoscimento).toBe('llm');
+  });
+
+  it('documento non DURC/DURF senza menzioni di sigle non viene toccato dal pre-check', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(3, n)]); // CAMERA_COMMERCIO
+
+    const result = await classificaAllegato('Visura camerale ordinaria con data di estrazione e forma giuridica.');
+
+    expect(result.tipo).toBe('CAMERA_COMMERCIO');
+    expect(result.metodoRiconoscimento).toBe('embedding');
   });
 
   it('usa il fallback LLM quando nessun profilo supera la soglia', async () => {
