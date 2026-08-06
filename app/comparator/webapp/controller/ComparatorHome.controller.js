@@ -45,7 +45,11 @@ function (BaseController, MessageBox) {
         var oResp = await fetch("/comparator/getTemplates", {
           method: "POST", headers: { "Content-Type": "application/json" }, body: "{}"
         });
-        if (!oResp.ok) { console.warn("Impossibile caricare template"); return; }
+        if (!oResp.ok) {
+          console.warn("Impossibile caricare template");
+          this.byId("templateSelectHint").setText("Analisi automatica (contratti e template in archivio)");
+          return;
+        }
         var oData = await oResp.json();
         var aTemplate = oData.value || (Array.isArray(oData) ? oData : []);
         var aItems = aTemplate.map(function (t) {
@@ -55,9 +59,15 @@ function (BaseController, MessageBox) {
         aItems.forEach(function (oItem) { this.byId("templateSelect").addItem(oItem); }.bind(this));
         if (this._sTemplateID) {
           this.byId("templateSelect").setSelectedKey(this._sTemplateID);
+          if (this.byId("templateSelect").getSelectedKey() !== this._sTemplateID) {
+            this._sTemplateID = null;
+          }
         }
         this._aggiornaHintTemplate();
-      } catch (e) { console.warn("Errore caricamento template:", e); }
+      } catch (e) {
+        console.warn("Errore caricamento template:", e);
+        this.byId("templateSelectHint").setText("Analisi automatica (contratti e template in archivio)");
+      }
     },
 
     onTemplateChange: function (oEvent) {
