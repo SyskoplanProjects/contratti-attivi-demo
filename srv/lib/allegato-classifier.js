@@ -56,4 +56,31 @@ async function classificaAllegato(testo) {
   return _classificaConLLM(testo);
 }
 
-module.exports = { classificaAllegato };
+// Un singolo file caricato può essere un fascicolo che raccoglie più documenti concatenati
+// (es. OdA + CGC + CPC + Allegati A-G in un unico PDF, caso reale osservato: NOMIOS 71 pagine).
+// classificaAllegato ritorna UN solo tipo dominante sull'intero testo, quindi su un fascicolo
+// composito riconosce solo la sezione più "pesante" (tipicamente la CGC) e nasconde le altre:
+// la verifica di completezza le vedrebbe tutte assenti anche se fisicamente presenti nel file.
+// Questa funzione chiede esplicitamente quali sotto-tipologie sono riconoscibili come sezioni
+// distinte nel testo, anche quando coesistono nello stesso documento.
+async function rilevaTipiPresenti(testo) {
+  if (!testo || !testo.trim()) return [];
+
+  const sottoTipologie = TIPOLOGIE_ALLEGATO.filter(t => t.sottoTipologia);
+  const elenco = sottoTipologie.map(t => `${t.key}: ${t.label}`).join('\n');
+  const systemPrompt = `Sei un assistente che analizza un documento contrattuale italiano. Il documento può essere un singolo tipo di documento oppure un fascicolo che raccoglie più documenti concatenati nello stesso file (es. Condizioni Generali + Condizioni Particolari + più Allegati insieme). ` +
+    `Elenca TUTTE le tipologie tra le seguenti di cui riconosci una sezione effettivamente presente e identificabile nel testo (per titolo, intestazione o contenuto caratteristico), anche se sono più di una nello stesso documento:\n${elenco}\n` +
+    `Rispondi SOLO con un oggetto JSON nella forma: { "tipiPresenti": [ "<CHIAVE>", ... ] }. Se non riconosci nessuna delle tipologie elencate, rispondi { "tipiPresenti": [] }.`;
+
+  try {
+    const risposta = await openai.chatJSON(systemPrompt, testo.slice(0, 20000));
+    const chiaviValide = new Set(sottoTipologie.map(t => t.key));
+    const tipi = Array.isArray(risposta && risposta.tipiPresenti) ? risposta.tipiPresenti : [];
+    return [...new Set(tipi.filter(t => chiaviValide.has(t)))];
+  } catch (e) {
+    console.warn('[allegato-classifier] rilevaTipiPresenti fallita:', e.message);
+    return [];
+  }
+}
+
+module.exports = { classificaAllegato, rilevaTipiPresenti };

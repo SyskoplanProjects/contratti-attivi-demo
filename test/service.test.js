@@ -4,7 +4,7 @@ const cds = require('@sap/cds');
 jest.mock('../srv/modules/openai-module', () => ({
   openThread: jest.fn(), sendMessage: jest.fn(), deleteThread: jest.fn(),
   chatJSON: jest.fn().mockResolvedValue({
-    clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo estratto dal documento di prova.' }]
+    clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Contenuto di prova per confirmImportAI.' }]
   }),
   embeddings: jest.fn().mockResolvedValue([[1, 0, 0]])
 }));

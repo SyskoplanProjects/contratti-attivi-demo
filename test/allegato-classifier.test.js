@@ -141,3 +141,45 @@ describe('classificaAllegato — pool esteso con esempi reali', () => {
     expect(risultato.metodoRiconoscimento).toBe('embedding');
   });
 });
+
+describe('rilevaTipiPresenti — fascicolo con più tipologie concatenate in un unico file', () => {
+  let rilevaTipiPresenti;
+
+  beforeEach(() => {
+    mockEmbeddings.mockReset();
+    mockChatJSON.mockReset();
+    jest.resetModules();
+    jest.doMock('@sap/cds', () => cds);
+    ({ rilevaTipiPresenti } = require('../srv/lib/allegato-classifier'));
+  });
+
+  it('ritorna tutte le tipologie riconosciute (caso reale: OdA+CGC+CPC+Allegati in un solo PDF)', async () => {
+    mockChatJSON.mockResolvedValueOnce({ tipiPresenti: ['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_F'] });
+
+    const risultato = await rilevaTipiPresenti('Testo lungo del fascicolo completo...');
+
+    expect(risultato).toEqual(['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_F']);
+    expect(mockEmbeddings).not.toHaveBeenCalled();
+  });
+
+  it('scarta chiavi non valide e deduplica', async () => {
+    mockChatJSON.mockResolvedValueOnce({ tipiPresenti: ['CGC', 'CGC', 'CHIAVE_INESISTENTE', 'MAIL'] });
+
+    const risultato = await rilevaTipiPresenti('Testo.');
+
+    // MAIL è una macro-categoria, non una sottoTipologia: non deve comparire tra i risultati.
+    expect(risultato).toEqual(['CGC']);
+  });
+
+  it('testo vuoto -> nessuna chiamata, array vuoto', async () => {
+    const risultato = await rilevaTipiPresenti('');
+    expect(risultato).toEqual([]);
+    expect(mockChatJSON).not.toHaveBeenCalled();
+  });
+
+  it('fallback ad array vuoto se la chiamata LLM fallisce', async () => {
+    mockChatJSON.mockRejectedValueOnce(new Error('LLM down'));
+    const risultato = await rilevaTipiPresenti('Testo.');
+    expect(risultato).toEqual([]);
+  });
+});

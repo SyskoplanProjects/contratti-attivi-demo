@@ -142,6 +142,9 @@ function (BaseController, MessageBox) {
           }
         } catch (e) { /* tips AI non bloccante */ }
 
+        oBusy.setText("Verifica completezza, deroghe e subfornitori in corso...");
+        await this._eseguiVerificheContratto(oCoverageData.previewID, aAllegatiResult);
+
         oBusy.close();
 
         // pdfBase64 (contratto + ogni allegato) è tenuto fuori da sessionStorage: su un
@@ -238,6 +241,9 @@ function (BaseController, MessageBox) {
           }
         } catch (e) { /* tips AI non bloccante */ }
 
+        oBusy.setText("Verifica completezza, deroghe e subfornitori in corso...");
+        await this._eseguiVerificheContratto(oCoverageData.previewID, []);
+
         oBusy.close();
         sessionStorage.setItem("coverageResult", JSON.stringify(oCoverageData));
         sessionStorage.setItem("complianceResult", JSON.stringify(oComplianceData));
@@ -273,15 +279,38 @@ function (BaseController, MessageBox) {
       }
     },
 
-    onOpenDashboard: function () {
-      sap.ui.core.UIComponent.getRouterFor(this).navTo("dashboard");
-    },
-
     onCreaManualmente: function () {
       window.location.href = "/inserimento/webapp/index.html#/manuale";
     },
     onCreaDaTemplate: function () {
       window.location.href = "/inserimento/webapp/index.html#/nuovoContratto";
+    },
+
+    // Esegue le verifiche del comparator (completezza allegati, deroghe vs CGC standard) e
+    // salva gli esiti in sessionStorage per Wizard/ComparatorResult. Non bloccante: un
+    // fallimento su una verifica non impedisce di mostrare l'altra né di proseguire l'analisi.
+    // La presenza di subfornitori si legge invece direttamente dal metadato "subfornitori"
+    // già estratto (vedi Wizard/ComparatorResult), nessuna chiamata dedicata necessaria.
+    _eseguiVerificheContratto: async function (sPreviewID, aAllegatiClassificati) {
+      if (!sPreviewID) return;
+      try {
+        var oResp = await fetch("/comparator/verificaCompletezza", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            previewID: sPreviewID,
+            allegati: (aAllegatiClassificati || []).map(function (a) { return { filename: a.filename, tipo: a.tipo }; })
+          })
+        });
+        if (oResp.ok) sessionStorage.setItem("completezzaResult", await oResp.text());
+      } catch (e) { /* non bloccante */ }
+
+      try {
+        var oRespD = await fetch("/comparator/verificaDeroghe", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ previewID: sPreviewID })
+        });
+        if (oRespD.ok) sessionStorage.setItem("derogheResult", await oRespD.text());
+      } catch (e) { /* non bloccante */ }
     },
 
     _fileToBase64: function (oFile) {

@@ -106,8 +106,9 @@ service ComparatorService @(requires: 'Utente') {
   // Nota: in OData v4 il parametro array-of-complex va SEMPRE passato (anche `[]`),
   // il deserializzatore non gestisce l'omissione; il handler lo tratta come "usa preview".
   action verificaCompletezza(previewID: UUID, allegati: array of AllegatoClassificato null) returns {
-    attesi      : array of AllegatoAttesoEsito;
-    percentuale : Decimal(5,2);
+    attesi            : array of AllegatoAttesoEsito;
+    percentuale       : Decimal(5,2);
+    standardApplicato : String;
   };
   type EsitoDeroga {
     articolo          : String;
@@ -167,6 +168,7 @@ service ComparatorService @(requires: 'Utente') {
   }
 
   action verificaCompliance(file: LargeString, filename: String, prompt: LargeString, templateID: UUID) returns array of ComplianceResult;
+
   action calcolaCoverageDaContratto(contractID: UUID, templateID: UUID) returns {
     previewID: UUID;
     coveragePercent: Decimal(5,2);

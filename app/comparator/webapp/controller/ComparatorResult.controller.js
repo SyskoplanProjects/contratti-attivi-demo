@@ -135,6 +135,13 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       var aTips = (oTipsData && oTipsData.value) || (Array.isArray(oTipsData) ? oTipsData : []);
       this.getView().setModel(new JSONModel({ value: aTips, has: aTips.length > 0 }), "tips");
 
+      var oCompletezzaData = JSON.parse(sessionStorage.getItem("completezzaResult") || "null") || { attesi: [], percentuale: null };
+      this.getView().setModel(new JSONModel(oCompletezzaData), "completezza");
+      var oDerogheData = JSON.parse(sessionStorage.getItem("derogheResult") || "null");
+      this.getView().setModel(new JSONModel({ value: (oDerogheData && oDerogheData.value) || [] }), "deroghe");
+      this.getView().setModel(new JSONModel(this._buildSubfornitoriModel(oCoverageData)), "subfornitori");
+      this.getView().setModel(new JSONModel(this._buildDoraModel(oCoverageData)), "dora");
+
       var aAllegati = JSON.parse(sessionStorage.getItem("allegatiResult") || "[]").map(function (a) {
         return Object.assign({}, a, { sezioni: metadataWizardHelper.raggruppaPerSezione(a.metadati || []) });
       });
@@ -190,6 +197,8 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
         sessionStorage.removeItem("tipsAIResult");
         sessionStorage.removeItem("comparatorFilename");
         sessionStorage.removeItem("allegatiResult");
+        sessionStorage.removeItem("completezzaResult");
+        sessionStorage.removeItem("derogheResult");
         if (window.opener && !window.opener.closed) {
           window.opener.location.assign("/contratti/webapp/index.html#/detail/" + oContratto.ID);
           window.close();
@@ -222,6 +231,8 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       sessionStorage.removeItem("complianceResult");
       sessionStorage.removeItem("comparatorFilename");
       sessionStorage.removeItem("allegatiResult");
+      sessionStorage.removeItem("completezzaResult");
+      sessionStorage.removeItem("derogheResult");
       var oRouter = sap.ui.core.UIComponent.getRouterFor(this);
       oRouter.navTo("home");
     },

@@ -48,6 +48,31 @@ describe('openai-module: embeddings', () => {
       input: ['testo A', 'testo B']
     }));
   });
+
+  it('sostituisce stringhe vuote/whitespace con un placeholder, senza rompere l\'allineamento indice', async () => {
+    mockCreateEmbedding.mockResolvedValue({
+      data: [{ embedding: [1, 0, 0] }, { embedding: [0, 0, 0] }, { embedding: [0, 1, 0] }]
+    });
+
+    const result = await embeddings(['testo A', '', 'testo B']);
+
+    expect(result).toHaveLength(3);
+    expect(mockCreateEmbedding).toHaveBeenCalledWith(expect.objectContaining({
+      input: ['testo A', ' ', 'testo B']
+    }));
+  });
+
+  it('tratta anche whitespace-only e null/undefined come vuoti', async () => {
+    mockCreateEmbedding.mockResolvedValue({
+      data: [{ embedding: [1, 0, 0] }, { embedding: [0, 0, 0] }, { embedding: [0, 0, 0] }]
+    });
+
+    await embeddings(['testo A', '   ', null]);
+
+    expect(mockCreateEmbedding).toHaveBeenCalledWith(expect.objectContaining({
+      input: ['testo A', ' ', ' ']
+    }));
+  });
 });
 
 describe('openai-module: production destination', () => {

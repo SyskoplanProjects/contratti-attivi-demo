@@ -58,7 +58,7 @@ describe('tipologie-allegato — tassonomia estesa (RF2/RF5)', () => {
   });
 
   it('include le sotto-tipologie Contratto', () => {
-    ['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_B', 'ALLEGATO_C', 'ALLEGATO_D', 'ALLEGATO_E', 'ALLEGATO_F', 'ALLEGATO_G', 'ALBERO_DECISIONALE'].forEach(k => {
+    ['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_B', 'ALLEGATO_C', 'ALLEGATO_D', 'ALLEGATO_E', 'ALLEGATO_F', 'ALLEGATO_G', 'ALBERO_DECISIONALE', 'ADDENDUM'].forEach(k => {
       expect(chiavi).toContain(k);
     });
   });
@@ -95,5 +95,22 @@ describe('tipologie-allegato — tassonomia estesa (RF2/RF5)', () => {
       expect(typeof t.testoRiferimento).toBe('string');
       expect(t.testoRiferimento.length).toBeGreaterThan(30);
     });
+  });
+});
+
+describe('tipologie-allegato — ADDENDUM (documento post-hoc su template o plesso già firmati)', () => {
+  const addendum = TIPOLOGIE_ALLEGATO.find(t => t.key === 'ADDENDUM');
+
+  it('esiste, è sottoTipologia della categoria CONTRATTO', () => {
+    expect(addendum).toBeDefined();
+    expect(addendum.sottoTipologia).toBe(true);
+    expect(addendum.macro).toBeUndefined();
+  });
+
+  it('ha campiChiave per tracciare cosa modifica e quando', () => {
+    const campi = addendum.campiChiave.map(c => c.campo);
+    expect(campi).toContain('documentoModificato');
+    expect(campi).toContain('dataAddendum');
+    expect(campi).toContain('oggettoModifica');
   });
 });

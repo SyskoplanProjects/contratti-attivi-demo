@@ -14,8 +14,10 @@ function _mediaConfidenze(allegati) {
 // Costruisce i dati dello snapshot immutabile EsitoVerificaContratto.
 // Input: righe ContrattoAllegato dal DB (per completezza) e testo del documento
 // principale (per deroghe). NON usa le action preview-based di Fase A.
-async function buildSnapshotData(allegati, testoDocumento) {
-  const { attesi, percentuale } = verificaCompletezza(allegati);
+// contestoContratto: { accordoQuadroOAutonomo } opzionale, per selezionare il set di
+// allegati attesi in funzione del tipo contratto (vedi allegati-attesi.js).
+async function buildSnapshotData(allegati, testoDocumento, contestoContratto) {
+  const { attesi, percentuale } = verificaCompletezza(allegati, contestoContratto);
   const deroghe = await verificaDeroghe(testoDocumento || '');
   return {
     attesi,

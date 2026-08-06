@@ -105,6 +105,8 @@
           </VBox>
         </VBox>
 
+        <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.EsitiVerifica" type="XML" />
+
         <VBox id="allegatiTableWrap" visible="false" class="app-card app-card-padded sapUiSmallMarginTop">
           <Label text="Allegati rilevati" class="sapUiSmallMarginBottom" />
           <VBox id="allegatiPanelList" items="{allegati>/value}">

@@ -8,6 +8,10 @@
     <VBox visible="{= !!${coverage>/riferimentoTrovato} }" class="app-card app-card-padded sapUiSmallMarginBottom">
       <Label text="Riferimento riconosciuto automaticamente" design="Bold" />
       <Text text="{coverage>/riferimentoTrovato/nome} ({coverage>/riferimentoTrovato/tipo}) — similarity {= Math.round((${coverage>/riferimentoTrovato/similarity} || 0) * 100) }%" />
+      <ObjectStatus
+        visible="{= ${coverage>/coveragePercent} &lt; 50 }"
+        text="Copertura clausole troppo bassa: questo riferimento potrebbe non essere coerente con il documento caricato, non trattarlo come confronto affidabile"
+        state="Warning" icon="sap-icon://alert" class="sapUiTinyMarginTop" />
     </VBox>
 
     <VBox visible="{tips>/has}" class="app-card app-card-padded sapUiSmallMarginBottom">
@@ -49,6 +53,8 @@
         </items>
       </Table>
     </VBox>
+
+    <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.EsitiVerifica" type="XML" />
 
     <VBox visible="{compliance>/hasNonPresenti}" class="app-table-wrap sapUiSmallMarginTop sapUiSmallMarginBottom">
       <Table items="{ path: 'compliance>/nonPresenti', templateShareable: true }" growing="true" growingThreshold="50">

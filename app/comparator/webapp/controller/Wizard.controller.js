@@ -55,6 +55,13 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       var aTips = (oTipsData && oTipsData.value) || (Array.isArray(oTipsData) ? oTipsData : []);
       this.getView().setModel(new JSONModel({ value: aTips, has: aTips.length > 0 }), "tips");
 
+      var oCompletezzaData = JSON.parse(sessionStorage.getItem("completezzaResult") || "null") || { attesi: [], percentuale: null };
+      this.getView().setModel(new JSONModel(oCompletezzaData), "completezza");
+      var oDerogheData = JSON.parse(sessionStorage.getItem("derogheResult") || "null");
+      this.getView().setModel(new JSONModel({ value: (oDerogheData && oDerogheData.value) || [] }), "deroghe");
+      this.getView().setModel(new JSONModel(this._buildSubfornitoriModel(oCoverageData)), "subfornitori");
+      this.getView().setModel(new JSONModel(this._buildDoraModel(oCoverageData)), "dora");
+
       this._buildComplianceModel(oCoverageData, oComplianceData);
 
       var aTipologie = [];
@@ -279,7 +286,8 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         var oContratto = await oResp.json();
         oBusy.close();
         sap.m.MessageToast.show("Contratto '" + oContratto.intestatario + "' creato.");
-        ["coverageResult", "complianceResult", "tipsAIResult", "comparatorFilename", "allegatiResult", "documentoPrincipaleResult"]
+        ["coverageResult", "complianceResult", "tipsAIResult", "comparatorFilename", "allegatiResult", "documentoPrincipaleResult",
+          "completezzaResult", "derogheResult"]
           .forEach(function (k) { sessionStorage.removeItem(k); });
         window.location.href = "/contratti/webapp/index.html#/detail/" + oContratto.ID;
       } catch (e) {
@@ -289,7 +297,8 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
     },
 
     onNavBack: function () {
-      ["coverageResult", "complianceResult", "comparatorFilename", "allegatiResult"].forEach(function (k) { sessionStorage.removeItem(k); });
+      ["coverageResult", "complianceResult", "comparatorFilename", "allegatiResult", "completezzaResult", "derogheResult"]
+        .forEach(function (k) { sessionStorage.removeItem(k); });
       sap.ui.core.UIComponent.getRouterFor(this).navTo("home");
     }
   });

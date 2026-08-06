@@ -11,6 +11,7 @@ const openai = require('../srv/modules/openai-module');
 const {
   extractTextMultiFormato,
   estraiClausoleConFallback,
+  estraiClausoleAI,
   cosineSimilarity,
   trovaMatch
 } = require('../srv/lib/ai-import');
@@ -72,14 +73,29 @@ describe('extractTextMultiFormato', () => {
 describe('estraiClausoleConFallback', () => {
   beforeEach(() => { openai.chatJSON.mockReset(); });
 
-  it('uses the AI segmentation when it returns valid clausole', async () => {
+  it('uses the AI segmentation when it returns valid clausole presenti letteralmente nel documento', async () => {
+    const sTesto = 'Il presente contratto ha per oggetto la fornitura di servizi ICT.';
     openai.chatJSON.mockResolvedValue({
-      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo estratto dal documento.' }]
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: sTesto }]
     });
     const buffer = await buildDocxFixture();
     const clausole = await estraiClausoleConFallback(buffer, 'doc.docx',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    expect(clausole).toEqual([{ numero: 1, titolo: 'Oggetto', testo: 'Testo estratto dal documento.' }]);
+    expect(clausole).toEqual([{ numero: 1, titolo: 'Oggetto', testo: sTesto }]);
+  });
+
+  it('scarta le clausole allucinate (testo non presente nel documento) e tiene solo quelle reali', async () => {
+    const sTestoReale = 'Il presente contratto ha per oggetto la fornitura di servizi ICT.';
+    openai.chatJSON.mockResolvedValue({
+      clausole: [
+        { numero: 1, titolo: 'Oggetto', testo: sTestoReale },
+        { numero: 2, titolo: 'Clausola inventata', testo: 'Questa frase non esiste da nessuna parte nel documento originale.' }
+      ]
+    });
+    const buffer = await buildDocxFixture();
+    const clausole = await estraiClausoleConFallback(buffer, 'doc.docx',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    expect(clausole).toEqual([{ numero: 1, titolo: 'Oggetto', testo: sTestoReale }]);
   });
 
   it('falls back to regex parsing when the AI call fails', async () => {
@@ -97,6 +113,26 @@ describe('estraiClausoleConFallback', () => {
     const clausole = await estraiClausoleConFallback(buffer, 'doc.docx',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     expect(clausole).toHaveLength(1);
+  });
+});
+
+describe('estraiClausoleAI — filtro anti-allucinazione (le clausole devono esistere nel documento)', () => {
+  beforeEach(() => { openai.chatJSON.mockReset(); });
+
+  it('accetta una clausola il cui testo coincide dopo normalizzazione spazi/maiuscole', async () => {
+    openai.chatJSON.mockResolvedValue({
+      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'IL FORNITORE   eroga\nservizi.' }]
+    });
+    const clausole = await estraiClausoleAI('Testo introduttivo. Il fornitore eroga servizi. Testo finale.');
+    expect(clausole).toHaveLength(1);
+  });
+
+  it('rigetta con errore se tutte le clausole restituite sono allucinate', async () => {
+    openai.chatJSON.mockResolvedValue({
+      clausole: [{ numero: 1, titolo: 'Fantasma', testo: 'Frase completamente inventata dal modello.' }]
+    });
+    await expect(estraiClausoleAI('Documento reale che non contiene quella frase.'))
+      .rejects.toThrow('nessuna clausola verificabile');
   });
 });
 

@@ -163,6 +163,17 @@ const TIPOLOGIE_ALLEGATO = [
     testoRiferimento: 'Albero decisionale Qualifica DORA e Esternalizzazione. Questionario a compilazione del proponente per classificare le iniziative: servizio ICT DORA semplice, servizio ICT DORA a supporto di funzioni essenziali o importanti, esternalizzazione di funzioni essenziali o importanti o di funzioni di attività critica, esternalizzazioni semplici, servizi ICT critici.'
   },
   {
+    key: 'ADDENDUM',
+    label: 'Addendum',
+    sottoTipologia: true,
+    testoRiferimento: 'Addendum. Documento aggiunto in un secondo momento a un contratto già in essere (Template CGC/CPC e/o Plesso contrattuale degli Allegati), per introdurre nuove regole o modificare/integrare le condizioni esistenti — ad esempio un Addendum DORA che integra i requisiti di resilienza operativa digitale su un contratto o allegato già firmato, oppure un addendum di deroghe alle CGC standard.',
+    campiChiave: [
+      { campo: 'documentoModificato', etichetta: 'Documento Modificato/Integrato', sezione: 'Dati documento', descrizione: 'Riferimento al documento del template o del plesso contrattuale (CGC, CPC, o specifico Allegato A-G) che l\'addendum modifica o integra' },
+      { campo: 'dataAddendum', etichetta: 'Data Addendum', sezione: 'Dati documento', descrizione: 'Data di sottoscrizione dell\'addendum, formato ISO YYYY-MM-DD' },
+      { campo: 'oggettoModifica', etichetta: 'Oggetto della Modifica', sezione: 'Dati documento', descrizione: 'Breve descrizione di cosa introduce, modifica o deroga l\'addendum (es. integrazione normativa DORA, nuove clausole di audit)' }
+    ]
+  },
+  {
     key: 'MAIL',
     label: 'Mail',
     macro: true,
