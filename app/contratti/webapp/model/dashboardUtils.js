@@ -38,11 +38,18 @@
 
   function buildDonutHtml(aSegments) {
     var fTotal = aSegments.reduce(function (n, s) { return n + s.value; }, 0);
-    var sGradient = buildDonutGradient(aSegments);
-    var sLegend = aSegments.map(function (s) {
+    var aSafeSegments = aSegments.map(function (s, i) {
+      return {
+        value: s.value,
+        color: escapeHtml(s.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]),
+        label: s.label
+      };
+    });
+    var sGradient = buildDonutGradient(aSafeSegments);
+    var sLegend = aSafeSegments.map(function (s) {
       var fPct = fTotal ? Math.round(s.value / fTotal * 1000) / 10 : 0;
       return '<div class="app-donut-legend-row">' +
-        '<span class="app-donut-dot" style="background:' + escapeHtml(s.color) + '"></span>' +
+        '<span class="app-donut-dot" style="background:' + s.color + '"></span>' +
         '<span class="app-donut-legend-label">' + escapeHtml(s.label) + '</span>' +
         '<span class="app-donut-legend-value">' + s.value + ' (' + fPct + '%)</span>' +
         '</div>';

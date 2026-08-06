@@ -39,6 +39,15 @@ describe('dashboardUtils.buildDonutHtml', () => {
     expect(sHtml).toContain('Altro');
     expect(sHtml).toContain('38.3%');
   });
+
+  test('escapes malicious label and color values (XSS regression)', () => {
+    const sHtml = dashboardUtils.buildDonutHtml([
+      { label: '<img onerror=x>', value: 1, color: '"><b>inject</b>' }
+    ]);
+    expect(sHtml).not.toContain('<img onerror=x>');
+    expect(sHtml).not.toContain('"><b>inject</b>');
+    expect(sHtml).toContain('&lt;img onerror=x&gt;');
+  });
 });
 
 describe('dashboardUtils.buildTrendHtml', () => {
