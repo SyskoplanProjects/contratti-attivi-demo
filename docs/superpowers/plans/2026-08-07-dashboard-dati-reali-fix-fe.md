@@ -233,9 +233,9 @@ Expected: FAIL
       var fW = Math.round((r.value || 0) / fMax * 100);
       var sText = r.value != null ? '€ ' + Math.round(r.value / 1000) + 'k' : '';
       return '<div class="app-topf-row">' +
-        '<span class="app-topc-name">' + escapeHtml(r.nome) + '</span>' +
+        '<span class="app-topf-name">' + escapeHtml(r.nome) + '</span>' +
         '<div class="app-topf-bars">' +
-        '<div class="app-topf-bar app-topf-Barr-fatto" style="width:' + fW + '%"><span>' + sText + '</span></div>' +
+        '<div class="app-topf-bar app-topf-bar-fatturato" style="width:' + fW + '%"><span>' + sText + '</span></div>' +
         '</div>' +
         '</div>';
     }).join('');
