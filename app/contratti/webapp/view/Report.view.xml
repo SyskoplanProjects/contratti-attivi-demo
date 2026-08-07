@@ -47,7 +47,7 @@
               <Text text="{dataAttivazione}" />
               <Text text="{numAddetti}" />
               <Text text="{cgsScore}" />
-              <Text text="{path:'fatturatoTot', formatter:'.formatter.euroText'}" />
+              <Text text="{path:'fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
               <Text text="{annoFatturatoTot}" />
               <Text text="{protesti}" />
               <Text text="{pregiudizievoli}" />
