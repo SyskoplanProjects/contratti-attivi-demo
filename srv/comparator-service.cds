@@ -261,6 +261,7 @@ service ComparatorService @(requires: 'Utente') {
     previewID: UUID;
     coveragePercent: Decimal(5,2);
     clausole: array of ClausolaCoverageResult;
+    metadati: array of MetadatoConfermato;
   };
   action verificaComplianceDaContratto(contractID: UUID, prompt: LargeString) returns array of ComplianceResult;
 
