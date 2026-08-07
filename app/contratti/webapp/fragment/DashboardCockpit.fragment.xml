@@ -60,7 +60,7 @@
           <Column><Text text="Data Scadenza" /></Column>
         </columns>
         <items>
-          <ColumnListItem>
+          <ColumnListItem type="Navigation" press="onApriContrattoDettaglio">
             <cells>
               <Text text="{intestatario}" />
               <Text text="{responsabile}" />
