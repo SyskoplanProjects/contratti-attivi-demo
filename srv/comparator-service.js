@@ -203,7 +203,99 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       return documentoPrincipale;
     });
 
-    this.on('getTipologieAllegato', () => {      return [
+    // Punto 2 spec: salvataggio parziale del wizard. Persiste (o aggiorna) un Contratto con
+    // stato='BOZZA' e previewID = preview corrente, idempotente. Snapshot clausole salvato in
+    // JSON su Contratto.snapshotBozza (preserva stato VARIANTE/NUOVA/NON_PRESENTE per il
+    // ripopolamento del wizard); metadati in MetadatoDocumento, allegati in ContrattoAllegato.
+    this.on('salvaBozza', async (req) => {
+      const { previewID, step, filename, tipo, intestatario, clausole, metadati, allegatoID } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+
+      const result = await cds.tx(req).run(async (tx) => {
+        const { Contratto, Template, TemplateVersion } = cds.entities('com.reply.contrattiattivi');
+        let contratto = await tx.run(SELECT.one.from(Contratto).where({ previewID, stato: 'BOZZA' }));
+
+        if (!contratto) {
+          const templateID = cds.utils.uuid();
+          const versionID = cds.utils.uuid();
+          const nome = (filename || 'Bozza contratto').replace(/\.[^.]+$/, '');
+          await tx.run(INSERT.into(Template).entries({ ID: templateID, nome }));
+          await tx.run(INSERT.into(TemplateVersion).entries({
+            ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString()
+          }));
+          const contrattoID = cds.utils.uuid();
+          await tx.run(INSERT.into(Contratto).entries({
+            ID: contrattoID, stato: 'BOZZA', intestatario: intestatario || nome,
+            responsabile: req.user.id, previewID, template_ID: templateID, templateVersion_ID: versionID
+          }));
+          contratto = { ID: contrattoID };
+        }
+
+        if (step === 'CONTRATTO' || step === 'FINE') {
+          if (intestatario) await tx.run(UPDATE(Contratto, contratto.ID).with({ intestatario }));
+          if (metadati && metadati.length) {
+            await salvaMetadati({ tx, parentType: 'Contratto', parentID: contratto.ID, metadati });
+          }
+          if (clausole && clausole.length) {
+            await tx.run(UPDATE(Contratto, contratto.ID).with({ snapshotBozza: JSON.stringify({ clausole }) }));
+          }
+        }
+
+        if (step === 'ALLEGATO' && allegatoID) {
+          const { ContrattoAllegato } = cds.entities('com.reply.contrattiattivi');
+          let allegato = await tx.run(SELECT.one.from(ContrattoAllegato).where({ contratto_ID: contratto.ID, filename: allegatoID }));
+          if (!allegato && preview) {
+            const src = (preview.allegati || []).find(a => a.filename === allegatoID);
+            if (src) {
+              const id = cds.utils.uuid();
+              await tx.run(INSERT.into(ContrattoAllegato).entries({
+                ID: id, contratto_ID: contratto.ID, filename: src.filename, mimeType: src.mimeType,
+                contenuto: src.contenuto || '', tipo: tipo || src.tipo, confidenza: src.confidenza,
+                metodoRiconoscimento: src.metodoRiconoscimento, testo: src.testo, dataScadenza: src.dataScadenza
+              }));
+              allegato = { ID: id };
+            }
+          }
+          if (allegato && metadati && metadati.length) {
+            await salvaMetadati({ tx, parentType: 'ContrattoAllegato', parentID: allegato.ID, metadati });
+          }
+        }
+
+        return { contrattoID: contratto.ID, stato: 'BOZZA' };
+      });
+
+      return result;
+    });
+
+    // Riprende i dati della bozza salvata per lo stesso previewID (stesso documento riaperto
+    // nel wizard): precompila metadati/clausole/allegati salvati in precedenza.
+    this.on('recuperaBozza', async (req) => {
+      const { previewID } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+
+      return cds.tx(req).run(async (tx) => {
+        const { Contratto, ContrattoAllegato, MetadatoDocumento } = cds.entities('com.reply.contrattiattivi');
+        const contratto = await tx.run(SELECT.one.from(Contratto).where({ previewID, stato: 'BOZZA' }));
+        if (!contratto) return null;
+
+        let clausole = [];
+        try { clausole = (JSON.parse(contratto.snapshotBozza || 'null') || {}).clausole || []; } catch (e) { clausole = []; }
+
+        const metadati = await tx.run(SELECT.from(MetadatoDocumento).where({ contratto_ID: contratto.ID }));
+        const allegatiRaw = await tx.run(SELECT.from(ContrattoAllegato).where({ contratto_ID: contratto.ID }));
+        const allegati = [];
+        for (const a of allegatiRaw) {
+          const aMetadati = await tx.run(SELECT.from(MetadatoDocumento).where({ allegato_ID: a.ID }));
+          allegati.push({ filename: a.filename, tipo: a.tipo, metadati: aMetadati });
+        }
+
+        return { contrattoID: contratto.ID, intestatario: contratto.intestatario, clausole, allegati, metadati };
+      });
+    });
+
+    this.on('getTipologieAllegato', () => {
+      return [
         ...TIPOLOGIE_ALLEGATO.filter(t => t.key !== 'ALTRO').map(t => ({ codice: t.key, label: t.label })),
         { codice: 'ALTRO', label: 'Altro / non riconosciuto' }
       ];
