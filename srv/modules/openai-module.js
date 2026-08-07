@@ -4,12 +4,15 @@ const { getDestination } = require('@sap-cloud-sdk/connectivity');
 let _client = null;
 
 async function _resolveApiKey() {
-  if (process.env.NODE_ENV === 'production') {
+  // 1) Destination BTP se disponibile (API key esposta in originalProperties.apiKey).
+  try {
     const destination = await getDestination({ destinationName: 'contratti-attivi-openai' });
     const apiKey = destination && destination.originalProperties && destination.originalProperties.apiKey;
-    if (!apiKey) throw new Error('apiKey property missing on contratti-attivi-openai destination');
-    return apiKey;
+    if (apiKey) return apiKey;
+  } catch (e) {
+    console.warn('[openai] getDestination fallita, fallback a OPENAI_API_KEY: ' + e.message);
   }
+  // 2) Fallback su .env / variabili locali.
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY environment variable not set');
   return apiKey;
