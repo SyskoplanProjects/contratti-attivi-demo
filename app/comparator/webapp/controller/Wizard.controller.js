@@ -21,6 +21,10 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       var oWizard = this.byId("reviewWizard");
       if (oWizard) oWizard.destroySteps();
 
+      // Il controller è cacheato tra navigazioni: azzera la bozza ripresa del documento
+      // precedente, altrimenti un nuovo documento senza bozza mostrerebbe dati stale.
+      this._aSezioniBozza = null;
+
       var oCoverageData = JSON.parse(sessionStorage.getItem("coverageResult") || "{}");
       var oComplianceData = JSON.parse(sessionStorage.getItem("complianceResult") || "{}");
       var oTipsData = JSON.parse(sessionStorage.getItem("tipsAIResult") || "null");
@@ -360,6 +364,8 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       if (sStep === "ALLEGATO" && aAllegati[iIndex - 1]) {
         var oAllegato = aAllegati[iIndex - 1];
         sAllegatoID = oAllegato.filename;
+        // Il tipo salvato è quello dell'allegato corrente, non del documento principale.
+        sTipo = oAllegato.tipo || sTipo;
         aAllegatoMetadati = (oAllegato.sezioni || []).reduce(function (acc, s) { return acc.concat(s.campi); }, []);
       }
 
