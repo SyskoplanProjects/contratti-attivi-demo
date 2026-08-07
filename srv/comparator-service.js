@@ -409,8 +409,21 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         return confrontaClausoleConTemplate(clausole, templateID, tx);
       });
 
-      const previewID = previewStore.put({ templateID, contractID, clausole: result.clausole, coveragePercent: result.coveragePercent, testo: result.clausole.map(c => c.testo).join('\n') });
-      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole };
+      // Qualifica DORA e altri metadati di compliance vanno ricalcolati anche qui: sul flusso
+      // upload sono estratti da estraiCampiAllegato('CONTRATTO', ...) in calcolaCoverage, ma quel
+      // passaggio non esisteva per "verifica contratto esistente" — il testo del documento non
+      // era mai analizzato, quindi presenzaClausoleDORA restava sempre "non determinabile" anche
+      // per contratti il cui testo cita DORA in ogni clausola.
+      const testo = result.clausole.map(c => c.testo).join('\n\n');
+      let metadati = [];
+      try {
+        ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo));
+      } catch (e) {
+        console.warn('[comparator] estrazione metadati da contratto fallita, uso fallback:', e.message);
+      }
+
+      const previewID = previewStore.put({ templateID, contractID, clausole: result.clausole, coveragePercent: result.coveragePercent, testo, metadati });
+      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati };
     });
 
     this.on('confirmCoverage', async (req) => {
