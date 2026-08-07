@@ -4,8 +4,6 @@ sap.ui.define([
   "sap/ui/model/Filter",
   "sap/ui/model/FilterOperator",
   "../model/dashboardUtils",
-  "../model/mockCockpit",
-  "../model/mockFornitori",
   "../formatter"
 ], function (BaseController, JSONModel, Filter, FilterOperator, dashboardUtils, mockCockpit, mockFornitori, formatter) {
   "use strict";
