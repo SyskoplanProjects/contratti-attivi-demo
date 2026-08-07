@@ -42,7 +42,12 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
 
       this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
       var aSezioni = metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati || []);
-      var aClausoleRischio = (oCoverageData.clausole || []).map(function (c) {
+      var aClausoleRischio = (oCoverageData.clausole || []).filter(function (c) {
+        // Solo clausole effettivamente nel documento caricato. Le MATCH_TEMPLATE sono clausole
+        // del template confrontate, non del documento: si vedono nella tabella compliance del
+        // step finale. Le NON_PRESENTE (mancanti) sono in "Clausole mancanti" nel finale.
+        return c.stato === "VARIANTE" || c.stato === "NUOVA";
+      }).map(function (c) {
         return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true };
       });
       if (aClausoleRischio.length) {
@@ -54,6 +59,13 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       this.getView().setModel(new JSONModel(oDocPrincipale), "documentoPrincipale");
       var aTips = (oTipsData && oTipsData.value) || (Array.isArray(oTipsData) ? oTipsData : []);
       this.getView().setModel(new JSONModel({ value: aTips, has: aTips.length > 0 }), "tips");
+
+      var aMancanti = (oCoverageData.clausole || [])
+        .filter(function (c) { return c.stato === "NON_PRESENTE"; })
+        .map(function (c) {
+          return { codice: c.numero, titolo: c.titolo || "", testo: c.testo || "" };
+        });
+      this.getView().setModel(new JSONModel({ value: aMancanti, has: aMancanti.length > 0 }), "mancanti");
 
       var oCompletezzaData = JSON.parse(sessionStorage.getItem("completezzaResult") || "null") || { attesi: [], percentuale: null };
       this.getView().setModel(new JSONModel(oCompletezzaData), "completezza");
