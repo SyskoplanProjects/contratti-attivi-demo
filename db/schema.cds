@@ -63,6 +63,8 @@ entity Contratto : cuid, managed {
   dataScadenza           : Date;
   categoria              : CategoriaContratto @assert.range;
   bozzaSalvata           : Boolean default false;
+  previewID              : String(100);
+  snapshotBozza          : LargeString;
   template        : Association to Template not null;
   templateVersion : Association to TemplateVersion not null;
   dataUltimaVerifica  : DateTime;
