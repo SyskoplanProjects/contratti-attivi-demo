@@ -7,13 +7,22 @@ cds.test(path.join(__dirname, '..'));
 describe('seed-fornitori', () => {
   it('imports fornitori from CSV and is idempotent', async () => {
     const n1 = await seed(cds);
-    expect(n1).toBeGreaterThan(4000);
+    expect(n1).toBe(1200);
     const [{ COUNT }] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').columns(['count(*) as COUNT']);
     expect(COUNT).toBe(n1);
     const n2 = await seed(cds);
     expect(n2).toBe(n1);
     const [{ c2 }] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').columns(['count(*) as c2']);
     expect(c2).toBe(n1);
+  });
+
+  it('excludes partial rows (no financial data or missing codiceFiscale)', async () => {
+    const all = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore');
+    const partial = all.filter(r =>
+      !r.codiceFiscale ||
+      (r.dataAttivazione === null && r.numAddetti === null && r.fatturatoTot === null)
+    );
+    expect(partial.length).toBe(0);
   });
 
   it('parses fatturatoTot and numAddetti correctly', async () => {

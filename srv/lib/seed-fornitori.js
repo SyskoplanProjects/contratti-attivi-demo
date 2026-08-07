@@ -68,7 +68,9 @@ async function seed(cds) {
   const rows = parseCsv(csv).slice(1);
   const { Fornitore } = cds.entities(NAMESPACE);
   await cds.ql.DELETE.from(Fornitore);
-  const entries = rows.map(clean).filter(r => r.idSapFornitore);
+  const isPartial = (r) => !r.codiceFiscale ||
+    (r.dataAttivazione === null && r.numAddetti === null && r.fatturatoTot === null);
+  const entries = rows.map(clean).filter(r => r.idSapFornitore && !isPartial(r));
   await cds.ql.INSERT.into(Fornitore).entries(entries);
   console.log(`Fornitori importati: ${entries.length}`);
   return entries.length;
