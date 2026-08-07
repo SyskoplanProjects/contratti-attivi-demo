@@ -77,28 +77,18 @@
     return '<div class="app-trend-chart">' + sCols + '</div>';
   }
 
-  function buildTopFornitoriHtml(aFornitori, sMetric) {
-    var bImporti = sMetric === 'importi';
-    var aRows = aFornitori.map(function (f) {
-      return {
-        nome: f.nome,
-        a: bImporti ? f.importoAttiviEuro : f.contrattiAttivi,
-        p: bImporti ? f.importoPassiviEuro : f.contrattiPassivi
-      };
-    }).sort(function (x, y) { return (y.a + y.p) - (x.a + x.p); }).slice(0, 8);
-    var fMax = aRows.reduce(function (n, r) { return Math.max(n, r.a, r.p); }, 1);
-    var fmt = bImporti
-      ? function (n) { return '€ ' + Math.round(n / 1000) + 'k'; }
-      : function (n) { return String(n); };
+  function buildTopFornitoriHtml(aTop, sMetric) {
+    var aRows = (aTop || []).slice().sort(function (x, y) { return (y.value || 0) - (x.value || 0); }).slice(0, 8);
+    var fMax = aRows.reduce(function (n, r) { return Math.max(n, r.value || 0); }, 1);
     var sRows = aRows.map(function (r) {
-      var fWA = Math.round(r.a / fMax * 100);
-      var fWP = Math.round(r.p / fMax * 100);
+      var fW = Math.round((r.value || 0) / fMax * 100);
+      var sText = r.value != null ? '€ ' + Math.round(r.value / 1000) + 'k' : '';
       return '<div class="app-topf-row">' +
         '<span class="app-topf-name">' + escapeHtml(r.nome) + '</span>' +
         '<div class="app-topf-bars">' +
-        '<div class="app-topf-bar app-topf-bar-attivi" style="width:' + fWA + '%"><span>' + fmt(r.a) + '</span></div>' +
-        '<div class="app-topf-bar app-topf-bar-passivi" style="width:' + fWP + '%"><span>' + fmt(r.p) + '</span></div>' +
-        '</div></div>';
+        '<div class="app-topf-bar app-topf-bar-fatturato" style="width:' + fW + '%"><span>' + sText + '</span></div>' +
+        '</div>' +
+        '</div>';
     }).join('');
     return '<div class="app-topf-chart">' + sRows + '</div>';
   }
