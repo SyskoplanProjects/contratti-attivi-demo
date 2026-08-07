@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Caricare 4123 fornitori da `infoproviderdata (3).xlsx` nel DB, esporli come entità OData `Fornitore` in una nuova pagina "Report Fornitori" raggiungibile da bottone in home, e rendere navigabile il dettaglio contratto dalla tabella "Dettaglio contratti" del tab Cockpit della dashboard.
+**Goal:** Caricare 4122 fornitori da `infoproviderdata (3).xlsx` nel DB, esporli come entità OData `Fornitore` in una nuova pagina "Report Fornitori" raggiungibile da bottone in home, e rendere navigabile il dettaglio contratto dalla tabella "Dettaglio contratti" del tab Cockpit della dashboard.
 
 **Architecture:** Nuova entità `Fornitore` in `db/schema.cds` + proiezione `@readonly` in `srv/contratti-service.cds`. Dati importati una volta da excel a snapshot CSV `db/data/fornitori.csv` (committato). Seeder idempotente `srv/lib/seed-fornitori.js`. Frontend: nuova route `report` con `Report.view.xml` (tabella 13 colonne bind OData), bottone "Report Fornitori" nella home, rimozione tab "Reportistica" dalla dashboard e navigazione `onApriContrattoDettaglio` sulla tabella "Dettaglio contratti".
 
@@ -12,7 +12,7 @@
 
 - Namespace: `com.reply.contrattiattivi`.
 - Entità `Fornitore` con i 13 campi esatti in ordine excel; idempotenza seeder = DELETE completo + INSERT; chiave logica `ID SAP fornitore`.
-- CSV `db/data/fornitori.csv`: delimiter `;`, UTF-8, header + 4123 righe, ordine colonne = ordine excel. Committato nel repo. Nessuna dipendenza runtime da `~/Downloads`.
+- CSV `db/data/fornitori.csv`: delimiter `;`, UTF-8, header + 4122 righe, ordine colonne = ordine excel. Committato nel repo. Nessuna dipendenza runtime da `~/Downloads`.
 - Seeder legge CSV dal filesystem, DELETE completo poi INSERT (idempotente), valori vuoti/non-parsabili → `null`.
 - Proiezione `@readonly entity Fornitore` nel servizio `ContrattiService` (`/contratti/`).
 - UI5: controller estendono `BaseController`, `sap.ui.define`, tabella `growing`/`growingThreshold`, prefissi `app-`, nav pattern `getRouter().navTo(...)`.
@@ -24,7 +24,7 @@
 ## File structure (create/modify)
 
 - `scripts/export-fornitori-csv.py` (Create) — export excel → CSV, one-off
-- `db/data/fornitori.csv` (Create) — snapshot 4123 righe
+- `db/data/fornitori.csv` (Create) — snapshot 4122 righe
 - `db/schema.cds` (Modify) — entità `Fornitore` in fondo (dopo `EsempioClassificazione`)
 - `srv/contratti-service.cds` (Modify) — proiezione Fornitore
 - `srv/lib/seed-fornitori.js` (Create) — seeder idempotente
@@ -83,12 +83,12 @@ print(f"header={len(header)} rows={len(data)} -> {OUT}")
 ```bash
 python3 scripts/export-fornitori-csv.py
 ```
-Expected: `header=13 rows=4123 -> db/data/fornitori.csv`
+Expected: `header=13 rows=4122 -> db/data/fornitori.csv`
 
 ```bash
 wc -l db/data/fornitori.csv
 ```
-Expected: `4124` (header + 4123).
+Expected: `4127 linee fisiche` (record: header + 4122; nomi con newline embedded rendono wc -l > record).
 
 - [ ] **Step 3: Commit**
 
@@ -181,8 +181,28 @@ const NAMESPACE = 'com.reply.contrattiattivi';
 const CSV_PATH = path.join(__dirname, '..', '..', 'db', 'data', 'fornitori.csv');
 
 function parseCsv(text) {
-  const rows = text.split(/\r?\n/).filter(l => l.trim() !== '');
-  return rows.map(l => l.split(';'));
+  const rows = [];
+  let cur = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ';') {
+      cur.push(field); field = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      cur.push(field);
+      if (cur.some(v => v.trim() !== '')) rows.push(cur);
+      cur = []; field = '';
+    } else field += c;
+  }
+  if (field !== '' || cur.length) { cur.push(field); if (cur.some(v => v.trim() !== '')) rows.push(cur); }
+  return rows;
 }
 
 function clean(row) {
@@ -241,23 +261,22 @@ Add to `"scripts"` (in `"seed-demo"` line):
 ```js
 const path = require('path');
 const cds = require('@sap/cds');
-const { SELECT } = cds;
+const { DELETE, INSERT, SELECT } = require('@sap/cds');
 const { seed } = require('../srv/lib/seed-fornitori');
 
-let db;
-beforeAll(async () => {
-  await cds.test(path.join(__dirname, '..'));
-  db = cds.db;
-});
-
 describe('seed-fornitori', () => {
+  beforeAll(async () => {
+    await cds.test(path.join(__dirname, '..'));
+  });
+
   it('imports fornitori from CSV and is idempotent', async () => {
     const n1 = await seed(cds);
-    const { COUNT } = await SELECT.from('com.reply.contrattiattivi.Fornitore').columns([{ ref: ['count(*)'], as: 'COUNT' }]);
+    expect(n1).toBeGreaterThan(4000);
+    const { COUNT } = await SELECT.from('com.reply.contrattiattivi.Fornitore').columns(['count(*) as COUNT']);
     expect(COUNT).toBe(n1);
     const n2 = await seed(cds);
     expect(n2).toBe(n1);
-    const { COUNT: c2 } = await SELECT.from('com.reply.contrattiattivi.Fornitore').columns([{ ref: ['count(*)'], as: 'c2' }]);
+    const { COUNT: c2 } = await SELECT.from('com.reply.contrattiattivi.Fornitore').columns(['count(*) as c2']);
     expect(c2).toBe(n1);
   });
 });
@@ -589,7 +608,7 @@ Expected: PASS, no regressions.
 - [ ] **Step 2: Frontend manual**
 
 Avvia `npm run dev` (server already uptick pid 34384), browser `http://localhost:4004/contratti/webapp/index.html`:
-- Home → bottone "Report Fornitori" apre pagina con 13 colonne e ~4123 righe.
+- Home → bottone "Report Fornitori" apre pagina con 13 colonne e ~4122 righe.
 - Search "APP" filtra.
 - Dashboard tab Cockpit → click riga "Dettaglio contratti" apre view Detail.
 
@@ -598,7 +617,7 @@ Avvia `npm run dev` (server already uptick pid 34384), browser `http://localhost
 ```bash
 npm run seed-fornitori
 ```
-Expected: `Fornitori importati: 4123`
+Expected: `Fornitori importati: 4061` (4122 righe − 61 senza ID SAP, filtrate dal seeder).
 End — push branch + PR (se richiesto). Commits frequenti fatti nei task.
 
 ---
