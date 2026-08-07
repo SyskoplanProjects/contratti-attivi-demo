@@ -17,12 +17,11 @@ describe('fornitore odata', () => {
       if (rows.length < 1000) break;
       skip += 1000;
     }
-    expect(total).toBeGreaterThan(1100);
-    expect(total).toBeLessThan(1300);
+    expect(total).toBe(377);
   });
 
   it('supports $filter contains', async () => {
-    const res = await GET('/contratti/Fornitore?$filter=contains(nomeFornitore,%27APP%27)', { auth: MOCK_USER });
+    const res = await GET('/contratti/Fornitore?$filter=contains(nomeFornitore,%27SRL%27)', { auth: MOCK_USER });
     expect(res.status).toBe(200);
     expect(res.data.value.length).toBeGreaterThan(0);
   });

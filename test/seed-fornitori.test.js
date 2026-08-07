@@ -7,7 +7,7 @@ cds.test(path.join(__dirname, '..'));
 describe('seed-fornitori', () => {
   it('imports fornitori from CSV and is idempotent', async () => {
     const n1 = await seed(cds);
-    expect(n1).toBe(1200);
+    expect(n1).toBe(377);
     const [{ COUNT }] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').columns(['count(*) as COUNT']);
     expect(COUNT).toBe(n1);
     const n2 = await seed(cds);
@@ -16,24 +16,18 @@ describe('seed-fornitori', () => {
     expect(c2).toBe(n1);
   });
 
-  it('excludes partial rows (no financial data or missing codiceFiscale)', async () => {
+  it('excludes rows with at least one empty field', async () => {
     const all = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore');
-    const partial = all.filter(r =>
-      !r.codiceFiscale ||
-      (r.dataAttivazione === null && r.numAddetti === null && r.fatturatoTot === null)
-    );
-    expect(partial.length).toBe(0);
+    const fields = ['idSapFornitore','codiceAteco','rischioEmissioni','nomeFornitore','codiceFiscale',
+      'dataAttivazione','numAddetti','cgsScore','fatturatoTot','annoFatturatoTot',
+      'protesti','pregiudizievoli','scoreVendorRating'];
+    const empty = all.filter(r => fields.some(f => r[f] === null || r[f] === '' || (typeof r[f] === 'string' && !r[f].trim())));
+    expect(empty.length).toBe(0);
   });
 
   it('parses fatturatoTot and numAddetti correctly', async () => {
     const [step] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').where({ nomeFornitore: 'STEP SPA' });
     expect(step.fatturatoTot).toBe(47545);
     expect(step.numAddetti).toBe(158);
-    const [dussmann] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').where({ nomeFornitore: 'DUSSMANN SERVICE S.R.L.' });
-    expect(dussmann.fatturatoTot).toBe(1041931);
-    expect(dussmann.numAddetti).toBeNull();
-    const [tirassa] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').where({ nomeFornitore: 'GIUSEPPE TIRASSA SRL' });
-    expect(tirassa.fatturatoTot).toBe(524);
-    expect(tirassa.numAddetti).toBe(5);
   });
 });
