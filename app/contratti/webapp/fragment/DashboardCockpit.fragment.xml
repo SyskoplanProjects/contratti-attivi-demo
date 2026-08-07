@@ -67,7 +67,7 @@
               <Text text="{oggetto}" />
               <Text text="{path:'categoria', formatter:'.formatter.categoriaText'}" />
               <ObjectStatus text="{stato}" state="{path:'stato', formatter:'.formatter.statoState'}" />
-              <Text text="{path:'importo', formatter:'.formatter.euroText'}" />
+              <Text text="{path:'importo', formatter:'.formatter.euroText', targetType:'any'}" />
               <Text text="{dataStipula}" />
               <Text text="{dataScadenza}" />
             </cells>
