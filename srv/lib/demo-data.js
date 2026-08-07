@@ -32,6 +32,9 @@ const CONTRATTI = [
     importo: 480000.00,
     codiceFiscale: 'IT01234560123',
     dataStipula: '2026-07-01',
+    dataScadenza: '2029-06-30',
+    categoria: 'fornitura',
+    esitoVerifica: 'ok',
     statoFinale: 'BOZZA'
   },
   {
@@ -40,6 +43,9 @@ const CONTRATTI = [
     importo: 215000.00,
     codiceFiscale: 'IT09876540987',
     dataStipula: '2026-07-15',
+    dataScadenza: '2028-07-14',
+    categoria: 'servizio',
+    esitoVerifica: 'in_corso',
     statoFinale: 'IN_REVISIONE'
   },
   {
@@ -48,7 +54,142 @@ const CONTRATTI = [
     importo: 620000.00,
     codiceFiscale: 'IT05555550555',
     dataStipula: '2026-06-10',
+    dataScadenza: '2028-06-09',
+    categoria: 'fornitura',
+    esitoVerifica: 'ok',
     statoFinale: 'APPROVATO'
+  },
+  {
+    intestatario: 'FinTech Advisory S.p.A.',
+    responsabile: 'anna.bianchi@contrattiattivi.it',
+    importo: 140000.00,
+    codiceFiscale: 'IT03344556677',
+    dataStipula: '2026-07-20',
+    dataScadenza: '2027-01-19',
+    categoria: 'consulenza',
+    esitoVerifica: 'non_conforme',
+    statoFinale: 'IN_REVISIONE'
+  },
+  {
+    intestatario: 'SecureCloud Italia S.r.l.',
+    responsabile: 'luigi.verdi@contrattiattivi.it',
+    importo: 760000.00,
+    codiceFiscale: 'IT07665544332',
+    dataStipula: '2026-05-15',
+    dataScadenza: '2029-05-14',
+    categoria: 'servizio',
+    esitoVerifica: 'ok',
+    statoFinale: 'FIRMATO'
+  },
+  {
+    intestatario: 'CyberDefence Global S.p.A.',
+    responsabile: 'anna.bianchi@contrattiattivi.it',
+    importo: 310000.00,
+    codiceFiscale: 'IT02121324354',
+    dataStipula: '2026-06-25',
+    dataScadenza: '2028-06-24',
+    categoria: 'servizio',
+    esitoVerifica: 'in_corso',
+    statoFinale: 'APPROVATO'
+  },
+  {
+    intestatario: 'Sarda Data Solutions S.r.l.',
+    responsabile: 'mario.rossi@contrattiattivi.it',
+    importo: 98000.00,
+    codiceFiscale: 'IT04214354657',
+    dataStipula: '2026-07-05',
+    dataScadenza: '2028-07-04',
+    categoria: 'fornitura',
+    esitoVerifica: 'ok',
+    statoFinale: 'BOZZA'
+  },
+  {
+    intestatario: 'Veneto Cloud Services S.p.A.',
+    responsabile: 'anna.bianchi@contrattiattivi.it',
+    importo: 435000.00,
+    codiceFiscale: 'IT07987876543',
+    dataStipula: '2026-04-18',
+    dataScadenza: '2027-10-17',
+    categoria: 'servizio',
+    esitoVerifica: 'non_conforme',
+    statoFinale: 'IN_REVISIONE'
+  },
+  {
+    intestatario: 'Milano Fintech Hub S.r.l.',
+    responsabile: 'mario.rossi@contrattiattivi.it',
+    importo: 85000.00,
+    codiceFiscale: 'IT06785432109',
+    dataStipula: '2026-07-12',
+    dataScadenza: '2027-07-11',
+    categoria: 'consulenza',
+    esitoVerifica: 'ok',
+    statoFinale: 'BOZZA'
+  },
+  {
+    intestatario: 'Lombardia ICT Group S.p.A.',
+    responsabile: 'luigi.neri@contrattiattivi.it',
+    importo: 540000.00,
+    codiceFiscale: 'IT07872345678',
+    dataStipula: '2026-03-01',
+    dataScadenza: '2029-02-28',
+    categoria: 'fornitura',
+    esitoVerifica: 'in_corso',
+    statoFinale: 'FIRMATO'
+  },
+  {
+    intestatario: 'Sicilia DORA Audit S.r.l.',
+    responsabile: 'luigi.nero@contrattiattivi.it',
+    importo: 120000.00,
+    codiceFiscale: 'IT03214569870',
+    dataStipula: '2026-06-30',
+    dataScadenza: '2027-06-29',
+    categoria: 'consulenza',
+    esitoVerifica: 'ok',
+    statoFinale: 'IN_REVISIONE'
+  },
+  {
+    intestatario: 'Piemonte RE Testing S.p.A.',
+    responsabile: 'mario.rossi@contrattiattivi.it',
+    importo: 265000.00,
+    codiceFiscale: 'IT06231249876',
+    dataStipula: '2026-05-22',
+    dataScadenza: '2027-11-21',
+    categoria: 'servizio',
+    esitoVerifica: 'non_conforme',
+    statoFinale: 'APPROVATO'
+  },
+  {
+    intestatario: 'Tuscan Advisory Partners S.r.l.',
+    responsabile: 'anna.bianchi@contrattiattivi.it',
+    importo: 75000.00,
+    codiceFiscale: 'IT04859593032',
+    dataStipula: '2026-07-11',
+    dataScadenza: '2027-07-10',
+    categoria: 'consulenza',
+    esitoVerifica: 'in_corso',
+    statoFinale: 'BOZZA'
+  },
+  {
+    intestatario: 'Liguria Network Services S.p.A.',
+    responsabile: 'luigi.nero@contrattiattivi.it',
+    importo: 395000.00,
+    codiceFiscale: 'IT02647193857',
+    dataStipula: '2026-04-05',
+    dataScadenza: '2028-04-04',
+    categoria: 'servizio',
+    esitoVerifica: 'ok',
+    statoFinale: 'FIRMATO'
+  },
+  {
+    intestatario: 'Emilia Resilience Lab S.r.l.',
+    responsabile: 'mario.rossi@contrattiattivi.it',
+    importo: 180000.00,
+    codiceFiscale: 'IT07485936471',
+    dataStipula: '2026-07-22',
+    dataScadenza: '2027-07-21',
+    categoria: 'fornitura',
+    esitoVerifica: 'in_corso',
+    statoFinale: 'IN_REVISIONE'
   }
 ];
 
