@@ -59,7 +59,7 @@
     var fornitori = input.fornitori || [];
     return {
       totaleContratti: contratti.length,
-      importoTotaleAnno: contratti.reduce(function (n, c) { return n + (c.importo || 0); }, 0),
+      importoTotaleAnno: contratti.reduce(function (n, c) { return n + (Number(c.importo) || 0); }, 0),
       donutTipologia: buildTipologia(contratti),
       donutSurvey: buildSurvey(contratti),
       trend: buildTrend(contratti),

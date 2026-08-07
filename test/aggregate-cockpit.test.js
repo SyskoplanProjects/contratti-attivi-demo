@@ -40,4 +40,13 @@ describe('aggregateCockpit', () => {
     expect(r.topFornitori[0].nome).toBe('HSPI SPA');
     expect(r.topFornitori[0].value).toBe(900000);
   });
+
+  test('importoTotaleAnno sums correctly when importo arrives as string (OData v4 Decimal)', () => {
+    const contrattiStringa = [
+      { stato: 'BOZZA', importo: '100000.00' },
+      { stato: 'APPROVATO', importo: '200000.00' }
+    ];
+    const r = aggregateCockpit({ contratti: contrattiStringa, fornitori: [] });
+    expect(r.importoTotaleAnno).toBe(300000);
+  });
 });
