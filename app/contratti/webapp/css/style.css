@@ -378,14 +378,17 @@
   background: #fff;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.5rem;
   min-width: 11rem;
   flex: 1 1 11rem;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .app-dash-kpi-card-wide { flex: 1 1 18rem; min-width: 18rem; }
-.app-dash-kpi-value { font-size: 1.75rem; font-weight: 700; color: #0a6ed1; display: block; }
-.app-dash-kpi-label { font-size: .8rem; color: #6a6d70; margin-top: .25rem; display: block; }
+.app-dash-kpi-value { font-size: 2rem; font-weight: 700; color: #0a6ede; letter-spacing: -.01em; display: block; }
+.app-dash-kpi-label { color: #6a6d70; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; margin-top: .25rem; display: block; }
 .app-dash-trend-card { padding: 1rem 1.25rem; }
 
 .app-donut-wrap { display: flex; align-items: center; gap: 1rem; margin-top: .5rem; }
@@ -418,4 +421,5 @@
 .app-topf-bar span { font-size: .68rem; color: #fff; white-space: nowrap; }
 .app-topf-bar-attivi { background: #0a6ed1; }
 .app-topf-bar-passivi { background: #bb0000; }
+.app-topf-bar-fatturato { background: #0a6ede; }
 
