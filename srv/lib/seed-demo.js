@@ -49,12 +49,15 @@ async function portaAlloStato(contrattoID, statoFinale) {
 
   const revisioni = await api(`Revisione?$filter=contratto_ID eq ${contrattoID}&$orderby=dataInvio desc`);
   const revisione = revisioni.value[0];
-  if (statoFinale === 'APPROVATO' && revisione.stato !== 'APPROVATA') {
+  if ((statoFinale === 'APPROVATO' || statoFinale === 'FIRMATO') && revisione.stato !== 'APPROVATA') {
     await api('approvaRevisione', {
       method: 'POST',
       body: JSON.stringify({ revisioneID: revisione.ID }),
       headers: { Authorization: AUTH_HEADER_REVISORE }
     });
+  }
+  if (statoFinale === 'FIRMATO') {
+    await api(`Contratto(${contrattoID})`, { method: 'PATCH', body: JSON.stringify({ stato: 'FIRMATO' }) });
   }
 }
 
@@ -81,10 +84,32 @@ async function main() {
     try {
       const esistente = await trovaContrattoPerIntestatario(dati.intestatario);
       if (esistente) {
+        // Backfill campi dati anche su contratti già esistenti (run precedenti di versioni più
+        // vecchie dello script potrebbero averli lasciati null): idempotente, sempre riallineato.
+        await api(`Contratto(${esistente.ID})`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            importo: dati.importo, codiceFiscale: dati.codiceFiscale, dataStipula: dati.dataStipula,
+            dataScadenza: dati.dataScadenza, categoria: dati.categoria, esitoVerifica: dati.esitoVerifica,
+            oggetto: dati.oggetto
+          })
+        });
         if (esistente.stato === dati.statoFinale) {
+          if (dati.responsabile && esistente.responsabile !== dati.responsabile) {
+            await api(`Contratto(${esistente.ID})`, { method: 'PATCH', body: JSON.stringify({ responsabile: dati.responsabile }) });
+          }
           console.log(`Contratto già presente: "${dati.intestatario}" (${esistente.ID}, ${esistente.stato})`);
         } else {
+          // inviaARevisione richiede responsabile === utente che esegue l'azione: se un run
+          // precedente ha lasciato il responsabile "etichetta" già impostato, va rimesso
+          // temporaneamente sul proprietario reale prima di avanzare lo stato.
+          if (esistente.stato === 'BOZZA' && esistente.responsabile !== AUTH_USER) {
+            await api(`Contratto(${esistente.ID})`, { method: 'PATCH', body: JSON.stringify({ responsabile: AUTH_USER }) });
+          }
           await portaAlloStato(esistente.ID, dati.statoFinale);
+          if (dati.responsabile) {
+            await api(`Contratto(${esistente.ID})`, { method: 'PATCH', body: JSON.stringify({ responsabile: dati.responsabile }) });
+          }
           console.log(`Contratto già presente, stato avanzato: "${dati.intestatario}" (${esistente.ID}) -> ${dati.statoFinale}`);
         }
         continue;
@@ -95,10 +120,17 @@ async function main() {
         method: 'PATCH',
         body: JSON.stringify({
           intestatario: dati.intestatario,
-          importo: dati.importo, codiceFiscale: dati.codiceFiscale, dataStipula: dati.dataStipula
+          importo: dati.importo, codiceFiscale: dati.codiceFiscale, dataStipula: dati.dataStipula,
+          dataScadenza: dati.dataScadenza, categoria: dati.categoria, esitoVerifica: dati.esitoVerifica,
+          oggetto: dati.oggetto
         })
       });
+      // responsabile guida l'autorizzazione di inviaARevisione (deve combaciare con l'utente che
+      // esegue le azioni di workflow), quindi va cambiato solo a fine ciclo vita, come etichetta.
       await portaAlloStato(contratto.ID, dati.statoFinale);
+      if (dati.responsabile) {
+        await api(`Contratto(${contratto.ID})`, { method: 'PATCH', body: JSON.stringify({ responsabile: dati.responsabile }) });
+      }
       console.log(`Contratto creato: "${dati.intestatario}" (${contratto.ID}) -> ${dati.statoFinale}`);
     } catch (e) {
       console.error(`Errore su "${dati.intestatario}": ${e.message || e}`);
