@@ -90,3 +90,40 @@ describe('salvaBozza', () => {
     expect(metadati.map(m => m.campo)).toContain('numeroProtocollo');
   });
 });
+
+describe('recuperaBozza', () => {
+  beforeEach(async () => {
+    const { Contratto, ContrattoAllegato, MetadatoDocumento, ContrattoClausola } = cds.entities('com.reply.contrattiattivi');
+    await DELETE.from(MetadatoDocumento);
+    await DELETE.from(ContrattoAllegato);
+    await DELETE.from(ContrattoClausola);
+    await DELETE.from(Contratto);
+  });
+
+  it('ritorna dati bozza salvata (intestatario, clausole, metadati, allegati)', async () => {
+    const previewID = await creaPreview([{ filename: 'dure.pdf', mimeType: 'application/pdf', contenuto: 'YQ==', tipo: 'DURC', confidenza: 0.9, metodoRiconoscimento: 'embedding', testo: 'DURC testo.', metadati: [] }]);
+    await POST('/comparator/salvaBozza', {
+      previewID, step: 'CONTRATTO', filename: 'contratto.pdf', tipo: 'CGC', intestatario: 'Acme S.p.A.',
+      clausole: CLAUSOLE, metadati: METADATI, allegatoID: null
+    }, { auth: MOCK_USER });
+    await POST('/comparator/salvaBozza', {
+      previewID, step: 'ALLEGATO', filename: 'contratto.pdf', tipo: 'DURC', intestatario: null,
+      clausole: [], metadati: [{ campo: 'numeroProtocollo', etichetta: 'Numero protocollo', valore: '12345' }], allegatoID: 'dure.pdf'
+    }, { auth: MOCK_USER });
+
+    const res = await POST('/comparator/recuperaBozza', { previewID }, { auth: MOCK_USER });
+
+    expect(res.status).toBe(200);
+    expect(res.data.contrattoID).toBeTruthy();
+    expect(res.data.intestatario).toBe('Acme S.p.A.');
+    expect(res.data.clausole).toHaveLength(3);
+    expect(res.data.metadati.map(m => m.campo)).toContain('oggettoContratto');
+    expect(res.data.allegati[0].filename).toBe('dure.pdf');
+    expect(res.data.allegati[0].metadati.map(m => m.campo)).toContain('numeroProtocollo');
+  });
+
+  it('ritorna 204 (no body) quando nessuna bozza per previewID', async () => {
+    const res = await POST('/comparator/recuperaBozza', { previewID: 'mai-salvata' }, { auth: MOCK_USER });
+    expect(res.status).toBe(204);
+  });
+});
