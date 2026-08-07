@@ -170,6 +170,22 @@ function (BaseController, MessageBox) {
           }
         } catch (e) { /* riconoscimento tipo documento non bloccante */ }
 
+        // Punto 3 spec: se la classificazione con allegati non ha prodotto sottoTipo (es. embedding
+        // ALTRO), si tenta un fallback backend dedicato (gpt-4o-mini) sul testo del documento
+        // principale. Non bloccante.
+        if (!oDocumentoPrincipale || !oDocumentoPrincipale.sottoTipo) {
+          try {
+            var oClassResp = await fetch("/comparator/classificaDocumentoPrincipale", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ previewID: oCoverageData.previewID })
+            });
+            if (oClassResp.ok) {
+              var oClassData = await oClassResp.json();
+              if (oClassData && oClassData.categoria) oDocumentoPrincipale = oClassData;
+            }
+          } catch (e) { /* classificazione fallback non bloccante */ }
+        }
+
         // Gate step 1-2 del flusso: se il documento non è riconosciuto come contratto, si
         // interrompe qui e si registra l'anomalia bloccante invece di proseguire alla
         // verifica di completezza (che presuppone un contratto già identificato).
@@ -193,15 +209,16 @@ function (BaseController, MessageBox) {
         oBusy.setText("Generazione tips AI in corso...");
         var oTipsData = null;
         try {
-          // Le tips AI confrontano il documento con un template/altri contratti: farlo solo se
-          // il documento è stato classificato come contratto (sottoTipo determinato) e il
-          // riferimento auto-matchato è abbastanza coerente col documento (coveragePercent >= 50,
-          // stessa soglia usata per il banner "riferimento potenzialmente non affidabile" nel
-          // wizard) — altrimenti si confronterebbe con un template scelto a caso, non correlato.
-          var bDocumentoCategorizzato = !!(oDocumentoPrincipale && oDocumentoPrincipale.sottoTipo);
+          // Le tips AI confrontano il documento con un template/altri contratti: richiede un
+          // riferimento affidabile (template scelto esplicitamente o auto-match con coverage
+          // >= 50) e una categorizzazione del documento (sottoTipo o almeno categoria macro).
+          // Se la classificazione resta ALTRO (sottoTipo e categoria nulli) ma il template è
+          // scelto esplicitamente (sTemplateID), non bloccare: il confronto verso quel template
+          // resta significativo perché scelto dall'utente.
+          var bDocumentoCategorizzato = !!(oDocumentoPrincipale && (oDocumentoPrincipale.sottoTipo || oDocumentoPrincipale.categoria));
           var bRiferimentoAffidabile = sTemplateID ||
             (oCoverageData.riferimentoTrovato && oCoverageData.riferimentoTrovato.templateID && oCoverageData.coveragePercent >= 50);
-          if (bDocumentoCategorizzato && bRiferimentoAffidabile) {
+          if (bRiferimentoAffidabile && (bDocumentoCategorizzato || sTemplateID)) {
             var sTemplateIDPerTips = sTemplateID || oCoverageData.riferimentoTrovato.templateID;
             var aClausoleUsate = (oCoverageData.clausole || [])
               .filter(function (c) { return c.matchClausolaID; })
