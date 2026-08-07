@@ -96,6 +96,32 @@ service ComparatorService @(requires: 'Utente') {
     documentoPrincipale : ClassificazioneDocumento;
     allegati            : array of AllegatoClassificato;
   };
+  action classificaDocumentoPrincipale(previewID: String) returns ClassificazioneDocumento;
+
+  type ClausolaBozza {
+    numero : Integer;
+    titolo : String;
+    testo  : LargeString;
+    stato  : String;
+  }
+  type BozzaAllegato {
+    filename : String;
+    tipo     : String;
+    metadati : array of MetadatoConfermato;
+  }
+  type BozzaDati {
+    contrattoID  : UUID;
+    intestatario : String;
+    clausole     : array of ClausolaBozza;
+    allegati     : array of BozzaAllegato;
+    metadati     : array of MetadatoConfermato;
+  }
+
+  action salvaBozza(previewID: String, step: String, filename: String, tipo: String, intestatario: String, clausole: array of ClausolaBozza, metadati: array of MetadatoConfermato, allegatoID: String) returns {
+    contrattoID : UUID;
+    stato       : String;
+  };
+  action recuperaBozza(previewID: String) returns BozzaDati;
   type AllegatoAttesoEsito {
     allegatoAtteso : String;
     etichetta      : String;
