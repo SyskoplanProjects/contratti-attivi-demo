@@ -73,34 +73,25 @@ describe('dashboardUtils.buildTrendHtml', () => {
 });
 
 describe('dashboardUtils.buildTopFornitoriHtml', () => {
-  const aFornitori = [
-    { nome: 'A', contrattiAttivi: 10, contrattiPassivi: 2, importoAttiviEuro: 100000, importoPassiviEuro: 5000 },
-    { nome: 'B', contrattiAttivi: 4, contrattiPassivi: 1, importoAttiviEuro: 900000, importoPassiviEuro: 1000 }
+  const aTop = [
+    { nome: 'A', value: 100000 },
+    { nome: 'B', value: 900000 },
+    { nome: 'C', value: 120000 },
+    { nome: 'D', value: 5000 }
   ];
 
-  test('metric "numero" sorts and formats using raw counts', () => {
-    const sHtml = dashboardUtils.buildTopFornitoriHtml(aFornitori, 'numero');
-    const iPosA = sHtml.indexOf('>A<');
-    const iPosB = sHtml.indexOf('>B<');
-    expect(iPosA).toBeGreaterThan(-1);
-    expect(iPosA).toBeLessThan(iPosB);
-    expect(sHtml).toContain('>10<');
-  });
-
-  test('metric "importi" sorts by euro totals and formats as "€ Xk"', () => {
-    const sHtml = dashboardUtils.buildTopFornitoriHtml(aFornitori, 'importi');
-    const iPosA = sHtml.indexOf('>A<');
-    const iPosB = sHtml.indexOf('>B<');
-    expect(iPosB).toBeGreaterThan(-1);
-    expect(iPosB).toBeLessThan(iPosA);
+  test('sorts desc by value and renders top name first', () => {
+    const sHtml = dashboardUtils.buildTopFornitoriHtml(aTop, 'fatturato');
+    const iB = sHtml.indexOf('>B<');
+    const iA = sHtml.indexOf('>A<');
+    expect(iB).toBeGreaterThan(-1);
+    expect(iB).toBeLessThan(iA);
     expect(sHtml).toContain('€ 900k');
   });
 
   test('caps rendered rows at 8', () => {
-    const aMany = Array.from({ length: 12 }, (_, i) => ({
-      nome: 'F' + i, contrattiAttivi: 12 - i, contrattiPassivi: 1, importoAttiviEuro: 1000, importoPassiviEuro: 100
-    }));
-    const sHtml = dashboardUtils.buildTopFornitoriHtml(aMany, 'numero');
+    const aMany = Array.from({ length: 12 }, (_, i) => ({ nome: 'F' + i, value: (12 - i) * 1000 }));
+    const sHtml = dashboardUtils.buildTopFornitoriHtml(aMany, 'value');
     const aRows = sHtml.match(/app-topf-row/g) || [];
     expect(aRows.length).toBe(8);
   });
