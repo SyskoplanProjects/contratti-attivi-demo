@@ -46,9 +46,16 @@ function clean(row) {
     nomeFornitore: s(3),
     codiceFiscale: s(4),
     dataAttivazione: parseDate(s(5)),
-    numAddetti: s(6) === null ? null : parseInt(s(6), 10) || null,
+    numAddetti: s(6) === null ? null : (function () {
+      var n = parseInt(s(6), 10);
+      return isNaN(n) ? null : n;
+    })(),
     cgsScore: s(7),
-    fatturatoTot: s(8) === null ? null : parseFloat(s(8).replace(',', '.')) || null,
+    fatturatoTot: s(8) === null ? null : (function () {
+      var v = String(s(8)).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
+      var n = v === '' || isNaN(parseFloat(v)) ? null : parseFloat(v);
+      return n === null ? null : n;
+    })(),
     annoFatturatoTot: s(9),
     protesti: s(10),
     pregiudizievoli: s(11),
