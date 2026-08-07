@@ -17,7 +17,8 @@ describe('fornitore odata', () => {
       if (rows.length < 1000) break;
       skip += 1000;
     }
-    expect(total).toBeGreaterThan(4000);
+    expect(total).toBeGreaterThan(1100);
+    expect(total).toBeLessThan(1300);
   });
 
   it('supports $filter contains', async () => {

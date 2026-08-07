@@ -55,8 +55,10 @@ sap.ui.define([], function () {
     },
 
     euroText: function (v) {
-      if (v === null || v === undefined) return "";
-      return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+      if (v === null || v === undefined || v === "") return "";
+      var n = Number(v);
+      if (isNaN(n)) return "";
+      return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
     },
 
     percentText: function (v) {
