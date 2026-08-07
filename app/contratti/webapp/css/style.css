@@ -371,3 +371,51 @@
   display: inline-block !important;
 }
 
+/* Dashboard Cockpit & Fornitori */
+.app-dash-tab { max-width: 100%; box-sizing: border-box; }
+.app-dash-kpi-grid { gap: 1rem; }
+.app-dash-kpi-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  min-width: 11rem;
+  flex: 1 1 11rem;
+  box-sizing: border-box;
+}
+.app-dash-kpi-card-wide { flex: 1 1 18rem; min-width: 18rem; }
+.app-dash-kpi-value { font-size: 1.75rem; font-weight: 700; color: #0a6ed1; display: block; }
+.app-dash-kpi-label { font-size: .8rem; color: #6a6d70; margin-top: .25rem; display: block; }
+.app-dash-trend-card { padding: 1rem 1.25rem; }
+
+.app-donut-wrap { display: flex; align-items: center; gap: 1rem; margin-top: .5rem; }
+.app-donut { width: 6rem; height: 6rem; border-radius: 50%; position: relative; flex-shrink: 0; }
+.app-donut-hole {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 3.4rem; height: 3.4rem; border-radius: 50%; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .95rem; color: #32363a;
+}
+.app-donut-legend { display: flex; flex-direction: column; gap: .3rem; }
+.app-donut-legend-row { display: flex; align-items: center; gap: .4rem; font-size: .78rem; }
+.app-donut-dot { width: .6rem; height: .6rem; border-radius: 50%; display: inline-block; }
+.app-donut-legend-label { color: #32363a; }
+.app-donut-legend-value { color: #6a6d70; margin-left: auto; }
+
+.app-trend-chart { display: flex; align-items: flex-end; gap: .6rem; height: 8rem; margin-top: .75rem; padding: 0 .25rem; }
+.app-trend-col { display: flex; flex-direction: column; align-items: center; flex: 1 1 0; height: 100%; justify-content: flex-end; }
+.app-trend-bars { display: flex; align-items: flex-end; gap: .15rem; height: 6.5rem; width: 100%; justify-content: center; }
+.app-trend-bar { width: .5rem; border-radius: 2px 2px 0 0; min-height: 2px; }
+.app-trend-bar-attivati { background: #0a6ed1; }
+.app-trend-bar-scadenza { background: #e9730c; }
+.app-trend-month { font-size: .68rem; color: #6a6d70; margin-top: .3rem; }
+
+.app-topf-chart { display: flex; flex-direction: column; gap: .6rem; margin-top: .75rem; }
+.app-topf-row { display: flex; align-items: center; gap: .75rem; }
+.app-topf-name { width: 12rem; flex-shrink: 0; font-size: .82rem; color: #32363a; }
+.app-topf-bars { display: flex; flex-direction: column; gap: .2rem; flex: 1 1 auto; }
+.app-topf-bar { height: .9rem; border-radius: 3px; min-width: 2px; display: flex; align-items: center; padding-left: .3rem; box-sizing: border-box; }
+.app-topf-bar span { font-size: .68rem; color: #fff; white-space: nowrap; }
+.app-topf-bar-attivi { background: #0a6ed1; }
+.app-topf-bar-passivi { background: #bb0000; }
+
