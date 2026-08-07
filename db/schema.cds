@@ -257,3 +257,19 @@ entity EsempioClassificazione : cuid, managed {
   categoriaProposta    : String(50);
   confidenzaProposta   : Decimal(5,4);
 }
+
+entity Fornitore : cuid, managed {
+  idSapFornitore  : String(20) @title: 'ID SAP fornitore' not null;
+  nomeFornitore   : String(300) @title: 'Nome del fornitore' not null;
+  codiceAteco     : String(20)  @title: 'Codice ATECO';
+  rischioEmissioni: String(100) @title: 'Rischio emissioni';
+  codiceFiscale   : String(30)  @title: 'Codice Fiscale';
+  dataAttivazione : Date        @title: 'Data Attivazione';
+  numAddetti      : Integer     @title: 'N. Addetti';
+  cgsScore        : String(50)  @title: 'CGS score';
+  fatturatoTot    : Decimal(18,2) @title: 'Fatturato tot.';
+  annoFatturatoTot: String(10)  @title: 'Anno fatturato tot.';
+  protesti        : String(10)  @title: 'Protesti';
+  pregiudizievoli : String(10)  @title: 'Pregiudizievoli';
+  scoreVendorRating : String(50) @title: 'Score Vendor Rating';
+}
