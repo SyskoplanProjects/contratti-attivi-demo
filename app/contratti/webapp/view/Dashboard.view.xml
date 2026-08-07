@@ -16,9 +16,7 @@
           <IconTabFilter key="cockpit" text="Cockpit" icon="sap-icon://business-objects-experience">
             <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.DashboardCockpit" type="XML" />
           </IconTabFilter>
-          <IconTabFilter key="reportistica" text="Reportistica" icon="sap-icon://table-view">
-            <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.DashboardReportistica" type="XML" />
-          </IconTabFilter>
+          
         </items>
       </IconTabBar>
     </content>
