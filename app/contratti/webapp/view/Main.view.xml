@@ -35,6 +35,7 @@
           <Button text="Crea Manualmente" press="onCreaManualmente" icon="sap-icon://add-document" type="Emphasized" class="app-btn app-btn-primary" visible="{roleModel>/isUtente}" />
           <Button text="Crea da Template" press="onCreaDaTemplate" icon="sap-icon://duplicate" class="app-btn app-btn-neutral" visible="{roleModel>/isUtente}" />
           <Button id="copiaContrattoBtn" text="Copia contratto" icon="sap-icon://copy" press="onCopiaContratto" enabled="{= !!${radioSelect>/selectedID} }" class="app-btn app-btn-neutral" />
+          <Button text="Dashboard" icon="sap-icon://business-objects-experience" press="onApriDashboard" class="app-btn app-btn-neutral" />
           <Button text="Archiviati" icon="sap-icon://folder" press="onVediArchiviati" class="app-btn app-btn-neutral" />
         </HBox>
         <HBox class="sapUiSmallMarginBottom" wrap="Wrap" alignItems="End">

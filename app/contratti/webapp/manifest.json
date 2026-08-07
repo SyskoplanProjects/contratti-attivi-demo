@@ -63,7 +63,8 @@
         { "pattern": "template",            "name": "template",       "target": "template"       },
         { "pattern": "templateDetail/{id}", "name": "templateDetail", "target": "templateDetail" },
         { "pattern": "clausole",            "name": "clausole",       "target": "clausole"       },
-        { "pattern": "archiviati",          "name": "archiviati",     "target": "archiviati"     }
+        { "pattern": "archiviati",          "name": "archiviati",     "target": "archiviati"     },
+        { "pattern": "dashboard{?query}",   "name": "dashboard",      "target": "dashboard"      }
       ],
       "targets": {
         "main":           { "viewName": "Main",           "viewLevel": 1 },
@@ -71,7 +72,8 @@
         "template":       { "viewName": "Template",       "viewLevel": 1 },
         "templateDetail": { "viewName": "TemplateDetail", "viewLevel": 2 },
         "clausole":       { "viewName": "Clausole",       "viewLevel": 1 },
-        "archiviati":     { "viewName": "Archiviati",     "viewLevel": 1 }
+        "archiviati":     { "viewName": "Archiviati",     "viewLevel": 1 },
+        "dashboard":      { "viewName": "Dashboard",      "viewLevel": 1 }
       }
     }
   }

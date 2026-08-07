@@ -53,6 +53,10 @@ sap.ui.define([
       this.getOwnerComponent().getRouter().navTo('archiviati');
     },
 
+    onApriDashboard: function () {
+      this.getOwnerComponent().getRouter().navTo('dashboard');
+    },
+
     onTemplate: function () {
       this.getOwnerComponent().getRouter().navTo("template");
     },
