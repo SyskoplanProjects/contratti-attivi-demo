@@ -176,8 +176,34 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       };
     });
 
-    this.on('getTipologieAllegato', () => {
-      return [
+    // Punto 3 spec: classificazione del documento principale indipendente dalla presenza
+    // di allegati. Chiamata dal frontend upload quando classificaAllegati non ha prodotto
+    // sottoTipo (es. embedding ALTRO): fallback gpt-4o-mini già dentro classificaAllegato.
+    this.on('classificaDocumentoPrincipale', async (req) => {
+      const { previewID } = req.data;
+      if (!previewID) return req.reject(400, 'previewID obbligatorio');
+      const preview = previewStore.get(previewID);
+      if (!preview) return req.reject(410, 'Preview scaduta o inesistente');
+
+      let documentoPrincipale = { categoria: null, sottoTipo: null, confidenza: null };
+      try {
+        if (preview.testo && preview.testo.trim()) {
+          const { tipo, confidenza } = await classificaAllegato(preview.testo);
+          const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
+          documentoPrincipale = {
+            categoria: categoriaMacro(tipo),
+            sottoTipo: (tipologia && tipologia.sottoTipologia) ? tipo : null,
+            confidenza: _normalizzaConfidenza(confidenza)
+          };
+        }
+      } catch (e) {
+        console.warn('[classificaDocumentoPrincipale] classificazione fallita:', e.message);
+      }
+      previewStore.update(previewID, { documentoPrincipale });
+      return documentoPrincipale;
+    });
+
+    this.on('getTipologieAllegato', () => {      return [
         ...TIPOLOGIE_ALLEGATO.filter(t => t.key !== 'ALTRO').map(t => ({ codice: t.key, label: t.label })),
         { codice: 'ALTRO', label: 'Altro / non riconosciuto' }
       ];
