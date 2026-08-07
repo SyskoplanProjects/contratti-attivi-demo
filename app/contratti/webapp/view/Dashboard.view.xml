@@ -1,0 +1,26 @@
+<mvc:View
+  controllerName="com.reply.contrattiattivi.app.controller.Dashboard"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Dashboard" class="app-header-title" />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <IconTabBar id="dashboardTabBar" class="sapUiResponsiveContentPadding">
+        <items>
+          <IconTabFilter key="cockpit" text="Cockpit" icon="sap-icon://business-objects-experience">
+            <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.DashboardCockpit" type="XML" />
+          </IconTabFilter>
+          <IconTabFilter key="reportistica" text="Reportistica" icon="sap-icon://table-view">
+            <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.DashboardReportistica" type="XML" />
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </content>
+  </Page>
+</mvc:View>
