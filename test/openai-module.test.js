@@ -75,7 +75,8 @@ describe('openai-module: embeddings', () => {
   });
 });
 
-describe('openai-module: production destination', () => {
+describe('openai-module: API key resolution (destination first, env fallback)', () => {
+  const openaiCtor = require('openai');
   const originalEnv = process.env.NODE_ENV;
 
   afterEach(() => {
@@ -83,10 +84,16 @@ describe('openai-module: production destination', () => {
     jest.dontMock('@sap-cloud-sdk/connectivity');
   });
 
-  it('resolves the API key from the BTP destination in production', async () => {
-    process.env.NODE_ENV = 'production';
-    const mockGetDestination = jest.fn().mockResolvedValue({ originalProperties: { apiKey: 'dest-key' } });
+  function mockDestination(result) {
+    const mockGetDestination = result instanceof Error
+      ? jest.fn().mockRejectedValue(result)
+      : jest.fn().mockResolvedValue(result);
     jest.doMock('@sap-cloud-sdk/connectivity', () => ({ getDestination: mockGetDestination }));
+    return mockGetDestination;
+  }
+
+  it('uses the API key from the BTP destination when present (indipendently of NODE_ENV)', async () => {
+    const mockGetDestination = mockDestination({ originalProperties: { apiKey: 'dest-key' } });
     mockCreateCompletion.mockResolvedValue({ choices: [{ message: { content: '{"clausole":[]}' } }] });
 
     let freshModule;
@@ -97,5 +104,50 @@ describe('openai-module: production destination', () => {
     await freshModule.chatJSON('sys', 'usr');
 
     expect(mockGetDestination).toHaveBeenCalledWith({ destinationName: 'contratti-attivi-openai' });
+    expect(openaiCtor).toHaveBeenLastCalledWith({ apiKey: 'dest-key' });
+  });
+
+  it('falls back to OPENAI_API_KEY env when the destination has no apiKey property', async () => {
+    mockDestination({ originalProperties: {} });
+    mockCreateCompletion.mockResolvedValue({ choices: [{ message: { content: '{"clausole":[]}' } }] });
+
+    let freshModule;
+    jest.isolateModules(() => {
+      freshModule = require('../srv/modules/openai-module');
+    });
+
+    await freshModule.chatJSON('sys', 'usr');
+
+    expect(openaiCtor).toHaveBeenLastCalledWith({ apiKey: 'test-key' });
+  });
+
+  it('falls back to OPENAI_API_KEY env when getDestination throws', async () => {
+    mockDestination(new Error('no destination service bound'));
+    mockCreateCompletion.mockResolvedValue({ choices: [{ message: { content: '{"clausole":[]}' } }] });
+
+    let freshModule;
+    jest.isolateModules(() => {
+      freshModule = require('../srv/modules/openai-module');
+    });
+
+    await freshModule.chatJSON('sys', 'usr');
+
+    expect(openaiCtor).toHaveBeenLastCalledWith({ apiKey: 'test-key' });
+  });
+
+  it('throws a clear error when neither destination nor env provide an API key', async () => {
+    mockDestination({ originalProperties: {} });
+    const originalKey = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+
+    try {
+      let freshModule;
+      jest.isolateModules(() => {
+        freshModule = require('../srv/modules/openai-module');
+      });
+      await expect(freshModule.chatJSON('sys', 'usr')).rejects.toThrow(/OPENAI_API_KEY environment variable not set/);
+    } finally {
+      process.env.OPENAI_API_KEY = originalKey;
+    }
   });
 });
