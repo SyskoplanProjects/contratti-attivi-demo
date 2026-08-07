@@ -5,11 +5,13 @@ sap.ui.define([
   "sap/ui/model/FilterOperator",
   "../model/dashboardUtils",
   "../model/mockCockpit",
-  "../model/mockFornitori"
-], function (BaseController, JSONModel, Filter, FilterOperator, dashboardUtils, mockCockpit, mockFornitori) {
+  "../model/mockFornitori",
+  "../formatter"
+], function (BaseController, JSONModel, Filter, FilterOperator, dashboardUtils, mockCockpit, mockFornitori, formatter) {
   "use strict";
 
   return BaseController.extend("com.reply.contrattiattivi.app.controller.Dashboard", {
+    formatter: formatter,
 
     onInit: function () {
       this.getView().setModel(new JSONModel(this._buildCockpitViewData()), "cockpit");
@@ -37,8 +39,7 @@ sap.ui.define([
 
     _onRouteMatched: function (oEvent) {
       var oArgs = oEvent.getParameter("arguments") || {};
-      var oQuery = oArgs["?query"] || {};
-      var sFornitore = oQuery.fornitore || null;
+      var sFornitore = oArgs.fornitore ? decodeURIComponent(oArgs.fornitore) : null;
       this.getView().getModel("filtro").setProperty("/fornitoreAttivo", sFornitore);
       this.byId("dashboardTabBar").setSelectedKey("cockpit");
       this._applyFiltroFornitore(sFornitore);
@@ -70,7 +71,7 @@ sap.ui.define([
 
     onFornitoreVendorMeshPress: function (oEvent) {
       var sNome = oEvent.getSource().getBindingContext("fornitori").getProperty("nome");
-      this.getOwnerComponent().getRouter().navTo("dashboard", { "?query": { fornitore: sNome } });
+      this.getOwnerComponent().getRouter().navTo("dashboard", { fornitore: sNome });
     },
 
     onApriContrattoIntegrazione: function (oEvent) {

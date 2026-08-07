@@ -64,7 +64,7 @@
         { "pattern": "templateDetail/{id}", "name": "templateDetail", "target": "templateDetail" },
         { "pattern": "clausole",            "name": "clausole",       "target": "clausole"       },
         { "pattern": "archiviati",          "name": "archiviati",     "target": "archiviati"     },
-        { "pattern": "dashboard{?query}",   "name": "dashboard",      "target": "dashboard"      }
+        { "pattern": "dashboard/:fornitore:", "name": "dashboard",    "target": "dashboard"      }
       ],
       "targets": {
         "main":           { "viewName": "Main",           "viewLevel": 1 },
