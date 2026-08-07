@@ -28,6 +28,26 @@
       </List>
     </VBox>
 
+    <VBox visible="{mancanti>/has}" class="app-table-wrap sapUiSmallMarginBottom">
+      <Label text="Clausole mancanti rispetto al template" design="Bold" class="sapUiSmallMarginBottom" />
+      <Table items="{ path: 'mancanti>/value', templateShareable: true }" growing="true" growingThreshold="50">
+        <columns>
+          <Column width="6rem"><Text text="Clausola" /></Column>
+          <Column><Text text="Titolo" /></Column>
+          <Column><Text text="Testo (dal template)" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <Text text="{mancanti>codice}" />
+              <Text text="{mancanti>titolo}" />
+              <Text text="{mancanti>testo}" wrapping="true" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+
     <VBox visible="{compliance>/hasPresenti}" class="app-table-wrap sapUiSmallMarginBottom">
       <Table items="{ path: 'compliance>/presenti', templateShareable: true }" growing="true" growingThreshold="50">
         <columns>
