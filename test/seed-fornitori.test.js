@@ -15,4 +15,16 @@ describe('seed-fornitori', () => {
     const [{ c2 }] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').columns(['count(*) as c2']);
     expect(c2).toBe(n1);
   });
+
+  it('parses fatturatoTot and numAddetti correctly', async () => {
+    const [step] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').where({ nomeFornitore: 'STEP SPA' });
+    expect(step.fatturatoTot).toBe(47545);
+    expect(step.numAddetti).toBe(158);
+    const [dussmann] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').where({ nomeFornitore: 'DUSSMANN SERVICE S.R.L.' });
+    expect(dussmann.fatturatoTot).toBe(1041931);
+    expect(dussmann.numAddetti).toBeNull();
+    const [tirassa] = await cds.ql.SELECT.from('com.reply.contrattiattivi.Fornitore').where({ nomeFornitore: 'GIUSEPPE TIRASSA SRL' });
+    expect(tirassa.fatturatoTot).toBe(524);
+    expect(tirassa.numAddetti).toBe(5);
+  });
 });
