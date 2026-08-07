@@ -1,0 +1,80 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+  <VBox class="sapUiSmallMargin app-dash-tab">
+
+    <MessageStrip type="Information" showIcon="true" showCloseButton="true"
+      class="sapUiTinyMarginBottom"
+      visible="{= !!${filtro>/fornitoreAttivo} }"
+      text="{= 'Filtrato per fornitore: ' + ${filtro>/fornitoreAttivo} }"
+      close="onResetFiltroFornitore" />
+
+    <HBox class="app-dash-kpi-grid" wrap="Wrap">
+      <VBox class="app-dash-kpi-card">
+        <Text class="app-dash-kpi-value" text="{cockpit>/totaleContrattiAnno}" />
+        <Text class="app-dash-kpi-label" text="Totale contratti nell'anno" />
+      </VBox>
+      <VBox class="app-dash-kpi-card">
+        <Text class="app-dash-kpi-value" text="{path:'cockpit>/importoTotaleAnno', formatter:'.formatter.euroText'}" />
+        <Text class="app-dash-kpi-label" text="Importo totale dei contratti" />
+      </VBox>
+      <VBox class="app-dash-kpi-card app-dash-kpi-card-wide">
+        <Text class="app-dash-kpi-label" text="Tipologia contratti" />
+        <core:HTML content="{cockpit>/donutTipologiaHtml}" />
+      </VBox>
+      <VBox class="app-dash-kpi-card app-dash-kpi-card-wide">
+        <Text class="app-dash-kpi-label" text="Stato survey" />
+        <core:HTML content="{cockpit>/donutSurveyHtml}" />
+      </VBox>
+    </HBox>
+
+    <VBox class="app-dash-kpi-card app-dash-trend-card sapUiSmallMarginTop">
+      <Text class="app-dash-kpi-label" text="Trend contratti — attivati vs in scadenza" />
+      <core:HTML content="{cockpit>/trendHtml}" />
+    </VBox>
+
+    <VBox class="sapUiMediumMarginTop">
+      <Toolbar>
+        <Title text="Top Fornitori" level="H2" />
+        <ToolbarSpacer />
+        <SegmentedButton selectedKey="{fornitori>/vista}" select="onCambiaVistaFornitori">
+          <items>
+            <SegmentedButtonItem key="numero" text="Numero contratti" />
+            <SegmentedButtonItem key="importi" text="Importi economici" />
+          </items>
+        </SegmentedButton>
+      </Toolbar>
+      <core:HTML content="{fornitori>/topFornitoriHtml}" />
+    </VBox>
+
+    <VBox class="app-table-wrap sapUiMediumMarginTop">
+      <Title text="Dettaglio contratti" level="H2" class="sapUiTinyMarginBottom" />
+      <Table id="dettaglioContrattiTable" growing="true" growingThreshold="50"
+        items="{path: '/Contratto', filters: [{path: 'stato', operator: 'NE', value1: 'ARCHIVIATO'}]}">
+        <columns>
+          <Column><Text text="Fornitore" /></Column>
+          <Column><Text text="Responsabile" /></Column>
+          <Column><Text text="Oggetto" /></Column>
+          <Column><Text text="Categoria" /></Column>
+          <Column><Text text="Stato" /></Column>
+          <Column><Text text="Importo" /></Column>
+          <Column><Text text="Data Stipula" /></Column>
+          <Column><Text text="Data Scadenza" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <Text text="{intestatario}" />
+              <Text text="{responsabile}" />
+              <Text text="{oggetto}" />
+              <Text text="{path:'categoria', formatter:'.formatter.categoriaText'}" />
+              <ObjectStatus text="{stato}" state="{path:'stato', formatter:'.formatter.statoState'}" />
+              <Text text="{path:'importo', formatter:'.formatter.euroText'}" />
+              <Text text="{dataStipula}" />
+              <Text text="{dataScadenza}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+
+  </VBox>
+</core:FragmentDefinition>
