@@ -193,4 +193,57 @@ const CONTRATTI = [
   }
 ];
 
+// Contratti aggiuntivi su fornitori reali (già importati via seed-fornitori, idSapFornitore/CF
+// reali) per una demo cliente più credibile: nomi, codici fiscali e settore (da codiceAteco)
+// riflettono l'anagrafica fornitori vera, importo/date/stato/esito sono inventati.
+const OGGETTO_PER_CATEGORIA = {
+  servizio: 'Fornitura di servizi ICT cloud/infrastrutturali a supporto di funzioni bancarie critiche, ai sensi del Regolamento (UE) 2022/2554 (DORA).',
+  fornitura: 'Fornitura di beni, apparecchiature e servizi accessori a supporto dell\'operatività bancaria.',
+  consulenza: 'Servizi di consulenza strategica, organizzativa e di supporto alla compliance normativa (DORA/GDPR).',
+  NDA: 'Accordo di riservatezza (NDA) per la condivisione di dati e informazioni sensibili nell\'ambito della due diligence fornitore.'
+};
+const RESPONSABILI = ['mario.rossi@contrattiattivi.it', 'anna.bianchi@contrattiattivi.it', 'luigi.verdi@contrattiattivi.it', 'luigi.neri@contrattiattivi.it'];
+
+const CONTRATTI_FORNITORI_REALI = [
+  ['ROCKET SOFTWARE ITALY SRL', '05254241002', 'servizio', 'ok', 'APPROVATO', '2025-08-12', 36, 380000],
+  ['FASTWEB SPA', '12878470157', 'servizio', 'ok', 'FIRMATO', '2025-08-25', 24, 610000],
+  ['ARVAL SERVICE LEASE ITALIA S.P.A.', '00879960524', 'fornitura', 'ok', 'IN_REVISIONE', '2025-09-05', 36, 290000],
+  ['MICROSOFT SRL', '08106710158', 'fornitura', 'ok', 'APPROVATO', '2025-09-18', 24, 720000],
+  ['DHL EXPRESS (ITALY) SRL', '04209680158', 'fornitura', 'in_corso', 'BOZZA', '2025-09-28', 12, 165000],
+  ['IBM ITALIA SPA', '01442240030', 'servizio', 'ok', 'FIRMATO', '2025-10-03', 36, 540000],
+  ['SDA Express Courier SpA', '02335990541', 'fornitura', 'in_corso', 'IN_REVISIONE', '2025-10-15', 24, 95000],
+  ['SIEMENS SPA', '00751160151', 'fornitura', 'ok', 'APPROVATO', '2025-10-27', 36, 410000],
+  ['ENGINEERING INGEGNERIA INFORMATICA', '00967720285', 'servizio', 'in_corso', 'IN_REVISIONE', '2025-11-06', 24, 330000],
+  ['REPLY SPA', '97579210010', 'servizio', 'ok', 'APPROVATO', '2025-11-19', 36, 275000],
+  ['DELOITTE CONSULTING SRL S.B.', '03945320962', 'consulenza', 'ok', 'BOZZA', '2025-11-29', 12, 145000],
+  ['S.A.P. ITALIA', '09417760155', 'servizio', 'ok', 'FIRMATO', '2025-12-04', 36, 480000],
+  ['CAPGEMINI ITALIA SPA', '10365640159', 'servizio', 'in_corso', 'IN_REVISIONE', '2025-12-16', 24, 355000],
+  ['EY ADVISORY SPA', '13221390159', 'consulenza', 'ok', 'APPROVATO', '2025-12-22', 12, 128000],
+  ['PRICEWATERHOUSECOOPERS BUSINES SERV', '06234620968', 'consulenza', 'non_conforme', 'IN_REVISIONE', '2026-01-08', 24, 175000],
+  ['NTT DATA ITALIA SPA', '00513990010', 'servizio', 'ok', 'BOZZA', '2026-01-20', 36, 460000],
+  ['SALESFORCE.COM ITALY SRL', '04959160963', 'servizio', 'ok', 'APPROVATO', '2026-01-30', 24, 265000],
+  ['KPMG ADVISORY  SPA', '04662680158', 'consulenza', 'in_corso', 'IN_REVISIONE', '2026-02-09', 12, 110000],
+  ['TeamSystem S.p.A', '01035310414', 'servizio', 'ok', 'FIRMATO', '2026-02-18', 36, 225000],
+  ['KYNDRYL ITALIA SPA', '11628710961', 'servizio', 'non_conforme', 'BOZZA', '2026-02-26', 24, 315000],
+  ['ZUCCHETTI S.P.A. AD AZIONISTA UNICO', '05006900962', 'servizio', 'ok', 'APPROVATO', '2026-03-10', 36, 198000],
+  ['CEDACRI SPA', '00432960342', 'servizio', 'ok', 'FIRMATO', '2026-03-24', 36, 590000],
+  ['CRIF SPA', '02083271201', 'NDA', 'non_conforme', 'IN_REVISIONE', '2026-04-02', 24, 88000],
+  ['CERVED GROUP SPA', '08587760961', 'NDA', 'ok', 'APPROVATO', '2026-04-14', 24, 92000],
+  ['ORACLE ITALIA SRL a socio unico', '01603630599', 'fornitura', 'ok', 'BOZZA', '2026-04-27', 12, 245000],
+  ['VAR GROUP S.P.A.', '03301640482', 'fornitura', 'in_corso', 'IN_REVISIONE', '2026-05-06', 24, 172000],
+  ['WOLTERS KLUWER ITALIA SRL', '10209790152', 'fornitura', 'ok', 'APPROVATO', '2026-05-19', 12, 68000],
+  ['VEDETTA 2 MONDIALPOL S.P.A.', '00780120135', 'fornitura', 'ok', 'BOZZA', '2026-05-28', 36, 210000]
+].map(([intestatario, codiceFiscale, categoria, esitoVerifica, statoFinale, dataStipula, mesiScadenza, importo], i) => {
+  const d = new Date(dataStipula + 'T00:00:00Z');
+  d.setUTCMonth(d.getUTCMonth() + mesiScadenza);
+  return {
+    intestatario, codiceFiscale, categoria, esitoVerifica, statoFinale, dataStipula, importo,
+    dataScadenza: d.toISOString().slice(0, 10),
+    responsabile: RESPONSABILI[i % RESPONSABILI.length],
+    oggetto: OGGETTO_PER_CATEGORIA[categoria]
+  };
+});
+
+CONTRATTI.push(...CONTRATTI_FORNITORI_REALI);
+
 module.exports = { TEMPLATE, CONTRATTI };
