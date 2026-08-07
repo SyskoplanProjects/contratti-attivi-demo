@@ -57,6 +57,10 @@ sap.ui.define([
       this.getOwnerComponent().getRouter().navTo('dashboard');
     },
 
+    onApriReport: function () {
+      this.getOwnerComponent().getRouter().navTo("report");
+    },
+
     onTemplate: function () {
       this.getOwnerComponent().getRouter().navTo("template");
     },
