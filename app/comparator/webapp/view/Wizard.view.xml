@@ -21,6 +21,7 @@
       <Toolbar class="app-btn-group sapUiSmallMargin">
         <ToolbarSpacer />
         <Button id="btnWizardIndietro" text="Indietro" press=".onWizardIndietro" enabled="false" class="app-btn" />
+        <Button id="btnSalvaBozza" text="Salva bozza" press=".onSalvaBozza" class="app-btn" />
         <Button id="btnWizardAvanti" text="Avanti" press=".onWizardAvanti" type="Emphasized" class="app-btn app-btn-primary" />
       </Toolbar>
     </footer>

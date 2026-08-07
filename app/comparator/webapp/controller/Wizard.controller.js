@@ -40,6 +40,30 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
 
       this._oCoverageData = oCoverageData;
 
+      var oBozzaResp = null;
+      try {
+        var oBozzaRes = await fetch("/comparator/recuperaBozza", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ previewID: oCoverageData.previewID })
+        });
+        // 204 = nessuna bozza salvata per questa preview; 200 = dati bozza.
+        if (oBozzaRes.ok && oBozzaRes.status !== 204) oBozzaResp = await oBozzaRes.json();
+      } catch (e) { /* ripresa bozza non bloccante */ }
+
+      if (oBozzaResp && oBozzaResp.contrattoID) {
+        aAllegati = (oBozzaResp.allegati || []).map(function (a) {
+          return Object.assign({}, a, { sezioni: metadataWizardHelper.raggruppaPerSezione(a.metadati || []) });
+        });
+        var aSezioniBozza = metadataWizardHelper.raggruppaPerSezione(oBozzaResp.metadati || []);
+        var aClausoleBozza = (oBozzaResp.clausole || [])
+          .filter(function (c) { return c.stato === "VARIANTE" || c.stato === "NUOVA"; })
+          .map(function (c) {
+            return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: null, isClausola: true };
+          });
+        if (aClausoleBozza.length) aSezioniBozza.push({ sezione: "Clausole di rischio", campi: aClausoleBozza });
+        this._aSezioniBozza = aSezioniBozza;
+      }
+
       this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
       var aSezioni = metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati || []);
       var aClausoleRischio = (oCoverageData.clausole || []).filter(function (c) {
@@ -53,7 +77,7 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       if (aClausoleRischio.length) {
         aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
       }
-      this.getView().setModel(new JSONModel(aSezioni), "wizardSezioni");
+      this.getView().setModel(new JSONModel(this._aSezioniBozza || aSezioni), "wizardSezioni");
       this.getView().setModel(new JSONModel({ pdfBase64: oCoverageData.pdfBase64 || null }), "wizardDocumento");
       this.getView().setModel(new JSONModel({ value: aAllegati }), "allegati");
       this.getView().setModel(new JSONModel(oDocPrincipale), "documentoPrincipale");
@@ -305,6 +329,56 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         window.location.href = "/contratti/webapp/index.html#/detail/" + oContratto.ID;
       } catch (e) {
         oBusy.close();
+        MessageBox.error("Errore di rete: " + e.message);
+      }
+    },
+
+    onSalvaBozza: async function () {
+      var oData = this._oCoverageData;
+      if (!oData || !oData.previewID) { MessageBox.info("Nessuna analisi in corso da salvare."); return; }
+
+      var oWizardModel = this.getView().getModel("wizardSezioni");
+      var aMetadati = oWizardModel ? oWizardModel.getData()
+        .filter(function (s) { return s.sezione !== "Clausole di rischio"; })
+        .reduce(function (acc, s) { return acc.concat(s.campi); }, []) : [];
+      var oAllegatiModel = this.getView().getModel("allegati");
+      var aAllegati = oAllegatiModel ? oAllegatiModel.getProperty("/value") : [];
+      var oDocPrincipaleModel = this.getView().getModel("documentoPrincipale");
+      var sTipo = oDocPrincipaleModel ? oDocPrincipaleModel.getProperty("/codiceSelezionato") : null;
+      var sFilename = sessionStorage.getItem("comparatorFilename") || "";
+
+      var oTitolo = null, oFornitore = null;
+      aMetadati.forEach(function (m) {
+        if (m.campo === "titoloContratto") oTitolo = m;
+        if (m.campo === "fornitore") oFornitore = m;
+      });
+      var sIntestatario = (oTitolo && oTitolo.valore) || (oFornitore && oFornitore.valore) || "";
+
+      var iIndex = this._iCurrentStepIndex || 0;
+      var sStep = iIndex === 0 ? "CONTRATTO" : (iIndex >= 1 && iIndex <= aAllegati.length ? "ALLEGATO" : "FINE");
+      var sAllegatoID = null, aAllegatoMetadati = null;
+      if (sStep === "ALLEGATO" && aAllegati[iIndex - 1]) {
+        var oAllegato = aAllegati[iIndex - 1];
+        sAllegatoID = oAllegato.filename;
+        aAllegatoMetadati = (oAllegato.sezioni || []).reduce(function (acc, s) { return acc.concat(s.campi); }, []);
+      }
+
+      try {
+        var oResp = await fetch("/comparator/salvaBozza", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            previewID: oData.previewID, step: sStep, filename: sFilename, tipo: sTipo,
+            intestatario: sIntestatario, clausole: oData.clausole || [],
+            metadati: sStep === "ALLEGATO" ? aAllegatoMetadati : aMetadati,
+            allegatoID: sAllegatoID
+          })
+        });
+        if (oResp.ok) {
+          sap.m.MessageToast.show("Bozza salvata. Potrai riprenderla riaprendo il wizard per questo documento.");
+        } else {
+          MessageBox.error("Errore salvataggio bozza: " + await oResp.text());
+        }
+      } catch (e) {
         MessageBox.error("Errore di rete: " + e.message);
       }
     },
