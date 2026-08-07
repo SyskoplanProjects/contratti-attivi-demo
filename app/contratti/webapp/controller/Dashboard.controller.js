@@ -21,6 +21,7 @@ sap.ui.define([
         topFornitoriHtml: dashboardUtils.buildTopFornitoriHtml(mockFornitori, "numero")
       }), "fornitori");
       this.getView().setModel(new JSONModel({ fornitoreAttivo: null }), "filtro");
+      this.getOwnerComponent().getRouter().getRoute("dashboard").attachPatternMatched(this._onRouteMatched, this);
     },
 
     _buildCockpitViewData: function () {
