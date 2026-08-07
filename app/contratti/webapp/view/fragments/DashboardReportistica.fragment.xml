@@ -1,0 +1,72 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
+  <VBox class="sapUiSmallMargin app-dash-tab">
+
+    <Title text="Vendor Mesh — Fornitori" level="H2" class="sapUiSmallMarginBottom" />
+    <Table id="vendorMeshTable" class="app-table-wrap" growing="true" growingThreshold="20"
+      items="{fornitori>/lista}">
+      <columns>
+        <Column><Text text="Codice SAP" /></Column>
+        <Column><Text text="Ragione Sociale" /></Column>
+        <Column><Text text="P.IVA" /></Column>
+        <Column><Text text="Codice Fiscale" /></Column>
+        <Column><Text text="Tipologia" /></Column>
+        <Column><Text text="Sotto Tipologia" /></Column>
+        <Column><Text text="Stato Qualifica" /></Column>
+        <Column><Text text="Rischio Finanziario" /></Column>
+        <Column><Text text="Rischio ESG" /></Column>
+        <Column><Text text="Rischio Legale" /></Column>
+        <Column><Text text="Rischio Reputazionale" /></Column>
+        <Column><Text text="Rischio Cyber Rating" /></Column>
+        <Column><Text text="Rischio Fornitore" /></Column>
+        <Column><Text text="Livello Rischio Fornitore" /></Column>
+        <Column><Text text="Dipendenza Economica" /></Column>
+      </columns>
+      <items>
+        <ColumnListItem type="Navigation" press="onFornitoreVendorMeshPress">
+          <cells>
+            <Text text="{fornitori>codiceSAP}" />
+            <Text text="{fornitori>nome}" />
+            <Text text="{fornitori>piva}" />
+            <Text text="{fornitori>codiceFiscale}" />
+            <Text text="{fornitori>tipologia}" />
+            <Text text="{fornitori>sottoTipologia}" />
+            <Text text="{fornitori>statoQualifica}" />
+            <Text text="{fornitori>rischioFinanziario}" />
+            <Text text="{fornitori>rischioEsg}" />
+            <Text text="{fornitori>rischioLegale}" />
+            <Text text="{fornitori>rischioReputazionale}" />
+            <Text text="{fornitori>rischioCyberRating}" />
+            <Text text="{fornitori>rischioFornitore}" />
+            <Text text="{fornitori>livelloRischioFornitore}" />
+            <Text text="{path:'fornitori>dipendenzaEconomica', formatter:'.formatter.percentText'}" />
+          </cells>
+        </ColumnListItem>
+      </items>
+    </Table>
+
+    <Title text="Integrazione Contratti Credem" level="H2" class="sapUiMediumMarginTop sapUiSmallMarginBottom" />
+    <Table id="integrazioneTable" class="app-table-wrap" growing="true" growingThreshold="20"
+      items="{integrazione>/}"
+      noDataText="Nessun fornitore del Vendor Mesh ha ancora contratti collegati in Credem.">
+      <columns>
+        <Column><Text text="Fornitore" /></Column>
+        <Column><Text text="Numero Contratti Attivi" /></Column>
+        <Column><Text text="Importo Totale" /></Column>
+        <Column><Text text="Ultima Data Stipula" /></Column>
+        <Column><Text text="" /></Column>
+      </columns>
+      <items>
+        <ColumnListItem>
+          <cells>
+            <Text text="{integrazione>nome}" />
+            <Text text="{integrazione>numeroContratti}" />
+            <Text text="{path:'integrazione>importoTotale', formatter:'.formatter.euroText'}" />
+            <Text text="{integrazione>ultimaDataStipula}" />
+            <Button text="Apri contratto" press="onApriContrattoIntegrazione" />
+          </cells>
+        </ColumnListItem>
+      </items>
+    </Table>
+
+  </VBox>
+</core:FragmentDefinition>
