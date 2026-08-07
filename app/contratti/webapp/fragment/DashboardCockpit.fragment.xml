@@ -45,8 +45,11 @@
       <core:HTML content="{fornitori>/topFornitoriHtml}" />
     </VBox>
 
-    <VBox class="app-table-wrap sapUiMediumMarginTop">
-      <Title text="Dettaglio contratti" level="H2" class="sapUiTinyMarginBottom" />
+    <VBox class="sapUiMediumMarginTop sapUiTinyMarginBottom">
+      <Title text="Dettaglio contratti" level="H2" />
+    </VBox>
+
+    <VBox class="app-table-wrap">
       <Table id="dettaglioContrattiTable" growing="true" growingThreshold="50"
         items="{path: '/Contratto', filters: [{path: 'stato', operator: 'NE', value1: 'ARCHIVIATO'}]}">
         <columns>
