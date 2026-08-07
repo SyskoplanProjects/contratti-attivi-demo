@@ -1,0 +1,62 @@
+<mvc:View controllerName="com.reply.contrattiattivi.app.controller.Report"
+  xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:core="sap.ui.core">
+  <Page>
+    <customHeader>
+      <Toolbar class="app-page-header">
+        <Button icon="sap-icon://nav-back" type="Transparent" class="app-toolbar-btn" press="onNavBack" />
+        <Title text="Report Fornitori" class="app-header-title" />
+      </Toolbar>
+    </customHeader>
+    <content>
+      <VBox class="sapUiSmallMargin app-page-content">
+        <HBox class="sapUiSmallMarginBottom" alignItems="End" wrap="Wrap">
+          <VBox class="sapUiTinyMarginEnd">
+            <Label text="Ricerca" />
+            <SearchField id="rfSearch" placeholder="Nome fornitore o ID SAP..." width="20rem" search="onSearch" change="onChange" />
+          </VBox>
+          <VBox>
+            <Label text="" />
+            <Button icon="sap-icon://reset" text="Reset" press="onReset" class="app-btn app-btn-neutral" />
+          </VBox>
+        </HBox>
+        <Table id="fornitoriTable" items="{path:'/Fornitore', parameters:{operationMode:'Server'}}"
+          growing="true" growingThreshold="50" noDataText="Nessun fornitore" class="app-table-wrap">
+        <columns>
+          <Column><Text text="Codice ATECO" /></Column>
+          <Column><Text text="Rischio emissioni" /></Column>
+          <Column><Text text="ID SAP fornitore" /></Column>
+          <Column><Text text="Nome del fornitore" /></Column>
+          <Column><Text text="Codice Fiscale" /></Column>
+          <Column><Text text="Data Attivazione" /></Column>
+          <Column><Text text="N. Addetti" /></Column>
+          <Column><Text text="CGS score" /></Column>
+          <Column><Text text="Fatturato tot." /></Column>
+          <Column><Text text="Anno fatturato tot." /></Column>
+          <Column><Text text="Protesti" /></Column>
+          <Column><Text text="Pregiudizievoli" /></Column>
+          <Column><Text text="Score Vendor Rating" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <Text text="{codiceAteco}" />
+              <Text text="{rischioEmissioni}" />
+              <Text text="{idSapFornitore}" />
+              <Text text="{nomeFornitore}" />
+              <Text text="{codiceFiscale}" />
+              <Text text="{dataAttivazione}" />
+              <Text text="{numAddetti}" />
+              <Text text="{cgsScore}" />
+              <Text text="{path:'fatturatoTot', formatter:'.formatter.euroText'}" />
+              <Text text="{annoFatturatoTot}" />
+              <Text text="{protesti}" />
+              <Text text="{pregiudizievoli}" />
+              <Text text="{scoreVendorRating}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+        </Table>
+      </VBox>
+    </content>
+  </Page>
+</mvc:View>
