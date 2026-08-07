@@ -54,6 +54,15 @@ sap.ui.define([], function () {
       return v != null ? (Math.round(v * 10000) / 100) + "%" : "";
     },
 
+    euroText: function (v) {
+      if (v === null || v === undefined) return "";
+      return new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+    },
+
+    percentText: function (v) {
+      return (v === null || v === undefined) ? "" : v + "%";
+    },
+
     testoLeggibile: function (sTesto) {
       if (!sTesto) return "";
       return String(sTesto)
