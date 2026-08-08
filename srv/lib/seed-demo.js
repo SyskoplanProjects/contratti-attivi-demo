@@ -14,6 +14,33 @@ const { TIPOLOGIE_ALLEGATO } = require('./tipologie-allegato');
 // che non passa mai dal wizard di upload/classificazione.
 const TIPI_ALLEGATI_STANDARD = ['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_B', 'ALLEGATO_C', 'ALLEGATO_D', 'ALLEGATO_E', 'ALLEGATO_F', 'ALLEGATO_G'];
 
+// I contratti demo sono creati via creaDaTemplate (nessun documento caricato), quindi non hanno
+// mai avuto un Contratto.testoOriginale: la verifica su questi contratti (calcolaCoverageDaContratto,
+// vedi comparator-service.js) ricadeva sul fallback join-clausole, che non contiene mai
+// intestazione/frontespizio e quindi lascia sempre null fornitore/date/importo in "Verifica
+// metadati contratto" anche se quei valori sono già sui campi struttura del Contratto. Si
+// costruisce qui un frontespizio sintetico dagli stessi campi struttura (mai valori inventati)
+// così l'estrazione AI in verifica ritrova esattamente ciò che è già in Contratto — nessuna
+// incoerenza tra i due. Campi non valorizzati nel seed (es. societaContraente) restano fuori dal
+// frontespizio apposta: se non sono nel testo, l'estrazione torna null, coerente col DB.
+function costruisciTestoOriginale(dati, clausoleTesto) {
+  const importoFmt = dati.importo != null ? Number(dati.importo).toFixed(2) : '';
+  const frontespizio = [
+    TEMPLATE.nome,
+    '',
+    `Fornitore: ${dati.intestatario}`,
+    dati.codiceFiscale ? `Partita IVA / Codice Fiscale Fornitore: ${dati.codiceFiscale}` : null,
+    dati.oggetto ? `Oggetto del Contratto: ${dati.oggetto}` : null,
+    dati.dataStipula ? `Data Firma: ${dati.dataStipula}` : null,
+    dati.dataStipula ? `Data Decorrenza: ${dati.dataStipula}` : null,
+    dati.dataScadenza ? `Data Scadenza: ${dati.dataScadenza}` : null,
+    importoFmt ? `Importo Contrattuale: ${importoFmt} EUR` : null,
+    'Valuta: EUR'
+  ].filter(Boolean).join('\n');
+
+  return frontespizio + '\n\n' + clausoleTesto;
+}
+
 const BASE_URL = process.env.BASE_URL || 'http://localhost:4004';
 const AUTH_USER = process.env.AUTH_USER || 'mario.rossi@contrattiattivi.it';
 const AUTH_PASS = process.env.AUTH_PASS || 'test';
@@ -110,18 +137,22 @@ async function main() {
     console.log(`Template creato: "${TEMPLATE.nome}" (${templateID}), ${TEMPLATE.clausole.length} clausole`);
   }
 
+  const clausoleTestoBase = TEMPLATE.clausole.map((c, i) => `Art. ${i + 1} — ${c.titolo}\n${c.testo}`).join('\n\n');
+
   for (const dati of CONTRATTI) {
     try {
       const esistente = await trovaContrattoPerIntestatario(dati.intestatario);
       if (esistente) {
         // Backfill campi dati anche su contratti già esistenti (run precedenti di versioni più
         // vecchie dello script potrebbero averli lasciati null): idempotente, sempre riallineato.
+        // testoOriginale incluso nel backfill: è il fix per i contratti demo già seedati prima
+        // che il campo esistesse (vedi commento su costruisciTestoOriginale sopra).
         await api(`Contratto(${esistente.ID})`, {
           method: 'PATCH',
           body: JSON.stringify({
             importo: dati.importo, codiceFiscale: dati.codiceFiscale, dataStipula: dati.dataStipula,
             dataScadenza: dati.dataScadenza, categoria: dati.categoria, esitoVerifica: dati.esitoVerifica,
-            oggetto: dati.oggetto
+            oggetto: dati.oggetto, testoOriginale: costruisciTestoOriginale(dati, clausoleTestoBase)
           })
         });
         // aggiungiAllegatoContratto (come inviaARevisione) richiede responsabile === utente che
@@ -148,7 +179,7 @@ async function main() {
           intestatario: dati.intestatario,
           importo: dati.importo, codiceFiscale: dati.codiceFiscale, dataStipula: dati.dataStipula,
           dataScadenza: dati.dataScadenza, categoria: dati.categoria, esitoVerifica: dati.esitoVerifica,
-          oggetto: dati.oggetto
+          oggetto: dati.oggetto, testoOriginale: costruisciTestoOriginale(dati, clausoleTestoBase)
         })
       });
       // responsabile guida l'autorizzazione di inviaARevisione/aggiungiAllegatoContratto (deve
@@ -188,23 +219,43 @@ async function preparaScenarioTipsAI(templateID) {
   if (!clausola) return;
 
   const versioni = await api(`ClausolaVersione?$filter=clausola_ID eq ${clausola.ID}&$orderby=numero desc`);
-  if (versioni.value.length > 1) {
+  const giaPreparato = versioni.value.length > 1;
+
+  if (!giaPreparato) {
+    const righe = await api(`ContrattoClausola?$filter=contratto_ID eq ${target.ID} and clausola_ID eq ${clausola.ID}`);
+    const riga = righe.value[0];
+    if (!riga) return;
+
+    const testoAttuale = versioni.value[0].testo;
+    const nuovoTesto = testoAttuale + ' A integrazione di quanto sopra, il Fornitore si impegna a sottoporsi annualmente, su richiesta dell\'Istituto, a test di resilienza operativa digitale basati sulla minaccia (Threat-Led Penetration Testing), in conformità all\'art. 26 del Regolamento DORA.';
+
+    await api(`Contratto(${target.ID})/ContrattiService.modificaClausolaTesto`, {
+      method: 'POST',
+      body: JSON.stringify({ contrattoClausolaID: riga.ID, nuovoTesto })
+    });
+    console.log(`Scenario Tips AI preparato: clausola C1 aggiornata su "${NOME_CONTRATTO_DEMO}". Gli altri contratti sul template DORA mostreranno ora il suggerimento AGGIORNAMENTO.`);
+  } else {
     console.log('Scenario Tips AI già preparato (clausola C1 già aggiornata).');
-    return;
   }
 
-  const righe = await api(`ContrattoClausola?$filter=contratto_ID eq ${target.ID} and clausola_ID eq ${clausola.ID}`);
-  const riga = righe.value[0];
-  if (!riga) return;
-
-  const testoAttuale = versioni.value[0].testo;
-  const nuovoTesto = testoAttuale + ' A integrazione di quanto sopra, il Fornitore si impegna a sottoporsi annualmente, su richiesta dell\'Istituto, a test di resilienza operativa digitale basati sulla minaccia (Threat-Led Penetration Testing), in conformità all\'art. 26 del Regolamento DORA.';
-
-  await api(`Contratto(${target.ID})/ContrattiService.modificaClausolaTesto`, {
-    method: 'POST',
-    body: JSON.stringify({ contrattoClausolaID: riga.ID, nuovoTesto })
-  });
-  console.log(`Scenario Tips AI preparato: clausola C1 aggiornata su "${NOME_CONTRATTO_DEMO}". Gli altri contratti sul template DORA mostreranno ora il suggerimento AGGIORNAMENTO.`);
+  // testoOriginale (backfillato sopra nel loop principale con il testo C1 del TEMPLATE, non
+  // ancora integrato) va riallineato al testo C1 REALMENTE salvato su questo contratto — sia
+  // alla prima esecuzione (appena modificato sopra) sia su run successive (già modificato in
+  // precedenza, il loop principale l'avrebbe altrimenti sovrascritto con la versione vecchia).
+  const testoC1Attuale = await api(`ClausolaVersione?$filter=clausola_ID eq ${clausola.ID}&$orderby=numero desc&$top=1`);
+  const nuovoTestoC1 = testoC1Attuale.value[0] && testoC1Attuale.value[0].testo;
+  const datiTarget = CONTRATTI.find(d => d.intestatario === NOME_CONTRATTO_DEMO);
+  if (datiTarget && nuovoTestoC1) {
+    // clausola.codice è 'C1' (query sopra), che nel template corrisponde sempre al primo
+    // elemento dell'array (vedi confirmCoverage: codice = `C${i+1}` nell'ordine del template).
+    const clausoleTestoAggiornato = TEMPLATE.clausole
+      .map((c, i) => `Art. ${i + 1} — ${c.titolo}\n${i === 0 ? nuovoTestoC1 : c.testo}`)
+      .join('\n\n');
+    await api(`Contratto(${target.ID})`, {
+      method: 'PATCH',
+      body: JSON.stringify({ testoOriginale: costruisciTestoOriginale(datiTarget, clausoleTestoAggiornato) })
+    });
+  }
 }
 
 if (require.main === module) {

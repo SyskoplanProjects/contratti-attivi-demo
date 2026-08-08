@@ -1,10 +1,13 @@
 const mammoth = require('mammoth');
 const XLSX = require('xlsx');
+const { extractTextMultiFormato } = require('./lib/ai-import');
 
 const CLAUSE_PATTERN = /^(?:Art(?:icolo)?\.?|Clausola|Sezione)\s+(\d+)\s*[\.\:\-]?\s*(.*)$/i;
 
-async function parseDocx(buffer) {
-  const { value: text } = await mammoth.extractRawText({ buffer });
+// Stesso splitter riga-per-riga su pattern Art./Clausola/Sezione, condiviso da tutti i
+// formati (docx via mammoth, pdf via pdf.js) che arrivano qui come testo semplice —
+// solo l'estrazione del testo grezzo cambia per formato, la segmentazione è identica.
+function _clausoleDaTesto(text) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const clausole = [];
   let current = null;
@@ -20,6 +23,16 @@ async function parseDocx(buffer) {
   }
   if (current) clausole.push(current);
   return clausole;
+}
+
+async function parseDocx(buffer) {
+  const { value: text } = await mammoth.extractRawText({ buffer });
+  return _clausoleDaTesto(text);
+}
+
+async function parsePdf(buffer, filename, mimeType) {
+  const text = await extractTextMultiFormato(buffer, mimeType, filename);
+  return _clausoleDaTesto(text);
 }
 
 function parseXlsx(buffer) {
@@ -46,10 +59,21 @@ function parseXlsx(buffer) {
 
 async function parseFile(buffer, filename, mimeType) {
   const name = (filename || '').toLowerCase();
+  const isPdf = name.endsWith('.pdf') || mimeType === 'application/pdf';
   const isDocx = name.endsWith('.docx') ||
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   const isXlsx = name.endsWith('.xlsx') ||
     mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  if (isPdf) {
+    const clausole = await parsePdf(buffer, filename, mimeType);
+    if (!clausole.length) {
+      const err = new Error('Nessuna clausola identificabile nel file PDF (pattern Art./Clausola/Sezione non trovato)');
+      err.code = 'NO_CLAUSES_FOUND';
+      throw err;
+    }
+    return clausole;
+  }
 
   if (isDocx) {
     const clausole = await parseDocx(buffer);
@@ -76,4 +100,4 @@ async function parseFile(buffer, filename, mimeType) {
   throw err;
 }
 
-module.exports = { parseFile, parseDocx, parseXlsx };
+module.exports = { parseFile, parseDocx, parsePdf, parseXlsx };

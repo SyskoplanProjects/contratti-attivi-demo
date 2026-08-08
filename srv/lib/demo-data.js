@@ -204,6 +204,11 @@ const OGGETTO_PER_CATEGORIA = {
 };
 const RESPONSABILI = ['mario.rossi@contrattiattivi.it', 'anna.bianchi@contrattiattivi.it', 'luigi.verdi@contrattiattivi.it', 'luigi.neri@contrattiattivi.it'];
 
+// I primi 15 contratti (sopra) sono stati definiti prima di OGGETTO_PER_CATEGORIA e non
+// valorizzano "oggetto": senza backfill il campo resta null anche se testoOriginale (vedi
+// seed-demo.js) lo riporterebbe comunque nel frontespizio, disallineando struttura ed estrazione.
+CONTRATTI.forEach(c => { if (!c.oggetto) c.oggetto = OGGETTO_PER_CATEGORIA[c.categoria]; });
+
 const CONTRATTI_FORNITORI_REALI = [
   ['ROCKET SOFTWARE ITALY SRL', '05254241002', 'servizio', 'ok', 'APPROVATO', '2025-08-12', 36, 380000],
   ['FASTWEB SPA', '12878470157', 'servizio', 'ok', 'FIRMATO', '2025-08-25', 24, 610000],

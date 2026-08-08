@@ -384,11 +384,12 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       let { contractID, templateID } = req.data;
       if (!contractID) return req.reject(400, 'contractID obbligatorio');
 
+      let contrattoRow = null;
       const result = await cds.tx(req).run(async (tx) => {
         const { Contratto } = cds.entities('com.reply.contrattiattivi');
+        contrattoRow = await tx.run(SELECT.one.from(Contratto, contractID));
         if (!templateID) {
-          const contratto = await tx.run(SELECT.one.from(Contratto, contractID));
-          templateID = contratto && contratto.template_ID;
+          templateID = contrattoRow && contrattoRow.template_ID;
         }
         if (!templateID) return req.reject(400, 'Template di riferimento non determinabile per questo contratto');
 
@@ -414,7 +415,16 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       // passaggio non esisteva per "verifica contratto esistente" — il testo del documento non
       // era mai analizzato, quindi presenzaClausoleDORA restava sempre "non determinabile" anche
       // per contratti il cui testo cita DORA in ogni clausola.
-      const testo = result.clausole.map(c => c.testo).join('\n\n');
+      //
+      // Preferisci il testo del documento originale (persistito su Contratto in confirmCoverage):
+      // il solo corpo delle clausole non contiene mai intestazione/frontespizio (fornitore, date,
+      // importo), quindi quei campi tornerebbero sempre null. Fallback sul join delle clausole
+      // solo per i contratti creati prima di questa persistenza.
+      const testoOriginale = contrattoRow && contrattoRow.testoOriginale;
+      const testo = (testoOriginale && testoOriginale.trim())
+        ? testoOriginale
+        : result.clausole.map(c => c.testo).join('\n\n');
+      const pdfBase64 = (contrattoRow && contrattoRow.contenutoOriginale) || null;
       let metadati = [];
       try {
         ({ metadati } = await estraiCampiAllegato('CONTRATTO', testo));
@@ -422,8 +432,8 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         console.warn('[comparator] estrazione metadati da contratto fallita, uso fallback:', e.message);
       }
 
-      const previewID = previewStore.put({ templateID, contractID, clausole: result.clausole, coveragePercent: result.coveragePercent, testo, metadati });
-      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati };
+      const previewID = previewStore.put({ templateID, contractID, clausole: result.clausole, coveragePercent: result.coveragePercent, testo, metadati, pdfBase64 });
+      return { previewID, coveragePercent: result.coveragePercent, clausole: result.clausole, metadati, pdfBase64 };
     });
 
     this.on('confirmCoverage', async (req) => {
@@ -462,7 +472,9 @@ module.exports = class ComparatorService extends cds.ApplicationService {
           stato: 'BOZZA',
           intestatario: nome,
           template_ID: templateID, templateVersion_ID: versionID,
-          responsabile: req.user.id
+          responsabile: req.user.id,
+          testoOriginale: preview.testo || null,
+          contenutoOriginale: preview.pdfBase64 || null
         }));
 
         await salvaMetadati({ tx, parentType: 'Contratto', parentID: contrattoID, metadati: metadatiFinali });
