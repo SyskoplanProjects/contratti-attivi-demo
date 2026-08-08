@@ -337,7 +337,13 @@ function (BaseController, MessageBox) {
         await this._eseguiVerificheContratto(oCoverageData.previewID, []);
 
         oBusy.close();
-        sessionStorage.setItem("coverageResult", JSON.stringify(oCoverageData));
+
+        // pdfBase64 fuori da sessionStorage, stesso motivo/pattern di onAvvia sopra: su un
+        // contratto scansionato di qualche MB la quota ~5MB per-origine salterebbe.
+        this.getOwnerComponent()._resultPdfCache = oCoverageData.pdfBase64 || null;
+        var oCoverageDataSlim = { ...oCoverageData, pdfBase64: undefined };
+
+        sessionStorage.setItem("coverageResult", JSON.stringify(oCoverageDataSlim));
         sessionStorage.setItem("complianceResult", JSON.stringify(oComplianceData));
         sessionStorage.setItem("tipsAIResult", JSON.stringify(oTipsData));
         sessionStorage.setItem("comparatorFilename", this._sContractName || "Contratto");

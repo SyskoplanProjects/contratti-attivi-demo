@@ -13,7 +13,7 @@
     </customHeader>
     <content>
       <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
-        <Text class="app-hint-text" text="Carica un file .docx o .xlsx" />
+        <Text class="app-hint-text" text="Carica un file .docx, .pdf o .xlsx" />
 
         <HBox class="app-stepper">
           <HBox class="app-step active" id="step1">

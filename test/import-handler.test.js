@@ -1,6 +1,7 @@
 const { Document, Packer, Paragraph } = require('docx');
 const XLSX = require('xlsx');
 const { parseFile } = require('../srv/import-handler');
+const { convertiDocxInPdf } = require('../srv/lib/docx-to-pdf');
 
 async function buildDocxFixture() {
   const doc = new Document({
@@ -57,4 +58,15 @@ describe('import-handler', () => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
       .rejects.toMatchObject({ code: 'NO_CLAUSES_FOUND' });
   });
+
+  it('extracts clauses from a .pdf via Art./Clausola/Sezione pattern', async () => {
+    const docxBuffer = await buildDocxFixture();
+    const pdfBuffer = await convertiDocxInPdf(docxBuffer);
+
+    const clausole = await parseFile(pdfBuffer, 'template.pdf', 'application/pdf');
+    expect(clausole).toHaveLength(2);
+    expect(clausole[0].numero).toBe(1);
+    expect(clausole[0].titolo).toMatch(/Oggetto/);
+    expect(clausole[0].testo).toMatch(/fornitura di servizi ICT/);
+  }, 30000);
 });

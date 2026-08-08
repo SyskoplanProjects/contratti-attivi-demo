@@ -402,4 +402,86 @@ describe('calcolaCoverage / confirmCoverage — metadati contratto principale', 
     const anomalie = await SELECT.from(Anomalia).where({ esitoVerifica_ID: esiti[0].ID });
     expect(anomalie.map(a => a.tipo)).toContain('DEROGHE');
   });
+
+  it('confirmCoverage persiste testoOriginale/contenutoOriginale del documento caricato su Contratto', async () => {
+    mockChatJSON.mockImplementation(async (systemPrompt) => {
+      if (systemPrompt && systemPrompt.includes('segmenta')) {
+        return { clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola persistenza.' }] };
+      }
+      return { titoloContratto: { valore: 'Contratto Persistenza', confidenza: 0.9 } };
+    });
+
+    const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola, Contratto } = cds.entities('com.reply.contrattiattivi');
+    const templateID = cds.utils.uuid();
+    await INSERT.into(Template).entries({ ID: templateID, nome: 'Template persistenza' });
+    const versionID = cds.utils.uuid();
+    await INSERT.into(TemplateVersion).entries({ ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString() });
+    const clausolaID = cds.utils.uuid();
+    await INSERT.into(Clausola).entries({ ID: clausolaID, codice: 'C1', titolo: 'Oggetto', template_ID: templateID });
+    const clausolaVersioneID = cds.utils.uuid();
+    await INSERT.into(ClausolaVersione).entries({
+      ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: 'Testo clausola persistenza.',
+      dataCreazione: new Date().toISOString(), modificata: false, templateVersionOrigine_ID: versionID
+    });
+    await INSERT.into(TemplateVersionClausola).entries({ ID: cds.utils.uuid(), templateVersion_ID: versionID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1 });
+
+    const doc = new Document({ sections: [{ children: [new Paragraph('Testo clausola persistenza.')] }] });
+    const fileBase64 = (await Packer.toBuffer(doc)).toString('base64');
+
+    const coverage = await POST('/comparator/calcolaCoverage', { templateID, file: fileBase64, filename: 'contratto-persistenza.docx' }, { auth: MOCK_USER });
+    expect(coverage.status).toBe(200);
+
+    const conferma = await POST('/comparator/confirmCoverage', {
+      previewID: coverage.data.previewID, clausole: coverage.data.clausole, allegati: [], metadati: []
+    }, { auth: MOCK_USER });
+    expect(conferma.status).toBe(200);
+
+    const contratto = await SELECT.one.from(Contratto, conferma.data.ID);
+    expect(contratto.testoOriginale).toContain('Testo clausola persistenza.');
+    // pdfBase64 dipende dalla conversione docx->pdf (LibreOffice): qui verifichiamo solo che
+    // sia stato salvato coerentemente con quanto ritornato da calcolaCoverage, non un valore fisso.
+    expect(contratto.contenutoOriginale || null).toBe(coverage.data.pdfBase64 || null);
+  });
+
+  it('calcolaCoverageDaContratto usa il testoOriginale persistito (frontespizio incluso), non solo il testo delle clausole', async () => {
+    const capturedTesti = [];
+    mockChatJSON.mockImplementation(async (systemPrompt, testo) => {
+      capturedTesti.push(testo);
+      return { fornitore: { valore: 'Acme Frontespizio Srl', confidenza: 0.9 } };
+    });
+
+    const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola, Contratto, ContrattoClausola } = cds.entities('com.reply.contrattiattivi');
+    const templateID = cds.utils.uuid();
+    await INSERT.into(Template).entries({ ID: templateID, nome: 'Template frontespizio' });
+    const versionID = cds.utils.uuid();
+    await INSERT.into(TemplateVersion).entries({ ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString() });
+    const clausolaID = cds.utils.uuid();
+    await INSERT.into(Clausola).entries({ ID: clausolaID, codice: 'C1', titolo: 'Oggetto', template_ID: templateID });
+    const clausolaVersioneID = cds.utils.uuid();
+    await INSERT.into(ClausolaVersione).entries({
+      ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: 'Art. 1 — Testo clausola senza fornitore.',
+      dataCreazione: new Date().toISOString(), modificata: false, templateVersionOrigine_ID: versionID
+    });
+    await INSERT.into(TemplateVersionClausola).entries({ ID: cds.utils.uuid(), templateVersion_ID: versionID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1 });
+
+    const contrattoID = cds.utils.uuid();
+    await INSERT.into(Contratto).entries({
+      ID: contrattoID, stato: 'BOZZA', intestatario: 'Contratto con frontespizio', template_ID: templateID, templateVersion_ID: versionID,
+      testoOriginale: 'Fornitore: Acme Frontespizio Srl\n\nArt. 1 — Testo clausola senza fornitore.',
+      contenutoOriginale: 'ZmFrZS1wZGY='
+    });
+    await INSERT.into(ContrattoClausola).entries({
+      ID: cds.utils.uuid(), contratto_ID: contrattoID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1, rimossa: false
+    });
+
+    const resp = await POST('/comparator/calcolaCoverageDaContratto', { contractID: contrattoID, templateID }, { auth: MOCK_USER });
+    expect(resp.status).toBe(200);
+
+    // Il marker "Fornitore: ..." vive solo nel frontespizio (testoOriginale), mai nel corpo
+    // della clausola salvata: se compare nel testo passato al modello, è la prova che è stato
+    // usato testoOriginale e non il solo join delle clausole.
+    expect(capturedTesti.some(t => t && t.includes('Fornitore: Acme Frontespizio Srl'))).toBe(true);
+    expect(resp.data.metadati.find(m => m.campo === 'fornitore').valore).toBe('Acme Frontespizio Srl');
+    expect(resp.data.pdfBase64).toBe('ZmFrZS1wZGY=');
+  });
 });

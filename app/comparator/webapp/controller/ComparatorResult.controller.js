@@ -24,6 +24,13 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
       this._sContractID = sessionStorage.getItem("comparatorContractID");
       this._sContractName = sessionStorage.getItem("comparatorContractName");
 
+      // pdfBase64 non passa da sessionStorage (vedi ComparatorHome#onAvviaVerificaContratto):
+      // lo si recupera dalla cache in-memory sul Component, one-shot.
+      if (this.getOwnerComponent()._resultPdfCache !== undefined) {
+        oCoverageData.pdfBase64 = this.getOwnerComponent()._resultPdfCache;
+        delete this.getOwnerComponent()._resultPdfCache;
+      }
+
       if (oCoverageData.previewID) {
         console.log("Preview ID per assistente:", oCoverageData.previewID);
       }
@@ -33,10 +40,11 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
 
       this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename, tipologiaContratto: sTipologiaContratto }), "coverage");
 
-      if (!this._sContractID && oCoverageData.metadati && oCoverageData.metadati.length) {
+      if (oCoverageData.metadati && oCoverageData.metadati.length) {
         this.getView().setModel(new JSONModel(metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati)), "wizardSezioni");
         this.getView().setModel(new JSONModel({
           testo: oCoverageData.testo || "",
+          pdfBase64: oCoverageData.pdfBase64 || "",
           tipologiaContratto: sTipologiaContratto
         }), "wizardDocumento");
       }

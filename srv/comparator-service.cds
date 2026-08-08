@@ -262,6 +262,7 @@ service ComparatorService @(requires: 'Utente') {
     coveragePercent: Decimal(5,2);
     clausole: array of ClausolaCoverageResult;
     metadati: array of MetadatoConfermato;
+    pdfBase64: LargeString;
   };
   action verificaComplianceDaContratto(contractID: UUID, prompt: LargeString) returns array of ComplianceResult;
 

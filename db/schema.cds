@@ -70,6 +70,11 @@ entity Contratto : cuid, managed {
   dataUltimaVerifica  : DateTime;
   esitoVerifica       : String(20) enum { ok; non_conforme; in_corso; };
   dataArchiviazione   : DateTime;
+  // Testo/PDF del documento originale caricato: senza questi, la verifica su contratto
+  // esistente (calcolaCoverageDaContratto) doveva ricostruire il testo dalle sole clausole,
+  // perdendo intestazione/frontespizio (fornitore, date, importo) mai presenti in una clausola.
+  testoOriginale      : LargeString;
+  contenutoOriginale  : LargeString;
   clausole        : Composition of many ContrattoClausola on clausole.contratto = $self;
   allegati        : Composition of many ContrattoAllegato on allegati.contratto = $self;
   metadati        : Composition of many MetadatoDocumento on metadati.contratto = $self;
