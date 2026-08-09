@@ -208,6 +208,57 @@ describe('estraiClausoleAI — clausole con sezioni (es. clausola 5 con 5.1, 5.2
     expect(clausole[0].numero).toBe(5);
     expect(clausole[1].numero).toBe(6);
   });
+
+  it('scarta il frammento fantasma con lo stesso numero intero di una clausola reale (es. riepilogo in un allegato), tenendo quella con testo più lungo', async () => {
+    const sDoc = sDocumento + '\nAllegato: con riferimento all\'art. 5) (Requisiti di sicurezza);';
+    openai.chatJSON.mockResolvedValue({
+      clausole: [
+        {
+          numero: 5, titolo: 'Requisiti di sicurezza',
+          testo: 'Requisiti di sicurezza.\n5.1 Governance: il fornitore applica una governance della sicurezza ICT.\n5.2 Protezione dati: il fornitore protegge i dati personali.'
+        },
+        { numero: 5, titolo: '(Requisiti di sicurezza)', testo: '(Requisiti di sicurezza);' },
+        { numero: 6, titolo: 'Clausola finale', testo: 'Clausola finale.' }
+      ]
+    });
+
+    const clausole = await estraiClausoleAI(sDoc);
+
+    const perNumero = clausole.filter(c => c.numero === 5);
+    expect(perNumero).toHaveLength(1);
+    expect(perNumero[0].testo).toContain('5.1 Governance');
+    expect(clausole).toHaveLength(2);
+  });
+});
+
+describe('estraiClausoleAI — recupero titolo quando il modello lo lascia vuoto', () => {
+  beforeEach(() => { openai.chatJSON.mockReset(); });
+
+  it('recupera il titolo dalla prima riga del testo se breve e non è già una sottosezione numerata', async () => {
+    const sDoc = 'Definizioni\n1.1 Nelle presenti Condizioni Generali di Contratto i termini hanno il significato indicato.';
+    openai.chatJSON.mockResolvedValue({
+      clausole: [{ numero: 1, titolo: '', testo: sDoc }]
+    });
+
+    const clausole = await estraiClausoleAI(sDoc);
+
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].titolo).toBe('Definizioni');
+    expect(clausole[0].testo).toContain('1.1 Nelle presenti');
+    expect(clausole[0].testo).not.toMatch(/^Definizioni/);
+  });
+
+  it('usa il placeholder "Clausola N" quando la prima riga non è recuperabile come titolo (già numerata)', async () => {
+    const sDoc = '1.1 Nelle presenti Condizioni Generali di Contratto i termini hanno il significato indicato.';
+    openai.chatJSON.mockResolvedValue({
+      clausole: [{ numero: 1, titolo: '', testo: sDoc }]
+    });
+
+    const clausole = await estraiClausoleAI(sDoc);
+
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].titolo).toBe('Clausola 1');
+  });
 });
 
 describe('cosineSimilarity', () => {
@@ -226,7 +277,7 @@ describe('trovaMatch', () => {
   it('marks a clause as RIUSATA when the matched candidate has identical text and high similarity', async () => {
     openai.embeddings.mockResolvedValue([[1, 0, 0], [1, 0, 0]]);
     const clausole = [{ numero: 1, titolo: 'Oggetto', testo: 'Stesso testo.' }];
-    const candidati = { '1': { clausolaID: 'c1', clausolaVersioneID: 'v1', testo: 'Stesso testo.' } };
+    const candidati = { C1: { clausolaID: 'c1', clausolaVersioneID: 'v1', testo: 'Stesso testo.' } };
     const result = await trovaMatch(clausole, candidati);
     expect(result[0].stato).toBe('RIUSATA');
     expect(result[0].matchClausolaVersioneID).toBe('v1');
@@ -235,7 +286,7 @@ describe('trovaMatch', () => {
   it('marks a clause as MODIFICATA when similarity is high but text differs', async () => {
     openai.embeddings.mockResolvedValue([[1, 0, 0], [1, 0, 0]]);
     const clausole = [{ numero: 1, titolo: 'Oggetto', testo: 'Testo nuovo.' }];
-    const candidati = { '1': { clausolaID: 'c1', clausolaVersioneID: 'v1', testo: 'Testo vecchio.' } };
+    const candidati = { C1: { clausolaID: 'c1', clausolaVersioneID: 'v1', testo: 'Testo vecchio.' } };
     const result = await trovaMatch(clausole, candidati);
     expect(result[0].stato).toBe('MODIFICATA');
     expect(result[0].matchClausolaVersioneID).toBe('v1');
@@ -252,7 +303,7 @@ describe('trovaMatch', () => {
   it('falls back to NUOVA for all clauses when embeddings fail', async () => {
     openai.embeddings.mockRejectedValue(new Error('rate limit'));
     const clausole = [{ numero: 1, titolo: 'Oggetto', testo: 'Testo.' }];
-    const candidati = { '1': { clausolaID: 'c1', clausolaVersioneID: 'v1', testo: 'Testo.' } };
+    const candidati = { C1: { clausolaID: 'c1', clausolaVersioneID: 'v1', testo: 'Testo.' } };
     const result = await trovaMatch(clausole, candidati);
     expect(result[0].stato).toBe('NUOVA');
   });

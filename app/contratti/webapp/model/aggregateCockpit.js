@@ -62,6 +62,29 @@
       .slice(0, 8);
   }
 
+  // Stesso criterio di fuzzy-match di dashboardUtils.matchFornitore (duplicato qui per
+  // tenere questo modulo senza dipendenze: nomeFornitore/intestatario provengono da
+  // fonti diverse - anagrafica Fornitore vs testo libero sul Contratto - quindi il
+  // confronto è case/spazi-insensitive con contenimento in entrambe le direzioni).
+  function matchFornitoreNome(sNomeFornitore, sIntestatario) {
+    if (!sNomeFornitore || !sIntestatario) return false;
+    var a = String(sNomeFornitore).trim().toLowerCase();
+    var b = String(sIntestatario).trim().toLowerCase();
+    if (!a || !b) return false;
+    return a === b || b.indexOf(a) !== -1 || a.indexOf(b) !== -1;
+  }
+
+  function buildTopFornitoriNumero(contratti, fornitori) {
+    return fornitori
+      .map(function (f) {
+        var n = contratti.filter(function (c) { return matchFornitoreNome(f.nomeFornitore, c.intestatario); }).length;
+        return { nome: f.nomeFornitore, value: n };
+      })
+      .filter(function (r) { return r.value > 0; })
+      .sort(function (a, b) { return b.value - a.value; })
+      .slice(0, 8);
+  }
+
   function aggregateCockpit(input) {
     var contratti = (input.contratti || []).filter(function (c) { return c.stato !== 'ARCHIVIATO'; });
     var fornitori = input.fornitori || [];
@@ -71,7 +94,8 @@
       donutTipologia: buildTipologia(contratti),
       donutSurvey: buildSurvey(contratti),
       trend: buildTrend(contratti),
-      topFornitori: buildTopFornitori(fornitori)
+      topFornitori: buildTopFornitori(fornitori),
+      topFornitoriNumero: buildTopFornitoriNumero(contratti, fornitori)
     };
   }
 
@@ -79,6 +103,7 @@
   aggregateCockpit.buildSurvey = buildSurvey;
   aggregateCockpit.buildTrend = buildTrend;
   aggregateCockpit.buildTopFornitori = buildTopFornitori;
+  aggregateCockpit.buildTopFornitoriNumero = buildTopFornitoriNumero;
   aggregateCockpit.countBy = countBy;
 
   return aggregateCockpit;

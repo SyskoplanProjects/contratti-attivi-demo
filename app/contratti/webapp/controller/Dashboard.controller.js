@@ -43,11 +43,12 @@ sap.ui.define([
             categoria: c.categoria || "altro",
             esitoVerifica: c.esitoVerifica || "in_corso",
             dataStipula: c.dataStipula,
-            dataScadenza: c.dataScadenza
+            dataScadenza: c.dataScadenza,
+            intestatario: c.intestatario
           };
         });
         var ui = aggregateCockpit({ contratti: contratti, fornitori: fornitori });
-        var sTopFornitoriHtml = dashboardUtils.buildTopFornitoriHtml(ui.topFornitori, "fatturato");
+        var sTopFornitoriHtml = dashboardUtils.buildTopFornitoriHtml(ui.topFornitori, "importi");
         that.getView().setModel(new JSONModel({
           totaleContrattiAnno: ui.totaleContratti,
           importoTotaleAnno: ui.importoTotaleAnno,
@@ -56,7 +57,8 @@ sap.ui.define([
           trendHtml: dashboardUtils.buildTrendHtml(ui.trend)
         }), "cockpit");
         that.getView().setModel(new JSONModel({
-          lista: ui.topFornitori,
+          listaImporti: ui.topFornitori,
+          listaNumero: ui.topFornitoriNumero,
           vista: "importi",
           topFornitoriHtml: sTopFornitoriHtml
         }), "fornitori");
@@ -117,7 +119,7 @@ sap.ui.define([
       var sVista = oEvent.getParameter("key");
       var oModel = this.getView().getModel("fornitori");
       if (!oModel) return;
-      var aLista = oModel.getProperty("/lista");
+      var aLista = oModel.getProperty(sVista === "numero" ? "/listaNumero" : "/listaImporti");
       oModel.setProperty("/vista", sVista);
       oModel.setProperty("/topFornitoriHtml", dashboardUtils.buildTopFornitoriHtml(aLista, sVista));
     },
@@ -125,7 +127,8 @@ sap.ui.define([
     onApriContrattoDettaglio: function (oEvent) {
       var sID = oEvent.getSource().getBindingContext().getProperty("ID");
       if (!sID) return;
-      this.getOwnerComponent().getRouter().navTo("detail", { id: encodeURIComponent(sID) });
+      var sHash = this.getOwnerComponent().getRouter().getURL("detail", { id: encodeURIComponent(sID) });
+      window.open(sHash, "_blank");
     },
 
     onNavBack: function () {

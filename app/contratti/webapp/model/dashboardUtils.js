@@ -82,7 +82,7 @@
     var fMax = aRows.reduce(function (n, r) { return Math.max(n, r.value || 0); }, 1);
     var sRows = aRows.map(function (r) {
       var fW = Math.round((r.value || 0) / fMax * 100);
-      var sText = r.value != null ? '€ ' + Math.round(r.value / 1000) + 'k' : '';
+      var sText = r.value == null ? '' : (sMetric === 'numero' ? String(r.value) : '€ ' + Math.round(r.value / 1000) + 'k');
       return '<div class="app-topf-row">' +
         '<span class="app-topf-name">' + escapeHtml(r.nome) + '</span>' +
         '<div class="app-topf-bars">' +

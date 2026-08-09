@@ -141,7 +141,7 @@ async function eseguiImportConfermato(tx, templateID, filename, clausoleConferma
     } else {
       clausolaID = cds.utils.uuid();
       await tx.run(INSERT.into(Clausola).entries({
-        ID: clausolaID, codice: String(c.numero), titolo: c.titolo, template_ID: template.ID
+        ID: clausolaID, codice: `C${c.numero}`, titolo: c.titolo, template_ID: template.ID
       }));
       const nuovaVersioneID = cds.utils.uuid();
       await tx.run(INSERT.into(ClausolaVersione).entries({

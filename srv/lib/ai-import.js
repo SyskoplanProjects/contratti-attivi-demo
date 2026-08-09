@@ -150,16 +150,28 @@ function _fondeSezioni(clausole) {
   for (const c of clausole) {
     (Number.isInteger(c.numero) ? madri : sezioni).push(c);
   }
-  if (!sezioni.length) return clausole;
 
-  const perNumero = new Map(madri.map(c => [c.numero, c]));
-  const risultato = [...madri];
+  // Un riepilogo/allegato del documento può ricitare un articolo già estratto altrove
+  // (es. "...con riferimento all'art. 3) (Osservanza di leggi...)..."): il modello lo segmenta
+  // come clausola a sé con lo stesso numero intero della clausola reale, ma testo minimo
+  // (poche parole tra parentesi). Tra due candidate con lo stesso numero si tiene quella con
+  // testo più lungo (la clausola vera) e si scarta l'altra.
+  const madriPerNumero = new Map();
+  for (const m of madri) {
+    const esistente = madriPerNumero.get(m.numero);
+    if (!esistente || m.testo.length > esistente.testo.length) madriPerNumero.set(m.numero, m);
+  }
+  const madriUniche = [...madriPerNumero.values()];
+
+  if (!sezioni.length) return madriUniche.sort((a, b) => a.numero - b.numero);
+
+  const risultato = [...madriUniche];
 
   const madrePerSezione = s => {
-    const madre = perNumero.get(Math.floor(s.numero));
+    const madre = madriPerNumero.get(Math.floor(s.numero));
     if (madre) return madre;
     let precedente = null;
-    for (const m of madri) {
+    for (const m of madriUniche) {
       if (m.numero < s.numero) precedente = m;
     }
     return precedente;
@@ -174,6 +186,18 @@ function _fondeSezioni(clausole) {
   return risultato.sort((a, b) => a.numero - b.numero);
 }
 
+// Alcuni documenti hanno l'intestazione della clausola scritta a ridosso del testo (senza
+// separazione tipografica netta): il modello a volte la lascia dentro "testo" invece di
+// valorizzare "titolo", che arriva vuoto. Se la prima riga del testo è breve e non è già
+// l'inizio di una sottosezione numerata (es. "1.1 ..."), la trattiamo come titolo recuperato
+// e la stacchiamo dal corpo, invece del placeholder generico "Clausola N".
+function _recuperaTitoloDaTesto(sTesto) {
+  const iNewline = sTesto.indexOf('\n');
+  const sPrimaRiga = (iNewline === -1 ? sTesto : sTesto.slice(0, iNewline)).trim();
+  if (!sPrimaRiga || sPrimaRiga.length > 100 || /^\d+(\.\d+)*[\s.)]/.test(sPrimaRiga)) return null;
+  return { titolo: sPrimaRiga, resto: (iNewline === -1 ? '' : sTesto.slice(iNewline + 1)).replace(/^\s+/, '') };
+}
+
 async function estraiClausoleAI(testoDocumento) {
   const result = await openai.chatJSON(SEGMENTAZIONE_SYSTEM_PROMPT, testoDocumento);
   const clausole = Array.isArray(result?.clausole) ? result.clausole : [];
@@ -181,11 +205,18 @@ async function estraiClausoleAI(testoDocumento) {
 
   const scartate = [];
   const valide = clausole
-    .map((c, i) => ({
-      numero: Number(c.numero) || i + 1,
-      titolo: String(c.titolo || `Clausola ${i + 1}`),
-      testo: String(c.testo || '')
-    }))
+    .map((c, i) => {
+      const sTestoGrezzo = String(c.testo || '');
+      const sTitoloAI = String(c.titolo || '').trim();
+      if (sTitoloAI) return { numero: Number(c.numero) || i + 1, titolo: sTitoloAI, testo: sTestoGrezzo };
+
+      const recuperato = sTestoGrezzo && _recuperaTitoloDaTesto(sTestoGrezzo);
+      return {
+        numero: Number(c.numero) || i + 1,
+        titolo: recuperato ? recuperato.titolo : `Clausola ${i + 1}`,
+        testo: recuperato ? recuperato.resto : sTestoGrezzo
+      };
+    })
     .filter(c => c.testo)
     .filter(c => {
       const presente = _clausolaPresenteNelTesto(c.testo, testoDocumento);
@@ -224,7 +255,7 @@ function cosineSimilarity(a, b) {
 
 async function trovaMatch(clausoleEstratte, candidatiPerCodice) {
   const codiciConCandidato = clausoleEstratte
-    .map(c => String(c.numero))
+    .map(c => `C${c.numero}`)
     .filter(codice => candidatiPerCodice[codice]);
 
   const testiDaEmbeddare = [
@@ -253,7 +284,7 @@ async function trovaMatch(clausoleEstratte, candidatiPerCodice) {
   });
 
   return clausoleEstratte.map((c, i) => {
-    const codice = String(c.numero);
+    const codice = `C${c.numero}`;
     const candidato = candidatiPerCodice[codice];
     if (!candidato || !vettoriCandidati[codice]) {
       return { ...c, stato: 'NUOVA', similarity: 0, matchClausolaVersioneID: null };
