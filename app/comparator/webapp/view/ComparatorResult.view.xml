@@ -22,18 +22,6 @@
           </Select>
         </HBox>
 
-        <Panel id="wizardMetadatiPanel" expandable="true" expanded="true"
-          visible="{= !!${coverage>/metadati} &amp;&amp; ${coverage>/metadati}.length > 0 }"
-          class="app-card app-card-padded sapUiSmallMarginBottom">
-          <headerToolbar>
-            <Toolbar>
-              <Title text="Verifica metadati contratto" level="H4" />
-              <ToolbarSpacer />
-            </Toolbar>
-          </headerToolbar>
-          <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.MetadataWizard" type="XML" />
-        </Panel>
-
         <VBox id="tipsAIWrap" visible="{tips>/has}" class="app-card app-card-padded sapUiSmallMarginBottom">
           <HBox class="sapUiTinyMarginBottom" alignItems="Center">
             <core:Icon src="sap-icon://lightbulb" class="sapUiTinyMarginEnd" />
