@@ -2,7 +2,7 @@ const cds = require('@sap/cds');
 const express = require('express');
 const multer = require('multer');
 const { parseFile } = require('./import-handler');
-const { eseguiImport } = require('./lib/import-commit');
+const { eseguiImport, creaTemplateDaFileMultipli } = require('./lib/import-commit');
 const { estraiClausoleConFallback, trovaMatch, buildCandidatiPerCodice, extractTextMultiFormato } = require('./lib/ai-import');
 const previewStore = require('./lib/preview-store');
 const { calcolaCoverage } = require('./lib/comparator-engine');
@@ -68,6 +68,22 @@ cds.on('bootstrap', (app) => {
       res.status(200).json(JSON.parse(JSON.stringify(result)));
     } catch (e) {
       res.status(e.code && Number.isInteger(e.code) ? e.code : 500).json({ code: 'IMPORT_FAILED', message: e.message });
+    }
+  });
+
+  app.post('/contratti/creaTemplateMultiFile', requireAuth(['Utente']), upload.array('file'), async (req, res) => {
+    const nome = ((req.body && req.body.nome) || '').trim();
+    if (!nome) return res.status(400).json({ code: 'NOME_MANCANTE', message: 'Nome template obbligatorio' });
+    if (!req.files || !req.files.length) return res.status(400).json({ code: 'NO_FILE', message: 'Nessun file ricevuto' });
+
+    try {
+      const result = await cds.tx(tx => creaTemplateDaFileMultipli(
+        tx, nome,
+        req.files.map(f => ({ buffer: f.buffer, filename: f.originalname, mimeType: f.mimetype }))
+      ));
+      res.status(200).json(result);
+    } catch (e) {
+      res.status(e.code === 'EXTRACTION_FAILED' ? 400 : 500).json({ code: e.code || 'CREAZIONE_FALLITA', message: e.message });
     }
   });
 
