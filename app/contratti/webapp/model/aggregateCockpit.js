@@ -36,12 +36,20 @@
     });
   }
 
+  function meseValido(sData) {
+    if (!sData) return -1;
+    var d = new Date(sData);
+    return isNaN(d.getTime()) ? -1 : d.getMonth();
+  }
+
   function buildTrend(contratti) {
     var mesi = [];
     for (var m = 0; m < 12; m++) mesi.push({ mese: MESI[m], attivati: 0, scadenza: 0 });
     contratti.forEach(function (c) {
-      if (c.dataStipula) mesi[new Date(c.dataStipula).getMonth()].attivati++;
-      if (c.dataScadenza) mesi[new Date(c.dataScadenza).getMonth()].scadenza++;
+      var mAttivati = meseValido(c.dataStipula);
+      if (mAttivati >= 0) mesi[mAttivati].attivati++;
+      var mScadenza = meseValido(c.dataScadenza);
+      if (mScadenza >= 0) mesi[mScadenza].scadenza++;
     });
     return mesi;
   }

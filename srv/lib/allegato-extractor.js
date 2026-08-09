@@ -103,7 +103,8 @@ async function estraiCampiAllegato(tipo, testo, testoPosizionato = null) {
 
   const metadati = campiDaChiedere.map(c => {
     const r = risultato[c.campo];
-    const valore = (r && typeof r === 'object' && r.valore != null && r.valore !== '') ? String(r.valore) : null;
+    const valoreGrezzo = (r && typeof r === 'object' && r.valore != null) ? String(r.valore).trim() : '';
+    const valore = (valoreGrezzo && valoreGrezzo.toLowerCase() !== 'null') ? valoreGrezzo : null;
     const confidenza = (r && typeof r === 'object' && typeof r.confidenza === 'number')
       ? Math.max(0, Math.min(1, r.confidenza)) : 0;
     // Per campi che il modello riformatta (es. date in ISO, importi come numero puro) il valore
