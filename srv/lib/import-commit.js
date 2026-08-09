@@ -1,6 +1,7 @@
 const cds = require('@sap/cds');
 const { computeDelta, normalizeText } = require('./diff-utils');
 const { computeDocumentoEmbedding } = require('./template-embedding');
+const { estraiClausoleConFallback } = require('./ai-import');
 
 async function eseguiImport(tx, templateID, filename, clausoleEstratte) {
   const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } =
@@ -162,4 +163,59 @@ async function eseguiImportConfermato(tx, templateID, filename, clausoleConferma
   return { clausoleCreate, clausoleRiutilizzate, clausoleConDelta, templateID: template.ID };
 }
 
-module.exports = { eseguiImport, eseguiImportConfermato };
+async function creaTemplateDaFileMultipli(tx, nome, fileList) {
+  const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } =
+    cds.entities('com.reply.contrattiattivi');
+
+  // 1. Estrae TUTTI i file prima di scrivere qualsiasi cosa (atomicità: se uno fallisce,
+  // nessuna riga è stata ancora inserita nel DB).
+  const clausolePerFile = [];
+  for (const f of fileList) {
+    try {
+      clausolePerFile.push(await estraiClausoleConFallback(f.buffer, f.filename, f.mimeType));
+    } catch (e) {
+      const err = new Error(`Estrazione fallita su "${f.filename}": ${e.message}`);
+      err.code = 'EXTRACTION_FAILED';
+      throw err;
+    }
+  }
+
+  // 2. Unisce tutte le clausole nell'ordine di caricamento. Il "numero" originale di ciascun
+  // file viene scartato (ripartirebbe da 1 per ogni documento): il codice viene riassegnato
+  // in sequenza sull'insieme unito, non sul singolo file.
+  const clausoleUnite = clausolePerFile.flat();
+
+  // 3. Crea Template + TemplateVersion + una riga Clausola/ClausolaVersione/TemplateVersionClausola
+  // per ciascuna clausola unita. Nessun matching/versioning: è un template completamente nuovo.
+  const templateID = cds.utils.uuid();
+  await tx.run(INSERT.into(Template).entries({ ID: templateID, nome, tipoServizio: 'N/D' }));
+
+  const versionID = cds.utils.uuid();
+  const embeddingDocumento = await computeDocumentoEmbedding(clausoleUnite);
+  await tx.run(INSERT.into(TemplateVersion).entries({
+    ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString(), embeddingDocumento
+  }));
+
+  for (let i = 0; i < clausoleUnite.length; i++) {
+    const c = clausoleUnite[i];
+    const clausolaID = cds.utils.uuid();
+    await tx.run(INSERT.into(Clausola).entries({
+      ID: clausolaID, codice: `C${i + 1}`, titolo: c.titolo, template_ID: templateID
+    }));
+
+    const clausolaVersioneID = cds.utils.uuid();
+    await tx.run(INSERT.into(ClausolaVersione).entries({
+      ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: c.testo,
+      dataCreazione: new Date().toISOString(), modificata: false
+    }));
+
+    await tx.run(INSERT.into(TemplateVersionClausola).entries({
+      ID: cds.utils.uuid(), templateVersion_ID: versionID, clausola_ID: clausolaID,
+      clausolaVersione_ID: clausolaVersioneID, ordine: i + 1
+    }));
+  }
+
+  return { templateID, clausoleCreate: clausoleUnite.length };
+}
+
+module.exports = { eseguiImport, eseguiImportConfermato, creaTemplateDaFileMultipli };
