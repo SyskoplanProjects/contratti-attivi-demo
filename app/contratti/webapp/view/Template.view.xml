@@ -15,10 +15,14 @@
     <content>
       <VBox class="sapUiSmallMargin app-page-content" width="{= ${aiPanel>/expanded} ? 'calc(100% - 380px - 1rem)' : 'calc(100% - 68px)' }">
         <Text class="app-hint-text" text="Importa e gestisci template contrattuali" />
-        <HBox class="sapUiSmallMarginBottom" alignItems="Center" justifyContent="SpaceBetween">
-          <u:FileUploader id="fileUploader" width="18rem" placeholder="Seleziona file .docx/.xlsx" change="onFileChange" buttonText="Scegli file" class="app-uploader-rounded" />
-          <Button text="Importa" press="onImporta" class="app-btn app-btn-primary" />
-        </HBox>
+        <VBox class="sapUiSmallMarginBottom">
+          <HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiTinyMarginBottom">
+            <Input id="nomeTemplateInput" width="18rem" placeholder="Nome template" liveChange="onNomeTemplateChange" />
+            <u:FileUploader id="fileUploader" width="18rem" placeholder="Seleziona uno o più file .docx/.xlsx" multiple="true" change="onFileChange" buttonText="Scegli file" class="app-uploader-rounded" />
+            <Button id="creaTemplateBtn" text="Crea template" press="onCreaTemplate" enabled="false" class="app-btn app-btn-primary" />
+          </HBox>
+          <Text id="fileSelezionatiText" class="app-hint-text" />
+        </VBox>
         <VBox class="app-table-wrap">
           <Table id="templateTable" items="{path: '/Template', parameters: {$expand: 'versioni'}}">
             <columns>

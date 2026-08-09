@@ -15,28 +15,56 @@ sap.ui.define([
     },
 
     onFileChange: function (oEvent) {
-      this._oFile = oEvent.getParameter("files")[0];
+      this._aFile = Array.prototype.slice.call(oEvent.getParameter("files") || []);
+      this.byId("fileSelezionatiText").setText(
+        this._aFile.length ? this._aFile.map(function (f) { return f.name; }).join(", ") : ""
+      );
+      this._aggiornaStatoBottone();
     },
 
-    onImporta: async function () {
-      if (!this._oFile) {
-        MessageBox.error("Seleziona un file .docx o .xlsx.");
+    onNomeTemplateChange: function () {
+      this._aggiornaStatoBottone();
+    },
+
+    _aggiornaStatoBottone: function () {
+      var sNome = (this.byId("nomeTemplateInput").getValue() || "").trim();
+      var bAbilitato = !!sNome && !!(this._aFile && this._aFile.length);
+      this.byId("creaTemplateBtn").setEnabled(bAbilitato);
+    },
+
+    onCreaTemplate: async function () {
+      var sNome = (this.byId("nomeTemplateInput").getValue() || "").trim();
+      if (!sNome) {
+        MessageBox.error("Inserisci un nome per il template.");
         return;
       }
-      const formData = new FormData();
-      formData.append("file", this._oFile);
+      if (!this._aFile || !this._aFile.length) {
+        MessageBox.error("Seleziona almeno un file.");
+        return;
+      }
 
+      var formData = new FormData();
+      formData.append("nome", sNome);
+      this._aFile.forEach(function (oFile) { formData.append("file", oFile); });
+
+      this.byId("creaTemplateBtn").setEnabled(false);
       try {
-        const resp = await fetch("/contratti/importTemplate", { method: "POST", body: formData });
-        const body = await resp.json();
+        var resp = await fetch("/contratti/creaTemplateMultiFile", { method: "POST", body: formData });
+        var body = await resp.json();
         if (!resp.ok) {
-          MessageBox.error(body.message || `Errore HTTP ${resp.status}`);
+          MessageBox.error(body.message || ("Errore HTTP " + resp.status));
           return;
         }
-        MessageToast.show(`Import completato: ${body.clausoleCreate} nuove, ${body.clausoleRiutilizzate} riusate, ${body.clausoleConDelta} con delta.`);
+        MessageToast.show("Template creato: " + body.clausoleCreate + " clausole.");
+        this._aFile = [];
+        this.byId("nomeTemplateInput").setValue("");
+        this.byId("fileUploader").clear();
+        this.byId("fileSelezionatiText").setText("");
         this.byId("templateTable").getBinding("items").refresh();
       } catch (e) {
         MessageBox.error(e.message || String(e));
+      } finally {
+        this._aggiornaStatoBottone();
       }
     },
 
