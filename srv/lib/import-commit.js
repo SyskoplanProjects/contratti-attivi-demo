@@ -206,7 +206,7 @@ async function creaTemplateDaFileMultipli(tx, nome, fileList) {
     const clausolaVersioneID = cds.utils.uuid();
     await tx.run(INSERT.into(ClausolaVersione).entries({
       ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: c.testo,
-      dataCreazione: new Date().toISOString(), modificata: false
+      dataCreazione: new Date().toISOString(), modificata: false, templateVersionOrigine_ID: versionID
     }));
 
     await tx.run(INSERT.into(TemplateVersionClausola).entries({

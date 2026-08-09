@@ -35,7 +35,7 @@ describe('creaTemplateDaFileMultipli', () => {
     expect(result.clausoleCreate).toBe(5);
     expect(result.templateID).toBeDefined();
 
-    const { Clausola, TemplateVersionClausola, TemplateVersion } = cds.entities('com.reply.contrattiattivi');
+    const { Clausola, TemplateVersionClausola, TemplateVersion, ClausolaVersione } = cds.entities('com.reply.contrattiattivi');
     const versions = await SELECT.from(TemplateVersion).where({ template_ID: result.templateID });
     expect(versions).toHaveLength(1);
 
@@ -48,6 +48,12 @@ describe('creaTemplateDaFileMultipli', () => {
 
     expect(clausole.map(c => c.codice)).toEqual(['C1', 'C2', 'C3', 'C4', 'C5']);
     expect(clausole.map(c => c.titolo)).toEqual(['Oggetto', 'Durata', 'Riservatezza', 'Foro competente', 'Recesso']);
+
+    // Verify templateVersionOrigine_ID is set for all created clause versions
+    for (const r of righe) {
+      const clausolaVersione = await SELECT.one.from(ClausolaVersione, r.clausolaVersione_ID);
+      expect(clausolaVersione.templateVersionOrigine_ID).toBe(versions[0].ID);
+    }
   });
 
   it('salva il nome esattamente come passato', async () => {
