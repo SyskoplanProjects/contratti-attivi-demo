@@ -83,7 +83,10 @@ cds.on('bootstrap', (app) => {
       ));
       res.status(200).json(result);
     } catch (e) {
-      res.status(e.code === 'EXTRACTION_FAILED' ? 400 : 500).json({ code: e.code || 'CREAZIONE_FALLITA', message: e.message });
+      if (e.code === 'EXTRACTION_FAILED') {
+        return res.status(400).json({ code: e.code, message: e.message });
+      }
+      res.status(500).json({ code: 'CREAZIONE_FALLITA', message: e.message });
     }
   });
 
