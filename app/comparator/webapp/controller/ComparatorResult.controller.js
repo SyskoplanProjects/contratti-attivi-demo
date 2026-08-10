@@ -116,6 +116,16 @@ function (BaseController, MessageBox, JSONModel, VerticalLayout, metadataWizardH
         }), "compliance");
       }
 
+      // Clausole del template non trovate nel contratto (coverage < 100%): finora scartate in
+      // silenzio dal filtro sopra, che tiene solo le clausole realmente presenti nel documento.
+      // "Cosa manca rispetto al template" va mostrato qui, altrimenti dalla verifica di un
+      // contratto esistente non c'è alcun modo di sapere quali clausole mancano (a differenza
+      // del wizard di import, che le mostra nello step finale — vedi Wizard.controller.js).
+      var aMancanti = (oCoverageData.clausole || [])
+        .filter(function (c) { return c.stato === "NON_PRESENTE"; })
+        .map(function (c) { return { titolo: c.titolo || c.templateTitolo || "", testo: c.testo || "" }; });
+      this.getView().setModel(new JSONModel({ value: aMancanti, has: aMancanti.length > 0 }), "mancanti");
+
       if (this._sContractID) {
         this.byId("tornaContrattoBtn").setVisible(true);
         this.byId("saveAsContrattoBtn").setVisible(false);

@@ -67,6 +67,24 @@
 
         </VBox>
 
+        <VBox visible="{mancanti>/has}" class="app-table-wrap sapUiSmallMarginBottom">
+          <Label text="Clausole mancanti rispetto al template" design="Bold" class="sapUiSmallMarginBottom" />
+          <Table items="{ path: 'mancanti>/value', templateShareable: true }" growing="true" growingThreshold="50">
+            <columns>
+              <Column><Text text="Clausola" /></Column>
+              <Column><Text text="Testo (dal template)" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{mancanti>titolo}" />
+                  <Text text="{mancanti>testo}" wrapping="true" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+        </VBox>
+
         <core:Fragment fragmentName="com.reply.contrattiattivi.comparator.fragment.EsitiVerifica" type="XML" />
 
         <VBox id="allegatiTableWrap" visible="false" class="app-card app-card-padded sapUiSmallMarginTop">
