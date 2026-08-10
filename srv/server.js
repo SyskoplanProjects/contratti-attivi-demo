@@ -3,6 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const { parseFile } = require('./import-handler');
 const { eseguiImport, estraiClausoleMultiFile, creaTemplateDaClausole } = require('./lib/import-commit');
+const { computeDocumentoEmbedding } = require('./lib/template-embedding');
 const { estraiClausoleConFallback, trovaMatch, buildCandidatiPerCodice, extractTextMultiFormato } = require('./lib/ai-import');
 const previewStore = require('./lib/preview-store');
 const { calcolaCoverage } = require('./lib/comparator-engine');
@@ -80,7 +81,8 @@ cds.on('bootstrap', (app) => {
       const clausoleUnite = await estraiClausoleMultiFile(
         req.files.map(f => ({ buffer: f.buffer, filename: f.originalname, mimeType: f.mimetype }))
       );
-      const result = await cds.tx(tx => creaTemplateDaClausole(tx, nome, clausoleUnite));
+      const embeddingDocumento = await computeDocumentoEmbedding(clausoleUnite);
+      const result = await cds.tx(tx => creaTemplateDaClausole(tx, nome, clausoleUnite, embeddingDocumento));
       res.status(200).json(result);
     } catch (e) {
       if (e.code === 'EXTRACTION_FAILED') {

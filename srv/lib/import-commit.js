@@ -184,7 +184,7 @@ async function estraiClausoleMultiFile(fileList) {
 // Crea Template + TemplateVersion + una riga Clausola/ClausolaVersione/TemplateVersionClausola
 // per ciascuna clausola già estratta e unita. Nessun matching/versioning: è un template
 // completamente nuovo.
-async function creaTemplateDaClausole(tx, nome, clausoleUnite) {
+async function creaTemplateDaClausole(tx, nome, clausoleUnite, embeddingDocumento) {
   const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } =
     cds.entities('com.reply.contrattiattivi');
 
@@ -192,7 +192,6 @@ async function creaTemplateDaClausole(tx, nome, clausoleUnite) {
   await tx.run(INSERT.into(Template).entries({ ID: templateID, nome, tipoServizio: 'N/D' }));
 
   const versionID = cds.utils.uuid();
-  const embeddingDocumento = await computeDocumentoEmbedding(clausoleUnite);
   await tx.run(INSERT.into(TemplateVersion).entries({
     ID: versionID, template_ID: templateID, numero: 0, dataCreazione: new Date().toISOString(), embeddingDocumento
   }));

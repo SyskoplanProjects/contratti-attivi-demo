@@ -254,17 +254,19 @@ sap.ui.define([
     },
 
     onCaricaDaTemplate: async function () {
-      var oFile = null;
+      if (this._oCaricaTemplateDialog) return;
+      var aFiles = [];
 
       const oFileUploader = new sap.ui.unified.FileUploader({
         buttonText: "Scegli file",
         placeholder: "Nessun file selezionato",
         width: "100%",
+        multiple: true,
         change: function (oEvent) {
-          var aFiles = oEvent.getParameter("files");
-          oFile = aFiles && aFiles[0];
+          aFiles = Array.prototype.slice.call(oEvent.getParameter("files") || []);
         }
       });
+      const oNomeInput = new sap.m.Input({ placeholder: "Nome template", width: "100%" });
 
       var fnCentered = function (oControl, sLabel) {
         return new sap.m.VBox({ items: [
@@ -276,23 +278,25 @@ sap.ui.define([
       const oDialog = new sap.m.Dialog({
         title: "Carica da template",
         contentWidth: "35rem",
-        content: [fnCentered(oFileUploader, "File Word (.docx)")],
+        content: [fnCentered(oNomeInput, "Nome template"), fnCentered(oFileUploader, "File Word (.docx / .xlsx)")],
         beginButton: new sap.m.Button({
           text: "Crea template",
           type: "Emphasized",
           press: async function () {
-            if (!oFile) {
-              MessageBox.error("Seleziona un file Word.");
+            const sNome = oNomeInput.getValue().trim();
+            if (!sNome) {
+              MessageBox.error("Inserisci un nome per il template.");
               return;
             }
-            if (!oFile.name.toLowerCase().endsWith('.docx')) {
-              MessageBox.error("Formato non supportato. Carica un file .docx.");
+            if (!aFiles.length) {
+              MessageBox.error("Seleziona almeno un file Word.");
               return;
             }
             try {
               const oFormData = new FormData();
-              oFormData.append("file", oFile, oFile.name);
-              const oResp = await fetch("/contratti/importTemplate", {
+              oFormData.append("nome", sNome);
+              aFiles.forEach(function (oFile) { oFormData.append("file", oFile); });
+              const oResp = await fetch("/contratti/creaTemplateMultiFile", {
                 method: "POST",
                 body: oFormData
               });
@@ -310,8 +314,12 @@ sap.ui.define([
           }.bind(this)
         }),
         endButton: new sap.m.Button({ text: "Annulla", press: () => oDialog.close() }),
-        afterClose: () => oDialog.destroy()
+        afterClose: () => {
+          oDialog.destroy();
+          this._oCaricaTemplateDialog = null;
+        }
       });
+      this._oCaricaTemplateDialog = oDialog;
       oDialog.open();
     },
 
