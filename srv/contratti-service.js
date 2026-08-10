@@ -1,6 +1,7 @@
 const cds = require('@sap/cds');
 const { computeDelta } = require('./lib/diff-utils');
 const { eseguiImportConfermato } = require('./lib/import-commit');
+const { prossimoCodiceContratto } = require('./lib/codice-contratto');
 const previewStore = require('./lib/preview-store');
 const { computeAndSaveEmbedding } = require('./lib/embedding-utils');
 const { extractTextMultiFormato } = require('./lib/ai-import');
@@ -20,9 +21,10 @@ module.exports = class ContrattiService extends cds.ApplicationService {
     const { Template, TemplateVersion, TemplateVersionClausola, Contratto, ContrattoClausola, Clausola, ClausolaVersione, Revisione, Commento, AlertModificaTemplate, AlertContrattoCoinvolto } =
       cds.entities('com.reply.contrattiattivi');
 
-    this.before('CREATE', 'Contratto', (req) => {
+    this.before('CREATE', 'Contratto', async (req) => {
       if (!req.user) return req.reject(401);
       if (!req.user.is('Utente')) return req.reject(403, 'Solo Utente può creare contratti');
+      if (!req.data.codice) req.data.codice = await prossimoCodiceContratto(cds.tx(req));
     });
     this.before('UPDATE', 'Contratto', (req) => {
       if (!req.user) return req.reject(401);
@@ -53,6 +55,7 @@ module.exports = class ContrattiService extends cds.ApplicationService {
       const contrattoID = cds.utils.uuid();
       await INSERT.into(Contratto).entries({
         ID: contrattoID, stato: 'BOZZA', intestatario: template.nome,
+        codice: await prossimoCodiceContratto(cds.tx(req)),
         template_ID: templateID, templateVersion_ID: currentVersion.ID,
         responsabile: req.user.id
       });
@@ -100,6 +103,7 @@ module.exports = class ContrattiService extends cds.ApplicationService {
       const contrattoID = cds.utils.uuid();
       await INSERT.into(Contratto).entries({
         ID: contrattoID, stato: 'BOZZA', template_ID: templateID, templateVersion_ID: versionID,
+        codice: await prossimoCodiceContratto(cds.tx(req)),
         ...testata, responsabile: req.user.id
       });
 
@@ -743,6 +747,7 @@ module.exports = class ContrattiService extends cds.ApplicationService {
 
       await INSERT.into(Contratto).entries({
         ID: nuovoID,
+        codice: await prossimoCodiceContratto(cds.tx(req)),
         createdAt: now, createdBy: req.user.id,
         modifiedAt: now, modifiedBy: req.user.id,
         intestatario: originale.intestatario,

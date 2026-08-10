@@ -11,6 +11,7 @@ const { salvaMetadati } = require('./lib/metadati-writer');
 const { salvaEsempio } = require('./lib/classificazione-esempi');
 const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
 const { buildSnapshotData } = require('./lib/snapshot-utils');
+const { prossimoCodiceContratto } = require('./lib/codice-contratto');
 const { generaAnomalie } = require('./lib/anomalie-utils');
 const { ottieniPdfEPosizioni } = require('./lib/documento-pdf');
 
@@ -227,6 +228,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
           const contrattoID = cds.utils.uuid();
           await tx.run(INSERT.into(Contratto).entries({
             ID: contrattoID, stato: 'BOZZA', intestatario: intestatario || nome,
+            codice: await prossimoCodiceContratto(tx),
             responsabile: req.user.id, previewID, template_ID: templateID, templateVersion_ID: versionID
           }));
           contratto = { ID: contrattoID };
@@ -472,6 +474,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
           ID: contrattoID,
           stato: 'BOZZA',
           intestatario: nome,
+          codice: await prossimoCodiceContratto(tx),
           template_ID: templateID, templateVersion_ID: versionID,
           responsabile: req.user.id,
           testoOriginale: preview.testo || null,
