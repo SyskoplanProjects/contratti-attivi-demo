@@ -293,6 +293,8 @@ sap.ui.define([
               return;
             }
             try {
+              oDialog.setBusy(true);
+              oDialog.setBusyIndicatorDelay(0);
               const oFormData = new FormData();
               oFormData.append("nome", sNome);
               aFiles.forEach(function (oFile) { oFormData.append("file", oFile); });
@@ -310,6 +312,8 @@ sap.ui.define([
               this.byId("tabellaAnagraficaClausole").getBinding("items").refresh();
             } catch (e) {
               MessageBox.error("Import fallito: " + (e.message || String(e)));
+            } finally {
+              oDialog.setBusy(false);
             }
           }.bind(this)
         }),
