@@ -103,9 +103,11 @@
 
     <VBox class="app-table-wrap">
       <Table id="dettaglioContrattiTable" growing="true" growingThreshold="50"
-        items="{path: '/Contratto', filters: [{path: 'stato', operator: 'NE', value1: 'ARCHIVIATO'}]}">
+        items="{righeContratti>/righe}">
         <columns>
+          <Column><Text text="Codice" /></Column>
           <Column><Text text="Fornitore" /></Column>
+          <Column><Text text="Rischio" /></Column>
           <Column><Text text="Responsabile" /></Column>
           <Column><Text text="Oggetto" /></Column>
           <Column><Text text="Categoria" /></Column>
@@ -117,14 +119,16 @@
         <items>
           <ColumnListItem type="Navigation" press="onApriContrattoDettaglio">
             <cells>
-              <Text text="{intestatario}" />
-              <Text text="{responsabile}" />
-              <Text text="{oggetto}" />
-              <Text text="{path:'categoria', formatter:'.formatter.categoriaText'}" />
-              <ObjectStatus text="{stato}" state="{path:'stato', formatter:'.formatter.statoState'}" />
-              <Text text="{path:'importo', formatter:'.formatter.euroText', targetType:'any'}" />
-              <Text text="{dataStipula}" />
-              <Text text="{dataScadenza}" />
+              <Text text="{righeContratti>codice}" />
+              <Text text="{righeContratti>intestatario}" />
+              <ObjectStatus text="{righeContratti>rischioLabel}" state="{righeContratti>rischioState}" />
+              <Text text="{righeContratti>responsabile}" />
+              <Text text="{righeContratti>oggetto}" />
+              <Text text="{path:'righeContratti>categoria', formatter:'.formatter.categoriaText'}" />
+              <ObjectStatus text="{righeContratti>stato}" state="{path:'righeContratti>stato', formatter:'.formatter.statoState'}" />
+              <Text text="{path:'righeContratti>importo', formatter:'.formatter.euroText', targetType:'any'}" />
+              <Text text="{righeContratti>dataStipula}" />
+              <Text text="{righeContratti>dataScadenza}" />
             </cells>
           </ColumnListItem>
         </items>

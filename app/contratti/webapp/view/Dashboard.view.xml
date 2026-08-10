@@ -13,10 +13,12 @@
     <content>
       <IconTabBar id="dashboardTabBar" class="sapUiResponsiveContentPadding">
         <items>
-          <IconTabFilter key="cockpit" text="Cockpit" icon="sap-icon://business-objects-experience">
+          <IconTabFilter key="contratti" text="Contratti" icon="sap-icon://document-text">
             <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.DashboardCockpit" type="XML" />
           </IconTabFilter>
-          
+          <IconTabFilter key="vendor" text="Vendor Rating" icon="sap-icon://supplier">
+            <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.VendorRating" type="XML" />
+          </IconTabFilter>
         </items>
       </IconTabBar>
     </content>

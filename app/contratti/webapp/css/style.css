@@ -436,3 +436,9 @@
 .app-topf-bar-passivi { background: #bb0000; }
 .app-topf-bar-fatturato { background: #0a6ede; }
 
+
+.app-indice-wrap { display: flex; align-items: center; gap: .4rem; }
+.app-indice-track { width: 6rem; height: .5rem; background: #e5e5e5; border-radius: .25rem; overflow: hidden; }
+.app-indice-fill { height: 100%; border-radius: .25rem; }
+.app-indice-value { font-size: .8rem; white-space: nowrap; color: #32363a; }
+.app-indice-nd { color: #6a6d70; font-size: .8rem; }

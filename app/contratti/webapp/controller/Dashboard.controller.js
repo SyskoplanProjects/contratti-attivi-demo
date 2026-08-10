@@ -14,6 +14,8 @@ sap.ui.define([
 
     onInit: function () {
       this.getView().setModel(new JSONModel({ fornitoreAttivo: null }), "filtro");
+      this.getView().setModel(new JSONModel({ righe: [], vuoto: false }), "vendor");
+      this.getView().setModel(new JSONModel({ righe: [] }), "righeContratti");
       this._caricaDati();
       this.getOwnerComponent().getRouter().getRoute("dashboard").attachPatternMatched(this._onRouteMatched, this);
     },
@@ -38,6 +40,9 @@ sap.ui.define([
         }
         contratti = contratti.map(function (c) {
           return {
+            ID: c.ID,
+            codice: c.codice,
+            fornitore_ID: c.fornitore_ID,
             stato: c.stato,
             importo: c.importo,
             categoria: c.categoria || "altro",
@@ -45,11 +50,13 @@ sap.ui.define([
             dataStipula: c.dataStipula,
             dataScadenza: c.dataScadenza,
             intestatario: c.intestatario,
-            responsabile: c.responsabile
+            responsabile: c.responsabile,
+            oggetto: c.oggetto
           };
         });
         that._aContrattiTutti = contratti;
         that._aFornitoriTutti = fornitori;
+        that._aggiornaVendor();
 
         var categorieUniche = Array.from(new Set(contratti.map(function (c) { return c.categoria; }))).sort();
         var responsabiliUnici = Array.from(new Set(contratti.map(function (c) { return c.responsabile; }).filter(Boolean))).sort();
@@ -96,7 +103,7 @@ sap.ui.define([
       var oArgs = oEvent.getParameter("arguments") || {};
       var sFornitore = oArgs.fornitore ? decodeURIComponent(oArgs.fornitore) : null;
       this.getView().getModel("filtro").setProperty("/fornitoreAttivo", sFornitore);
-      this.byId("dashboardTabBar").setSelectedKey("cockpit");
+      this.byId("dashboardTabBar").setSelectedKey("contratti");
       var oFornitoreCtrl = this.byId("filtroFornitore");
       if (oFornitoreCtrl) oFornitoreCtrl.setValue(sFornitore || "");
       this.onEseguiFiltri();
@@ -168,35 +175,63 @@ sap.ui.define([
     },
 
     _aggiornaTabella: function (oFiltriNonPeriodo, oDataDa, oDataA) {
-      var oTable = this.byId("dettaglioContrattiTable");
-      var oBinding = oTable && oTable.getBinding("items");
-      if (!oBinding) return;
-      var aFiltri = [new Filter({ path: "stato", operator: FilterOperator.NE, value1: "ARCHIVIATO" })];
-      if (oFiltriNonPeriodo.categoria) {
-        // "altro" sul client è un default (c.categoria || "altro") applicato anche alle righe
-        // con categoria NULL nel DB: qui la query deve accettare entrambe, altrimenti la
-        // tabella (server-side) e il cockpit (client-side) mostrano conteggi diversi.
-        if (oFiltriNonPeriodo.categoria === "altro") {
-          aFiltri.push(new Filter({
-            filters: [
-              new Filter({ path: "categoria", operator: FilterOperator.EQ, value1: "altro" }),
-              new Filter({ path: "categoria", operator: FilterOperator.EQ, value1: null })
-            ],
-            and: false
-          }));
-        } else {
-          aFiltri.push(new Filter({ path: "categoria", operator: FilterOperator.EQ, value1: oFiltriNonPeriodo.categoria }));
-        }
-      }
-      if (oFiltriNonPeriodo.responsabile) {
-        aFiltri.push(new Filter({ path: "responsabile", operator: FilterOperator.EQ, value1: oFiltriNonPeriodo.responsabile }));
-      }
-      if (oFiltriNonPeriodo.fornitore) {
-        aFiltri.push(new Filter({ path: "intestatario", operator: FilterOperator.Contains, value1: oFiltriNonPeriodo.fornitore, caseSensitive: false }));
-      }
-      if (oDataDa) aFiltri.push(new Filter({ path: "dataStipula", operator: FilterOperator.GE, value1: this._formatDateISO(oDataDa) }));
-      if (oDataA) aFiltri.push(new Filter({ path: "dataStipula", operator: FilterOperator.LE, value1: this._formatDateISO(oDataA) }));
-      oBinding.filter(new Filter({ filters: aFiltri, and: true }));
+      var aFiltrati = this._filtraContratti(this._aContrattiTutti, oFiltriNonPeriodo, oDataDa, oDataA)
+        .filter(function (c) { return c.stato !== 'ARCHIVIATO'; });
+      this._arricchisciRigheDa(aFiltrati);
+    },
+
+    _arricchisciRigheDa: function (aContratti) {
+      var mF = {};
+      (this._aFornitoriTutti || []).forEach(function (f) { mF[f.ID] = f; });
+      var righe = (aContratti || []).map(function (c) {
+        var oFornitore = mF[c.fornitore_ID] || {};
+        var oRischio = dashboardUtils.buildRischioFornitore(oFornitore);
+        return {
+          ID: c.ID, codice: c.codice, intestatario: c.intestatario, responsabile: c.responsabile,
+          oggetto: c.oggetto, categoria: c.categoria, stato: c.stato, importo: c.importo,
+          dataStipula: c.dataStipula, dataScadenza: c.dataScadenza,
+          rischioLabel: oRischio.label, rischioState: this._statoRischio(oRischio.livello)
+        };
+      }, this);
+      this.getView().getModel("righeContratti").setProperty("/righe", righe);
+    },
+
+    _statoRischio: function (sLivello) {
+      return sLivello === 'alto' ? 'Error' : sLivello === 'medio' ? 'Warning' : sLivello === 'basso' ? 'Success' : 'None';
+    },
+
+    _aggiornaVendor: function () {
+      var aRighe = aggregateCockpit.buildVendorRating(this._aContrattiTutti, this._aFornitoriTutti);
+      this._decorateVendor(aRighe);
+      var oModel = this.getView().getModel("vendor");
+      oModel.setProperty("/righe", aRighe);
+      oModel.setProperty("/vuoto", aRighe.length === 0);
+    },
+
+    _decorateVendor: function (aRighe) {
+      (aRighe || []).forEach(function (r) {
+        r.indiceHtml = dashboardUtils.buildIndiceBarraHtml(r.indiceDipendenza);
+        r.rischioLabel = r.rischio.label;
+        r.rischioState = this._statoRischio(r.rischio.livello);
+      }, this);
+    },
+
+    onEseguiFiltriVendor: function () {
+      var oCtrl = this.byId("vendorRicerca");
+      var sQ = (oCtrl && oCtrl.getValue() || "").trim().toLowerCase();
+      var aRighe = aggregateCockpit.buildVendorRating(this._aContrattiTutti, this._aFornitoriTutti)
+        .filter(function (r) { return !sQ || r.nome.toLowerCase().indexOf(sQ) !== -1; });
+      this._decorateVendor(aRighe);
+      var oModel = this.getView().getModel("vendor");
+      oModel.setProperty("/righe", aRighe);
+      oModel.setProperty("/vuoto", aRighe.length === 0);
+    },
+
+    onApriContrattiFornitore: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext("vendor");
+      var sNome = oCtx && oCtx.getProperty("nome");
+      if (!sNome) return;
+      this.getOwnerComponent().getRouter().navTo("dashboard", { fornitore: encodeURIComponent(sNome) });
     },
 
     _aggiornaCockpit: function (aContrattiCorrente, aContrattiPrecedente) {

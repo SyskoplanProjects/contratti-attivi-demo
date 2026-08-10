@@ -1,0 +1,37 @@
+<core:FragmentDefinition controllerName="com.reply.contrattiattivi.app.controller.Dashboard" xmlns:core="sap.ui.core" xmlns="sap.m">
+  <VBox class="sapUiSmallMargin app-dash-tab">
+    <HBox class="app-dash-filterbar sapUiSmallMarginBottom" wrap="Wrap" alignItems="End" justifyContent="SpaceBetween">
+      <VBox class="app-dash-filter-field">
+        <Label text="Fornitore" />
+        <Input id="vendorRicerca" width="16rem" placeholder="Cerca fornitore..." />
+      </VBox>
+      <Button text="Esegui" type="Emphasized" press="onEseguiFiltriVendor" class="app-btn app-btn-primary" />
+    </HBox>
+    <MessageStrip type="Information" showIcon="true" class="sapUiTinyMarginBottom"
+      visible="{= !!${vendor>/vuoto} }" text="Nessun fornitore con contratti attivi." />
+    <VBox class="app-table-wrap">
+      <Table id="vendorTable" growing="true" growingThreshold="50" items="{vendor>/righe}">
+        <columns>
+          <Column><Text text="Fornitore" /></Column>
+          <Column><Text text="Fatturato dichiarato" /></Column>
+          <Column><Text text="Totale contratti" /></Column>
+          <Column><Text text="N. contratti" /></Column>
+          <Column><Text text="Indice dipendenza" /></Column>
+          <Column><Text text="Rischio" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem>
+            <cells>
+              <Text text="{vendor>nome}" />
+              <Text text="{path:'vendor>fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
+              <Text text="{path:'vendor>totaleContratti', formatter:'.formatter.euroText', targetType:'any'}" />
+              <Link text="{vendor>numeroContratti}" press="onApriContrattiFornitore" />
+              <core:HTML content="{vendor>indiceHtml}" />
+              <ObjectStatus text="{vendor>rischioLabel}" state="{vendor>rischioState}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+  </VBox>
+</core:FragmentDefinition>
