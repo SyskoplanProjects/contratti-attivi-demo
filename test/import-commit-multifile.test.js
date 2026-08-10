@@ -3,8 +3,8 @@ const cds = require('@sap/cds');
 
 cds.test(path.join(__dirname, '..'));
 
-jest.mock('../srv/lib/ai-import', () => ({
-  estraiClausoleConFallback: jest.fn()
+jest.mock('../srv/import-handler', () => ({
+  parseFile: jest.fn()
 }));
 
 jest.mock('../srv/modules/openai-module', () => ({
@@ -13,14 +13,14 @@ jest.mock('../srv/modules/openai-module', () => ({
   embeddings: jest.fn().mockResolvedValue([[0.1, 0.2]])
 }));
 
-const { estraiClausoleConFallback } = require('../srv/lib/ai-import');
+const { parseFile } = require('../srv/import-handler');
 const { estraiClausoleMultiFile, creaTemplateDaClausole } = require('../srv/lib/import-commit');
 
 describe('estraiClausoleMultiFile + creaTemplateDaClausole', () => {
-  beforeEach(() => { estraiClausoleConFallback.mockReset(); });
+  beforeEach(() => { parseFile.mockReset(); });
 
   it('unisce le clausole di più file in un template nuovo, con codice sequenziale senza collisioni', async () => {
-    estraiClausoleConFallback
+    parseFile
       .mockResolvedValueOnce([
         { numero: 1, titolo: 'Oggetto', testo: 'Testo oggetto file 1.' },
         { numero: 2, titolo: 'Durata', testo: 'Testo durata file 1.' }
@@ -64,7 +64,7 @@ describe('estraiClausoleMultiFile + creaTemplateDaClausole', () => {
   });
 
   it('salva il nome esattamente come passato', async () => {
-    estraiClausoleConFallback.mockResolvedValueOnce([{ numero: 1, titolo: 'Oggetto', testo: 'Testo.' }]);
+    parseFile.mockResolvedValueOnce([{ numero: 1, titolo: 'Oggetto', testo: 'Testo.' }]);
 
     const fileList = [
       { buffer: Buffer.from('f'), filename: 'a.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
@@ -78,7 +78,7 @@ describe('estraiClausoleMultiFile + creaTemplateDaClausole', () => {
   });
 
   it('è atomico: se un file fallisce l\'estrazione non scrive nulla nel DB (l\'estrazione fallisce prima di raggiungere il DB)', async () => {
-    estraiClausoleConFallback
+    parseFile
       .mockResolvedValueOnce([{ numero: 1, titolo: 'Oggetto', testo: 'Testo ok.' }])
       .mockRejectedValueOnce(new Error('formato non supportato'));
 

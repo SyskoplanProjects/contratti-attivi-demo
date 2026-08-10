@@ -1,7 +1,7 @@
 const cds = require('@sap/cds');
 const { computeDelta, normalizeText } = require('./diff-utils');
 const { computeDocumentoEmbedding } = require('./template-embedding');
-const { estraiClausoleConFallback } = require('./ai-import');
+const { parseFile } = require('../import-handler');
 
 async function eseguiImport(tx, templateID, filename, clausoleEstratte) {
   const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } =
@@ -163,15 +163,19 @@ async function eseguiImportConfermato(tx, templateID, filename, clausoleConferma
   return { clausoleCreate, clausoleRiutilizzate, clausoleConDelta, templateID: template.ID };
 }
 
-// Estrae TUTTI i file e unisce le clausole nell'ordine di caricamento. Nessun accesso al DB:
-// gira fuori dalla transazione così le chiamate AI (10-30s per più file) non tengono aperta
-// una tx. Il "numero" originale di ciascun file viene scartato (ripartirebbe da 1 per ogni
-// documento): il codice viene riassegnato in sequenza sull'insieme unito, non sul singolo file.
+// Estrae TUTTI i file e unisce le clausole nell'ordine di caricamento. Nessun accesso al DB e
+// nessuna chiamata AI: split locale via regex (stesso parser di importTemplate). L'estrazione
+// AI (estraiClausoleConFallback) chiede al modello di ricopiare il testo di ogni clausola nella
+// risposta, quindi genera output grande quanto il documento — su un file di poche pagine reali
+// arriva a impiegare minuti. Qui creiamo un template nuovo da zero, senza alcun matching contro
+// clausole esistenti, quindi non serve: la stessa segmentazione regex basta e resta istantanea.
+// Il "numero" originale di ciascun file viene scartato (ripartirebbe da 1 per ogni documento):
+// il codice viene riassegnato in sequenza sull'insieme unito, non sul singolo file.
 async function estraiClausoleMultiFile(fileList) {
   const clausolePerFile = [];
   for (const f of fileList) {
     try {
-      clausolePerFile.push(await estraiClausoleConFallback(f.buffer, f.filename, f.mimeType));
+      clausolePerFile.push(await parseFile(f.buffer, f.filename, f.mimeType));
     } catch (e) {
       const err = new Error(`Estrazione fallita su "${f.filename}": ${e.message}`);
       err.code = 'EXTRACTION_FAILED';
