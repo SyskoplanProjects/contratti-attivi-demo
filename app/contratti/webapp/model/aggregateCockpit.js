@@ -85,6 +85,34 @@
       .slice(0, 8);
   }
 
+  function buildRischioFornitore(f) { return { livello: 'nd', label: 'N/D' }; }
+
+  function buildVendorRating(contratti, fornitori) {
+    var perFornitore = {};
+    contratti.forEach(function (c) {
+      if (!c.fornitore_ID) return;
+      var e = perFornitore[c.fornitore_ID] || (perFornitore[c.fornitore_ID] = { numeroContratti: 0, totaleContratti: 0 });
+      e.numeroContratti++;
+      e.totaleContratti += Number(c.importo) || 0;
+    });
+    return fornitori
+      .filter(function (f) { return perFornitore[f.ID]; })
+      .map(function (f) {
+        var a = perFornitore[f.ID];
+        var fatturato = f.fatturatoTot != null ? Number(f.fatturatoTot) : null;
+        return {
+          id: f.ID,
+          nome: f.nomeFornitore,
+          fatturatoTot: fatturato,
+          totaleContratti: a.totaleContratti,
+          numeroContratti: a.numeroContratti,
+          indiceDipendenza: fatturato > 0 ? Math.round(a.totaleContratti / fatturato * 1000) / 10 : null,
+          rischio: buildRischioFornitore(f)
+        };
+      })
+      .sort(function (x, y) { return y.totaleContratti - x.totaleContratti; });
+  }
+
   function _percentualeVariazione(vCorrente, vPrecedente) {
     if (vPrecedente > 0) return Math.round(((vCorrente - vPrecedente) / vPrecedente) * 1000) / 10;
     return vCorrente > 0 ? 100 : 0;
@@ -124,6 +152,7 @@
   aggregateCockpit.buildTrend = buildTrend;
   aggregateCockpit.buildTopFornitori = buildTopFornitori;
   aggregateCockpit.buildTopFornitoriNumero = buildTopFornitoriNumero;
+  aggregateCockpit.buildVendorRating = buildVendorRating;
   aggregateCockpit.buildTrendPeriodo = buildTrendPeriodo;
   aggregateCockpit.buildTrendPeriodoImporto = buildTrendPeriodoImporto;
   aggregateCockpit.countBy = countBy;
