@@ -171,7 +171,20 @@ sap.ui.define([
       if (!oBinding) return;
       var aFiltri = [new Filter({ path: "stato", operator: FilterOperator.NE, value1: "ARCHIVIATO" })];
       if (oFiltriNonPeriodo.categoria) {
-        aFiltri.push(new Filter({ path: "categoria", operator: FilterOperator.EQ, value1: oFiltriNonPeriodo.categoria }));
+        // "altro" sul client è un default (c.categoria || "altro") applicato anche alle righe
+        // con categoria NULL nel DB: qui la query deve accettare entrambe, altrimenti la
+        // tabella (server-side) e il cockpit (client-side) mostrano conteggi diversi.
+        if (oFiltriNonPeriodo.categoria === "altro") {
+          aFiltri.push(new Filter({
+            filters: [
+              new Filter({ path: "categoria", operator: FilterOperator.EQ, value1: "altro" }),
+              new Filter({ path: "categoria", operator: FilterOperator.EQ, value1: null })
+            ],
+            and: false
+          }));
+        } else {
+          aFiltri.push(new Filter({ path: "categoria", operator: FilterOperator.EQ, value1: oFiltriNonPeriodo.categoria }));
+        }
       }
       if (oFiltriNonPeriodo.responsabile) {
         aFiltri.push(new Filter({ path: "responsabile", operator: FilterOperator.EQ, value1: oFiltriNonPeriodo.responsabile }));
