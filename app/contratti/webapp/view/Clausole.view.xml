@@ -48,7 +48,7 @@
           <Table id="tabellaAnagraficaClausole" items="{path: '/Clausola', parameters: {$expand: 'versioni($select=ID,numero),template', $select: 'ID,codice,titolo,origineDettaglio,origineTipo,origineNome,origineID', $orderby: 'codice asc'}}" growing="true" growingThreshold="50">
             <columns>
               <Column minScreenWidth="Tablet" demandPopin="true"><Text text="ID Clausola" /></Column>
-              <Column sortProperty="codice"><Text text="Codice" /></Column>
+              <Column><Text text="Codice" /></Column>
               <Column><Text text="Titolo" /></Column>
               <Column><Text text="Versione Corrente" /></Column>
               <Column><Text text="Origine" /></Column>
