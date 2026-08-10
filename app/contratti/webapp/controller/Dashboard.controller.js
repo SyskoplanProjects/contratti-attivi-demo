@@ -199,13 +199,17 @@ sap.ui.define([
 
     _aggiornaCockpit: function (aContrattiCorrente, aContrattiPrecedente) {
       var ui = aggregateCockpit({ contratti: aContrattiCorrente, fornitori: this._aFornitoriTutti });
+      var oTrendContratti = aggregateCockpit.buildTrendPeriodo(aContrattiCorrente, aContrattiPrecedente);
+      var oTrendImporto = aggregateCockpit.buildTrendPeriodoImporto(aContrattiCorrente, aContrattiPrecedente);
       var sTopFornitoriHtml = dashboardUtils.buildTopFornitoriHtml(ui.topFornitori, "importi");
       this.getView().setModel(new JSONModel({
         totaleContrattiAnno: ui.totaleContratti,
         importoTotaleAnno: ui.importoTotaleAnno,
         donutTipologiaHtml: dashboardUtils.buildDonutHtml(ui.donutTipologia),
         donutSurveyHtml: dashboardUtils.buildDonutHtml(ui.donutSurvey),
-        trendHtml: dashboardUtils.buildTrendHtml(ui.trend)
+        trendHtml: dashboardUtils.buildTrendHtml(ui.trend),
+        trendContratti: oTrendContratti,
+        trendImporto: oTrendImporto
       }), "cockpit");
       this.getView().setModel(new JSONModel({
         listaImporti: ui.topFornitori,

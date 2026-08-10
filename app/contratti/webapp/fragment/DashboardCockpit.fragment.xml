@@ -41,10 +41,32 @@
       <VBox class="app-dash-kpi-card">
         <Text class="app-dash-kpi-value" text="{cockpit>/totaleContrattiAnno}" />
         <Text class="app-dash-kpi-label" text="Totale contratti nell'anno" />
+        <HBox class="app-dash-kpi-trend" alignItems="Center">
+          <core:Icon src="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"
+            class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
+          <Text class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"
+            text="{= (${cockpit>/trendContratti/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendContratti/percentuale} + '% vs periodo prec.' }" />
+        </HBox>
       </VBox>
       <VBox class="app-dash-kpi-card">
         <Text class="app-dash-kpi-value" text="{path:'cockpit>/importoTotaleAnno', formatter:'.formatter.euroText'}" />
         <Text class="app-dash-kpi-label" text="Importo totale dei contratti" />
+        <HBox class="app-dash-kpi-trend" alignItems="Center">
+          <core:Icon src="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"
+            class="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
+          <Text class="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"
+            text="{= (${cockpit>/trendImporto/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendImporto/percentuale} + '% vs periodo prec.' }" />
+        </HBox>
+      </VBox>
+      <VBox class="app-dash-kpi-card">
+        <Text class="app-dash-kpi-value" text="{cockpit>/trendContratti/valore}" />
+        <Text class="app-dash-kpi-label" text="Trend contratti" />
+        <HBox class="app-dash-kpi-trend" alignItems="Center">
+          <core:Icon src="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"
+            class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
+          <Text class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"
+            text="{= (${cockpit>/trendContratti/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendContratti/percentuale} + '% vs periodo prec.' }" />
+        </HBox>
       </VBox>
       <VBox class="app-dash-kpi-card app-dash-kpi-card-wide">
         <Text class="app-dash-kpi-label" text="Tipologia contratti" />

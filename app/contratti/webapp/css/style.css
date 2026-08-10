@@ -379,8 +379,9 @@
 .app-dash-kpi-grid { gap: 1rem; }
 .app-dash-kpi-card {
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
   padding: 1.25rem 1.5rem;
   min-width: 11rem;
   flex: 1 1 11rem;
@@ -393,6 +394,15 @@
 .app-dash-kpi-value { font-size: 2rem; font-weight: 700; color: #0a6ede; letter-spacing: -.01em; display: block; }
 .app-dash-kpi-label { color: #6a6d70; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; margin-top: .25rem; display: block; }
 .app-dash-trend-card { padding: 1rem 1.25rem; }
+.app-dash-kpi-trend { gap: .3rem; margin-top: .5rem; }
+.app-dash-kpi-trend .sapUiIcon { font-size: .7rem; }
+.app-dash-kpi-trend-up, .app-dash-kpi-trend-icon-up { color: #107e3e; }
+.app-dash-kpi-trend-down, .app-dash-kpi-trend-icon-down { color: #bb0000; }
+.app-dash-kpi-trend-up, .app-dash-kpi-trend-down { font-size: .78rem; font-weight: 600; }
+
+.app-dash-filterbar { gap: .75rem; flex-wrap: wrap; padding: .5rem 0; }
+.app-dash-filter-field { gap: .2rem; }
+.app-dash-filter-field .sapMLabel { font-size: .72rem; color: #6a6d70; text-transform: uppercase; letter-spacing: .03em; }
 
 .app-donut-wrap { display: flex; align-items: center; gap: 1rem; margin-top: .5rem; }
 .app-donut { width: 6rem; height: 6rem; border-radius: 50%; position: relative; flex-shrink: 0; }
