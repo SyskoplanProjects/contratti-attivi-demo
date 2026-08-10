@@ -93,8 +93,52 @@
     return '<div class="app-topf-chart">' + sRows + '</div>';
   }
 
+  function buildRischioFornitore(f) {
+    var s = f || {};
+    var protesti = String(s.protesti || '').toLowerCase();
+    var pregiud = String(s.pregiudizievoli || '').toLowerCase();
+    var riskEm = String(s.rischioEmissioni || '').toLowerCase();
+    var cgsMatch = /^(\d{1,2})/.exec(String(s.cgsScore || ''));
+    var cgsN = cgsMatch ? parseInt(cgsMatch[1], 10) : null;
+    var vr = parseFloat(String(s.scoreVendorRating || '').replace(',', '.'));
+    var alto = false, medio = false;
+    var segnali = 0;
+    if (protesti === 'si' || pregiud === 'si') alto = true;
+    if (riskEm.indexOf('high') !== -1) alto = true;
+    if (cgsN !== null && !isNaN(cgsN)) {
+      if (cgsN !== 99) {
+        if (cgsN >= 8) alto = true;
+        else if (cgsN >= 6) medio = true;
+        else segnali++;
+      }
+    }
+    if (!isNaN(vr)) {
+      if (vr < 50) medio = true;
+      else segnali++;
+    }
+    if (protesti !== '' || pregiud !== '') segnali++;
+    if (riskEm !== '') segnali++;
+    if (alto) return { livello: 'alto', label: 'Rischio alto' };
+    if (medio) return { livello: 'medio', label: 'Rischio medio' };
+    var haDati = protesti !== '' || pregiud !== '' || riskEm !== '' || s.scoreVendorRating || s.cgsScore;
+    return haDati ? { livello: 'basso', label: 'Rischio basso' } : { livello: 'nd', label: 'N/D' };
+  }
+
+  function buildIndiceBarraHtml(indice) {
+    if (indice == null) {
+      return '<div class="app-indice-wrap"><span class="app-indice-nd">N/D</span></div>';
+    }
+    var pct = Math.min(100, Math.max(0, indice));
+    var color = pct > 80 ? '#bb0000' : pct > 50 ? '#e9730c' : '#107e3e';
+    return '<div class="app-indice-wrap">' +
+      '<div class="app-indice-track"><div class="app-indice-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+      '<span class="app-indice-value">' + indice + '%</span></div>';
+  }
+
   return {
     matchFornitore: matchFornitore,
+    buildRischioFornitore: buildRischioFornitore,
+    buildIndiceBarraHtml: buildIndiceBarraHtml,
     buildDonutGradient: buildDonutGradient,
     buildDonutHtml: buildDonutHtml,
     buildTrendHtml: buildTrendHtml,

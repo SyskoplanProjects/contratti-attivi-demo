@@ -4,6 +4,7 @@
 }(this, function () {
   "use strict";
 
+  var mRischio = (typeof module === "object" && module.exports) ? require("./dashboardUtils") : null;
   var DEFAULT_COLORS = ["#0a6ed1", "#e9730c", "#107e3e", "#bb0000", "#6a6d70"];
   var MESI = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
   var SURVEY_META = {
@@ -85,7 +86,7 @@
       .slice(0, 8);
   }
 
-  function buildRischioFornitore(f) { return { livello: 'nd', label: 'N/D' }; }
+  function buildRischioFornitore(f) { return (mRischio && mRischio.buildRischioFornitore) ? mRischio.buildRischioFornitore(f) : { livello: 'nd', label: 'N/D' }; }
 
   function buildVendorRating(contratti, fornitori) {
     var perFornitore = {};
