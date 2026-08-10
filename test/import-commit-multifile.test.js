@@ -7,10 +7,16 @@ jest.mock('../srv/lib/ai-import', () => ({
   estraiClausoleConFallback: jest.fn()
 }));
 
-const { estraiClausoleConFallback } = require('../srv/lib/ai-import');
-const { creaTemplateDaFileMultipli } = require('../srv/lib/import-commit');
+jest.mock('../srv/modules/openai-module', () => ({
+  openThread: jest.fn(), sendMessage: jest.fn(), deleteThread: jest.fn(),
+  chatJSON: jest.fn(),
+  embeddings: jest.fn().mockResolvedValue([[0.1, 0.2]])
+}));
 
-describe('creaTemplateDaFileMultipli', () => {
+const { estraiClausoleConFallback } = require('../srv/lib/ai-import');
+const { estraiClausoleMultiFile, creaTemplateDaClausole } = require('../srv/lib/import-commit');
+
+describe('estraiClausoleMultiFile + creaTemplateDaClausole', () => {
   beforeEach(() => { estraiClausoleConFallback.mockReset(); });
 
   it('unisce le clausole di più file in un template nuovo, con codice sequenziale senza collisioni', async () => {
@@ -30,7 +36,8 @@ describe('creaTemplateDaFileMultipli', () => {
       { buffer: Buffer.from('file2'), filename: 'cpc.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
     ];
 
-    const result = await cds.tx(tx => creaTemplateDaFileMultipli(tx, 'Template Unito', fileList));
+    const clausoleUnite = await estraiClausoleMultiFile(fileList);
+    const result = await cds.tx(tx => creaTemplateDaClausole(tx, 'Template Unito', clausoleUnite));
 
     expect(result.clausoleCreate).toBe(5);
     expect(result.templateID).toBeDefined();
@@ -59,16 +66,18 @@ describe('creaTemplateDaFileMultipli', () => {
   it('salva il nome esattamente come passato', async () => {
     estraiClausoleConFallback.mockResolvedValueOnce([{ numero: 1, titolo: 'Oggetto', testo: 'Testo.' }]);
 
-    const result = await cds.tx(tx => creaTemplateDaFileMultipli(tx, 'Il Mio Template Custom', [
+    const fileList = [
       { buffer: Buffer.from('f'), filename: 'a.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
-    ]));
+    ];
+    const clausoleUnite = await estraiClausoleMultiFile(fileList);
+    const result = await cds.tx(tx => creaTemplateDaClausole(tx, 'Il Mio Template Custom', clausoleUnite));
 
     const { Template } = cds.entities('com.reply.contrattiattivi');
     const template = await SELECT.one.from(Template, result.templateID);
     expect(template.nome).toBe('Il Mio Template Custom');
   });
 
-  it('è atomico: se un file fallisce l\'estrazione non scrive nulla nel DB', async () => {
+  it('è atomico: se un file fallisce l\'estrazione non scrive nulla nel DB (l\'estrazione fallisce prima di raggiungere il DB)', async () => {
     estraiClausoleConFallback
       .mockResolvedValueOnce([{ numero: 1, titolo: 'Oggetto', testo: 'Testo ok.' }])
       .mockRejectedValueOnce(new Error('formato non supportato'));
@@ -81,7 +90,9 @@ describe('creaTemplateDaFileMultipli', () => {
       { buffer: Buffer.from('f2'), filename: 'rotto.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
     ];
 
-    await expect(cds.tx(tx => creaTemplateDaFileMultipli(tx, 'Template Fallito', fileList)))
+    // estraiClausoleMultiFile non tocca mai il DB: l'estrazione fallisce prima che
+    // creaTemplateDaClausole venga anche solo invocata.
+    await expect(estraiClausoleMultiFile(fileList))
       .rejects.toMatchObject({ code: 'EXTRACTION_FAILED', message: expect.stringContaining('rotto.docx') });
 
     const templatesDopo = await SELECT.from(Template);

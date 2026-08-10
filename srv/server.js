@@ -2,7 +2,7 @@ const cds = require('@sap/cds');
 const express = require('express');
 const multer = require('multer');
 const { parseFile } = require('./import-handler');
-const { eseguiImport, creaTemplateDaFileMultipli } = require('./lib/import-commit');
+const { eseguiImport, estraiClausoleMultiFile, creaTemplateDaClausole } = require('./lib/import-commit');
 const { estraiClausoleConFallback, trovaMatch, buildCandidatiPerCodice, extractTextMultiFormato } = require('./lib/ai-import');
 const previewStore = require('./lib/preview-store');
 const { calcolaCoverage } = require('./lib/comparator-engine');
@@ -77,10 +77,10 @@ cds.on('bootstrap', (app) => {
     if (!req.files || !req.files.length) return res.status(400).json({ code: 'NO_FILE', message: 'Nessun file ricevuto' });
 
     try {
-      const result = await cds.tx(tx => creaTemplateDaFileMultipli(
-        tx, nome,
+      const clausoleUnite = await estraiClausoleMultiFile(
         req.files.map(f => ({ buffer: f.buffer, filename: f.originalname, mimeType: f.mimetype }))
-      ));
+      );
+      const result = await cds.tx(tx => creaTemplateDaClausole(tx, nome, clausoleUnite));
       res.status(200).json(result);
     } catch (e) {
       if (e.code === 'EXTRACTION_FAILED') {

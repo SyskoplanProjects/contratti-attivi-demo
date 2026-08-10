@@ -163,12 +163,11 @@ async function eseguiImportConfermato(tx, templateID, filename, clausoleConferma
   return { clausoleCreate, clausoleRiutilizzate, clausoleConDelta, templateID: template.ID };
 }
 
-async function creaTemplateDaFileMultipli(tx, nome, fileList) {
-  const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } =
-    cds.entities('com.reply.contrattiattivi');
-
-  // 1. Estrae TUTTI i file prima di scrivere qualsiasi cosa (atomicità: se uno fallisce,
-  // nessuna riga è stata ancora inserita nel DB).
+// Estrae TUTTI i file e unisce le clausole nell'ordine di caricamento. Nessun accesso al DB:
+// gira fuori dalla transazione così le chiamate AI (10-30s per più file) non tengono aperta
+// una tx. Il "numero" originale di ciascun file viene scartato (ripartirebbe da 1 per ogni
+// documento): il codice viene riassegnato in sequenza sull'insieme unito, non sul singolo file.
+async function estraiClausoleMultiFile(fileList) {
   const clausolePerFile = [];
   for (const f of fileList) {
     try {
@@ -179,14 +178,16 @@ async function creaTemplateDaFileMultipli(tx, nome, fileList) {
       throw err;
     }
   }
+  return clausolePerFile.flat();
+}
 
-  // 2. Unisce tutte le clausole nell'ordine di caricamento. Il "numero" originale di ciascun
-  // file viene scartato (ripartirebbe da 1 per ogni documento): il codice viene riassegnato
-  // in sequenza sull'insieme unito, non sul singolo file.
-  const clausoleUnite = clausolePerFile.flat();
+// Crea Template + TemplateVersion + una riga Clausola/ClausolaVersione/TemplateVersionClausola
+// per ciascuna clausola già estratta e unita. Nessun matching/versioning: è un template
+// completamente nuovo.
+async function creaTemplateDaClausole(tx, nome, clausoleUnite) {
+  const { Template, TemplateVersion, Clausola, ClausolaVersione, TemplateVersionClausola } =
+    cds.entities('com.reply.contrattiattivi');
 
-  // 3. Crea Template + TemplateVersion + una riga Clausola/ClausolaVersione/TemplateVersionClausola
-  // per ciascuna clausola unita. Nessun matching/versioning: è un template completamente nuovo.
   const templateID = cds.utils.uuid();
   await tx.run(INSERT.into(Template).entries({ ID: templateID, nome, tipoServizio: 'N/D' }));
 
@@ -218,4 +219,4 @@ async function creaTemplateDaFileMultipli(tx, nome, fileList) {
   return { templateID, clausoleCreate: clausoleUnite.length };
 }
 
-module.exports = { eseguiImport, eseguiImportConfermato, creaTemplateDaFileMultipli };
+module.exports = { eseguiImport, eseguiImportConfermato, estraiClausoleMultiFile, creaTemplateDaClausole };

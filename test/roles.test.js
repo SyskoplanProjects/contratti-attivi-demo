@@ -1,5 +1,6 @@
 const path = require('path');
 const cds = require('@sap/cds');
+const FormData = require('form-data');
 
 jest.mock('../srv/modules/openai-module', () => ({
   openThread: jest.fn().mockResolvedValue('thread_test_123'),
@@ -100,5 +101,35 @@ describe('server.js hand-rolled routes role gating', () => {
     if (!allegato) return;
     const res = await axios.get(`/contratti/scaricaAllegato/${allegato.ID}`, { auth: REVISORE });
     expect(res.status).toBe(200);
+  });
+
+  it('Revisore cannot POST /contratti/creaTemplateMultiFile (Utente-only)', async () => {
+    await expect(
+      axios.post('/contratti/creaTemplateMultiFile', Buffer.from('test'), {
+        auth: REVISORE,
+        headers: { 'Content-Type': 'application/octet-stream' }
+      })
+    ).rejects.toMatchObject({ response: { status: 401 } });
+  });
+
+  it('POST /contratti/creaTemplateMultiFile with nome but no files returns 400 NO_FILE', async () => {
+    const form = new FormData();
+    form.append('nome', 'Template Senza File');
+
+    await expect(
+      axios.post('/contratti/creaTemplateMultiFile', form, { auth: UTENTE, headers: form.getHeaders() })
+    ).rejects.toMatchObject({ response: { status: 400, data: { code: 'NO_FILE' } } });
+  });
+
+  it('POST /contratti/creaTemplateMultiFile with files but no nome returns 400 NOME_MANCANTE', async () => {
+    const form = new FormData();
+    form.append('file', Buffer.from('dummy'), {
+      filename: 'a.docx',
+      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+
+    await expect(
+      axios.post('/contratti/creaTemplateMultiFile', form, { auth: UTENTE, headers: form.getHeaders() })
+    ).rejects.toMatchObject({ response: { status: 400, data: { code: 'NOME_MANCANTE' } } });
   });
 });
