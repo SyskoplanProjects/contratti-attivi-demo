@@ -49,4 +49,47 @@ describe('aggregateCockpit', () => {
     const r = aggregateCockpit({ contratti: contrattiStringa, fornitori: [] });
     expect(r.importoTotaleAnno).toBe(300000);
   });
+
+  describe('buildTrendPeriodo', () => {
+    it('percentuale positiva quando i contratti correnti sono più dei precedenti', () => {
+      const corrente = [{}, {}, {}]; // 3
+      const precedente = [{}, {}]; // 2
+      const r = aggregateCockpit.buildTrendPeriodo(corrente, precedente);
+      expect(r).toEqual({ valore: 3, percentuale: 50, direzione: 'up' });
+    });
+
+    it('percentuale negativa quando i contratti correnti sono meno dei precedenti', () => {
+      const corrente = [{}, {}]; // 2
+      const precedente = [{}, {}, {}, {}]; // 4
+      const r = aggregateCockpit.buildTrendPeriodo(corrente, precedente);
+      expect(r).toEqual({ valore: 2, percentuale: -50, direzione: 'down' });
+    });
+
+    it('percentuale 100 quando il periodo precedente è vuoto ma quello corrente no', () => {
+      const r = aggregateCockpit.buildTrendPeriodo([{}, {}], []);
+      expect(r).toEqual({ valore: 2, percentuale: 100, direzione: 'up' });
+    });
+
+    it('percentuale 0 quando entrambi i periodi sono vuoti', () => {
+      const r = aggregateCockpit.buildTrendPeriodo([], []);
+      expect(r).toEqual({ valore: 0, percentuale: 0, direzione: 'up' });
+    });
+  });
+
+  describe('buildTrendPeriodoImporto', () => {
+    it('percentuale calcolata sulla somma degli importi, non sul conteggio', () => {
+      const corrente = [{ importo: 100 }, { importo: 50 }]; // somma 150
+      const precedente = [{ importo: 100 }]; // somma 100
+      const r = aggregateCockpit.buildTrendPeriodoImporto(corrente, precedente);
+      expect(r).toEqual({ valore: 150, percentuale: 50, direzione: 'up' });
+    });
+
+    it('gestisce importo string (OData v4 Decimal) come aggregateCockpit principale', () => {
+      const corrente = [{ importo: '200.00' }];
+      const precedente = [{ importo: '100.00' }];
+      const r = aggregateCockpit.buildTrendPeriodoImporto(corrente, precedente);
+      expect(r.valore).toBe(200);
+      expect(r.percentuale).toBe(100);
+    });
+  });
 });

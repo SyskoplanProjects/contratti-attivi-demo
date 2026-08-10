@@ -85,6 +85,26 @@
       .slice(0, 8);
   }
 
+  function _percentualeVariazione(vCorrente, vPrecedente) {
+    if (vPrecedente > 0) return Math.round(((vCorrente - vPrecedente) / vPrecedente) * 1000) / 10;
+    return vCorrente > 0 ? 100 : 0;
+  }
+
+  function buildTrendPeriodo(contrattiCorrente, contrattiPrecedente) {
+    var vCorrente = contrattiCorrente.length;
+    var vPrecedente = contrattiPrecedente.length;
+    var percentuale = _percentualeVariazione(vCorrente, vPrecedente);
+    return { valore: vCorrente, percentuale: percentuale, direzione: percentuale >= 0 ? 'up' : 'down' };
+  }
+
+  function buildTrendPeriodoImporto(contrattiCorrente, contrattiPrecedente) {
+    var somma = function (arr) { return arr.reduce(function (n, c) { return n + (Number(c.importo) || 0); }, 0); };
+    var vCorrente = somma(contrattiCorrente);
+    var vPrecedente = somma(contrattiPrecedente);
+    var percentuale = _percentualeVariazione(vCorrente, vPrecedente);
+    return { valore: vCorrente, percentuale: percentuale, direzione: percentuale >= 0 ? 'up' : 'down' };
+  }
+
   function aggregateCockpit(input) {
     var contratti = (input.contratti || []).filter(function (c) { return c.stato !== 'ARCHIVIATO'; });
     var fornitori = input.fornitori || [];
@@ -104,6 +124,8 @@
   aggregateCockpit.buildTrend = buildTrend;
   aggregateCockpit.buildTopFornitori = buildTopFornitori;
   aggregateCockpit.buildTopFornitoriNumero = buildTopFornitoriNumero;
+  aggregateCockpit.buildTrendPeriodo = buildTrendPeriodo;
+  aggregateCockpit.buildTrendPeriodoImporto = buildTrendPeriodoImporto;
   aggregateCockpit.countBy = countBy;
 
   return aggregateCockpit;
