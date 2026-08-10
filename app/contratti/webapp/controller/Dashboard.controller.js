@@ -140,7 +140,7 @@ sap.ui.define([
         if (sFornitoreLower && (c.intestatario || "").toLowerCase().indexOf(sFornitoreLower) === -1) return false;
         if (oDataDa || oDataA) {
           if (!c.dataStipula) return false;
-          var dData = new Date(c.dataStipula);
+          var dData = new Date(c.dataStipula + "T00:00:00");
           if (oDataDa && dData < oDataDa) return false;
           if (oDataA && dData > oDataA) return false;
         }
@@ -155,9 +155,11 @@ sap.ui.define([
       var oOggi = new Date();
       var dInizioCorrente = oDataDa || new Date(oOggi.getFullYear(), 0, 1);
       var dFineCorrente = oDataA || new Date(oOggi.getFullYear(), 11, 31);
-      var nDurataMs = dFineCorrente.getTime() - dInizioCorrente.getTime();
-      var dFinePrecedente = new Date(dInizioCorrente.getTime() - 24 * 60 * 60 * 1000);
-      var dInizioPrecedente = new Date(dFinePrecedente.getTime() - nDurataMs);
+      var nDurataGiorni = Math.round((dFineCorrente.getTime() - dInizioCorrente.getTime()) / 86400000);
+      var dFinePrecedente = new Date(dInizioCorrente);
+      dFinePrecedente.setDate(dFinePrecedente.getDate() - 1);
+      var dInizioPrecedente = new Date(dInizioCorrente);
+      dInizioPrecedente.setDate(dInizioPrecedente.getDate() - nDurataGiorni - 1);
       return { inizio: dInizioPrecedente, fine: dFinePrecedente };
     },
 
