@@ -54,6 +54,8 @@ type CategoriaContratto : String(50) enum { fornitura; servizio; consulenza; NDA
 
 entity Contratto : cuid, managed {
   intestatario    : String(200) not null;
+  codice          : String(50);
+  fornitore       : Association to Fornitore;
   responsabile    : String(200);
   importo         : Decimal(15,2);
   codiceFiscale   : String(20);
