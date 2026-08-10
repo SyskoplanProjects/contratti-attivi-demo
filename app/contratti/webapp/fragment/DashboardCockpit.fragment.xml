@@ -1,6 +1,36 @@
 <core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
   <VBox class="sapUiSmallMargin app-dash-tab">
 
+    <HBox class="app-dash-filterbar sapUiSmallMarginBottom" justifyContent="SpaceBetween" wrap="Wrap" alignItems="End">
+      <HBox wrap="Wrap" class="app-dash-filter-fields">
+        <VBox class="app-dash-filter-field">
+          <Label text="Categoria" />
+          <Select id="filtroCategoria" width="10rem" items="{filtriOpzioni>/categorie}">
+            <core:Item key="{filtriOpzioni>key}" text="{filtriOpzioni>text}" />
+          </Select>
+        </VBox>
+        <VBox class="app-dash-filter-field">
+          <Label text="Responsabile" />
+          <Select id="filtroResponsabile" width="13rem" items="{filtriOpzioni>/responsabili}">
+            <core:Item key="{filtriOpzioni>key}" text="{filtriOpzioni>text}" />
+          </Select>
+        </VBox>
+        <VBox class="app-dash-filter-field">
+          <Label text="Data da" />
+          <DatePicker id="filtroDataDa" width="9rem" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" />
+        </VBox>
+        <VBox class="app-dash-filter-field">
+          <Label text="Data a" />
+          <DatePicker id="filtroDataA" width="9rem" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" />
+        </VBox>
+        <VBox class="app-dash-filter-field">
+          <Label text="Fornitore" />
+          <Input id="filtroFornitore" width="12rem" placeholder="Cerca fornitore..." />
+        </VBox>
+      </HBox>
+      <Button text="Esegui" type="Emphasized" press="onEseguiFiltri" class="app-btn app-btn-primary" />
+    </HBox>
+
     <MessageStrip type="Information" showIcon="true" showCloseButton="true"
       class="sapUiTinyMarginBottom"
       visible="{= !!${filtro>/fornitoreAttivo} }"
