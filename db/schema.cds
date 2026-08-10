@@ -6,6 +6,10 @@ entity Template : cuid, managed {
   tipoServizio : String(100);
   descrizione  : String(1000);
   tipoRiferimento : String(20) enum { STANDARD; CLIENTE; } default 'CLIENTE';
+  // true solo per il template "ombra" creato automaticamente da confirmCoverage per tracciare
+  // le versioni di clausola di un singolo contratto digitalizzato: non è un template pensato per
+  // essere riusato come riferimento, va escluso dalla picklist di selezione (getTemplates).
+  generatoDaDigitalizzazione : Boolean default false;
   versioni     : Composition of many TemplateVersion on versioni.template = $self;
 }
 

@@ -302,7 +302,8 @@ module.exports = class ComparatorService extends cds.ApplicationService {
     });
 
     this.on('getTemplates', () =>
-      SELECT.from(Template).columns('ID', 'nome', 'tipoRiferimento').orderBy('nome')
+      SELECT.from(Template).columns('ID', 'nome', 'tipoRiferimento')
+        .where({ generatoDaDigitalizzazione: false }).orderBy('nome')
     );
 
     this.on('verificaCompletezza', async (req) => {
@@ -457,7 +458,7 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         const { Contratto, ContrattoClausola } = cds.entities('com.reply.contrattiattivi');
 
         const templateID = cds.utils.uuid();
-        await tx.run(INSERT.into(Template).entries({ ID: templateID, nome }));
+        await tx.run(INSERT.into(Template).entries({ ID: templateID, nome, generatoDaDigitalizzazione: true }));
 
         const versionID = cds.utils.uuid();
         const embeddingDocumento = await computeDocumentoEmbedding(clausoleFinali);

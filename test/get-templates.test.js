@@ -10,10 +10,10 @@ const { POST } = cds.test(path.join(__dirname, '..'));
 const { MOCK_USER } = require('./helpers/auth');
 const cdsRuntime = require('@sap/cds');
 
-async function creaTemplate(nome, tipoRiferimento) {
+async function creaTemplate(nome, tipoRiferimento, generatoDaDigitalizzazione) {
   const { Template } = cdsRuntime.entities('com.reply.contrattiattivi');
   const templateID = cdsRuntime.utils.uuid();
-  await INSERT.into(Template).entries({ ID: templateID, nome, tipoRiferimento });
+  await INSERT.into(Template).entries({ ID: templateID, nome, tipoRiferimento, generatoDaDigitalizzazione });
   return templateID;
 }
 
@@ -41,5 +41,16 @@ describe('getTemplates', () => {
     const res = await POST('/comparator/getTemplates', {}, { auth: MOCK_USER });
     expect(res.status).toBe(200);
     expect(res.data.value).toEqual([]);
+  });
+
+  it('esclude i template ombra generati dalla digitalizzazione di un contratto', async () => {
+    await creaTemplate('Template Reale', 'CLIENTE', false);
+    await creaTemplate('Contratto Digitalizzato', 'CLIENTE', true);
+
+    const res = await POST('/comparator/getTemplates', {}, { auth: MOCK_USER });
+
+    expect(res.status).toBe(200);
+    expect(res.data.value).toHaveLength(1);
+    expect(res.data.value[0].nome).toBe('Template Reale');
   });
 });
