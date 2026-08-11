@@ -16,8 +16,8 @@
           <IconTabFilter key="contratti" text="Contratti" icon="sap-icon://document-text">
             <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.DashboardCockpit" type="XML" />
           </IconTabFilter>
-          <IconTabFilter key="vendor" text="Vendor Rating" icon="sap-icon://supplier">
-            <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.VendorRating" type="XML" />
+          <IconTabFilter key="report" text="Report Fornitori" icon="sap-icon://documents">
+            <core:Fragment fragmentName="com.reply.contrattiattivi.app.fragment.ReportFornitori" type="XML" />
           </IconTabFilter>
         </items>
       </IconTabBar>

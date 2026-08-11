@@ -16,6 +16,7 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({ fornitoreAttivo: null }), "filtro");
       this.getView().setModel(new JSONModel({ righe: [], vuoto: false }), "vendor");
       this.getView().setModel(new JSONModel({ righe: [], vuoto: false }), "vendorMain");
+      this.getView().setModel(new JSONModel({ righe: [], nome: "" }), "contrattiFornitoreReport");
       this._caricaDati();
       this.getOwnerComponent().getRouter().getRoute("dashboard").attachPatternMatched(this._onRouteMatched, this);
     },
@@ -284,6 +285,84 @@ sap.ui.define([
       oModel.setProperty("/topFornitoriHtml", dashboardUtils.buildTopFornitoriHtml(aLista, sVista));
     },
 
+
+    onReportSearch: function (oEvent) {
+      this._applyReportFilter(oEvent.getParameter("query") || "");
+    },
+
+    onReportChange: function (oEvent) {
+      this._applyReportFilter(oEvent.getSource().getValue());
+    },
+
+    onReportReset: function () {
+      var oT = this.byId("rfReportSearch");
+      if (oT) oT.setValue("");
+      this._applyReportFilter("");
+    },
+
+    _applyReportFilter: function (sValue) {
+      var sTrim = (sValue || "").trim();
+      var aFilters = [];
+      if (sTrim) {
+        aFilters.push(new Filter({
+          filters: [
+            new Filter({ path: "nomeFornitore", operator: FilterOperator.Contains, value1: sTrim, caseSensitive: false }),
+            new Filter({ path: "idSapFornitore", operator: FilterOperator.Contains, value1: sTrim, caseSensitive: false })
+          ],
+          and: false
+        }));
+      }
+      var oTable = this.byId("reportFornitoriTable");
+      if (oTable) {
+        var oBinding = oTable.getBinding("items");
+        if (oBinding) oBinding.filter(aFilters);
+      }
+    },
+
+    onApriContrattiFornitoreReport: function (oEvent) {
+      var that = this;
+      var oCtx = oEvent.getSource().getBindingContext();
+      var oFornitore = oCtx && oCtx.getObject();
+      if (!oFornitore || !oFornitore.ID) return;
+      var oModel = this.getOwnerComponent().getModel();
+      oModel.bindList("/Contratto", {}).requestContexts(0, 2000)
+        .then(function (aCtx) {
+          var aRighe = (aCtx || [])
+            .map(function (c) { return c.getObject(); })
+            .filter(function (o) { return o.fornitore_ID === oFornitore.ID && o.stato !== 'ARCHIVIATO'; })
+            .map(function (o) {
+              var oRischio = dashboardUtils.buildRischioFornitore(oFornitore);
+              return {
+                ID: o.ID, codice: o.codice, intestatario: o.intestatario, responsabile: o.responsabile,
+                oggetto: o.oggetto, categoria: o.categoria, stato: o.stato, importo: o.importo,
+                dataStipula: o.dataStipula, dataScadenza: o.dataScadenza,
+                rischioLabel: oRischio.label, rischioState: that._statoRischio(oRischio.livello)
+              };
+            });
+          var oModel = that.getView().getModel("contrattiFornitoreReport");
+          oModel.setProperty("/nome", oFornitore.nomeFornitore);
+          oModel.setProperty("/righe", aRighe);
+          that.byId("contrattiDrillReport").setVisible(true);
+        })
+        .catch(function (err) {
+          console.error("ReportFornitori drill load error", err);
+        });
+    },
+
+    onDrillBackReport: function () {
+      this.byId("contrattiDrillReport").setVisible(false);
+    },
+
+    onApriContrattoDettaglioReport: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext("contrattiFornitoreReport");
+      var sID = oCtx && oCtx.getProperty("ID");
+      if (!sID) return;
+      var sHash = this.getOwnerComponent().getRouter().getURL("detail", { id: encodeURIComponent(sID) });
+      if (sHash.charAt(0) !== "#") {
+        sHash = "#/" + sHash.replace(/^\//, "");
+      }
+      window.open(sHash, "_blank");
+    },
 
     onNavBack: function () {
       this.getOwnerComponent().getRouter().navTo("main");

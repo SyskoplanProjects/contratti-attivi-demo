@@ -1,0 +1,90 @@
+<core:FragmentDefinition controllerName="com.reply.contrattiattivi.app.controller.Dashboard" xmlns:core="sap.ui.core" xmlns="sap.m">
+  <VBox class="sapUiSmallMargin app-dash-tab">
+    <HBox class="app-dash-filterbar sapUiSmallMarginBottom" wrap="Wrap" alignItems="End" justifyContent="SpaceBetween">
+      <VBox class="app-dash-filter-field">
+        <Label text="Ricerca" />
+        <SearchField id="rfReportSearch" placeholder="Nome fornitore o ID SAP..." width="20rem" search="onReportSearch" change="onReportChange" />
+      </VBox>
+      <Button icon="sap-icon://reset" text="Reset" press="onReportReset" class="app-btn app-btn-neutral" />
+    </HBox>
+    <VBox class="app-table-wrap">
+      <Table id="reportFornitoriTable" growing="true" growingThreshold="50"
+        items="{path:'/Fornitore', parameters:{operationMode:'Server'}}" noDataText="Nessun fornitore">
+        <columns>
+          <Column><Text text="Codice ATECO" /></Column>
+          <Column><Text text="Rischio emissioni" /></Column>
+          <Column><Text text="ID SAP fornitore" /></Column>
+          <Column><Text text="Nome del fornitore" /></Column>
+          <Column><Text text="Codice Fiscale" /></Column>
+          <Column><Text text="Data Attivazione" /></Column>
+          <Column><Text text="N. Addetti" /></Column>
+          <Column><Text text="CGS score" /></Column>
+          <Column><Text text="Fatturato tot." /></Column>
+          <Column><Text text="Anno fatturato tot." /></Column>
+          <Column><Text text="Protesti" /></Column>
+          <Column><Text text="Pregiudizievoli" /></Column>
+          <Column><Text text="Score Vendor Rating" /></Column>
+        </columns>
+        <items>
+          <ColumnListItem type="Navigation" press="onApriContrattiFornitoreReport">
+            <cells>
+              <Text text="{codiceAteco}" />
+              <Text text="{rischioEmissioni}" />
+              <Text text="{idSapFornitore}" />
+              <Text text="{nomeFornitore}" />
+              <Text text="{codiceFiscale}" />
+              <Text text="{dataAttivazione}" />
+              <Text text="{numAddetti}" />
+              <Text text="{cgsScore}" />
+              <Text text="{path:'fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
+              <Text text="{annoFatturatoTot}" />
+              <Text text="{protesti}" />
+              <Text text="{pregiudizievoli}" />
+              <Text text="{scoreVendorRating}" />
+            </cells>
+          </ColumnListItem>
+        </items>
+      </Table>
+    </VBox>
+
+    <VBox id="contrattiDrillReport" visible="false" class="sapUiMediumMarginTop">
+      <Toolbar>
+        <Button icon="sap-icon://nav-back" type="Transparent" press="onDrillBackReport" />
+        <Title text="{= 'Contratti di ' + ${contrattiFornitoreReport>/nome} }" level="H2" />
+      </Toolbar>
+      <VBox class="app-table-wrap">
+        <Table id="contrattiFornitoreTableReport" growing="true" growingThreshold="50"
+          items="{contrattiFornitoreReport>/righe}">
+          <columns>
+            <Column><Text text="Codice" /></Column>
+            <Column><Text text="Fornitore" /></Column>
+            <Column><Text text="Rischio" /></Column>
+            <Column><Text text="Responsabile" /></Column>
+            <Column><Text text="Oggetto" /></Column>
+            <Column><Text text="Categoria" /></Column>
+            <Column><Text text="Stato" /></Column>
+            <Column><Text text="Importo" /></Column>
+            <Column><Text text="Data Stipula" /></Column>
+            <Column><Text text="Data Scadenza" /></Column>
+          </columns>
+          <items>
+            <ColumnListItem type="Navigation" press="onApriContrattoDettaglioReport">
+              <cells>
+                <Text text="{contrattiFornitoreReport>codice}" />
+                <Text text="{contrattiFornitoreReport>intestatario}" />
+                <ObjectStatus text="{contrattiFornitoreReport>rischioLabel}" state="{contrattiFornitoreReport>rischioState}" />
+                <Text text="{contrattiFornitoreReport>responsabile}" />
+                <Text text="{contrattiFornitoreReport>oggetto}" />
+                <Text text="{path:'contrattiFornitoreReport>categoria', formatter:'.formatter.categoriaText'}" />
+                <ObjectStatus text="{contrattiFornitoreReport>stato}" state="{path:'contrattiFornitoreReport>stato', formatter:'.formatter.statoState'}" />
+                <Text text="{path:'contrattiFornitoreReport>importo', formatter:'.formatter.euroText', targetType:'any'}" />
+                <Text text="{contrattiFornitoreReport>dataStipula}" />
+                <Text text="{contrattiFornitoreReport>dataScadenza}" />
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+    </VBox>
+  </VBox>
+</core:FragmentDefinition>
