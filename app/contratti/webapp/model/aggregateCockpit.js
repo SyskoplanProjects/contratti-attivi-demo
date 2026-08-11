@@ -108,7 +108,8 @@
           totaleContratti: a.totaleContratti,
           numeroContratti: a.numeroContratti,
           indiceDipendenza: fatturato > 0 ? Math.round(a.totaleContratti / fatturato * 1000) / 10 : null,
-          rischio: buildRischioFornitore(f)
+          rischio: buildRischioFornitore(f),
+          scoreVendorRating: f.scoreVendorRating != null ? f.scoreVendorRating : ""
         };
       })
       .sort(function (x, y) { return y.totaleContratti - x.totaleContratti; });

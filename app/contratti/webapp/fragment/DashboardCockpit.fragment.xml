@@ -105,7 +105,7 @@
 <Text text="Indice dipendenza" />
 </Column>
 <Column>
-<Text text="Rischio" />
+        <Text text="Rischio complessivo" />
 </Column>
 </columns>
 <items>
@@ -116,7 +116,7 @@
 <Text text="{path:'vendorMain>totaleContratti', formatter:'.formatter.euroText', targetType:'any'}" />
 <Text text="{vendorMain>numeroContratti}" />
 <core:HTML content="{vendorMain>indiceHtml}" />
-<ObjectStatus text="{vendorMain>rischioLabel}" state="{vendorMain>rischioState}" />
+<Text text="{vendorMain>scoreVendorRating}" />
 </cells>
 </ColumnListItem>
 </items>

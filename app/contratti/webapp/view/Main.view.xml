@@ -40,7 +40,6 @@
           </HBox>
           <HBox class="app-btn-group">
             <Button text="Dashboard" icon="sap-icon://business-objects-experience" press="onApriDashboard" class="app-btn app-btn-neutral" />
-            <Button text="Report Fornitori" icon="sap-icon://measure" press="onApriReport" class="app-btn app-btn-neutral" />
           </HBox>
         </HBox>
         <HBox class="sapUiSmallMarginBottom" wrap="Wrap" alignItems="End">

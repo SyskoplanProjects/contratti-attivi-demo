@@ -16,6 +16,7 @@ sap.ui.define([
       this.getView().setModel(new JSONModel({ fornitoreAttivo: null }), "filtro");
       this.getView().setModel(new JSONModel({ righe: [], vuoto: false }), "vendor");
       this.getView().setModel(new JSONModel({ righe: [], vuoto: false }), "vendorMain");
+      this.getView().setModel(new JSONModel({ righe: [] }), "reportMain");
       this.getView().setModel(new JSONModel({ righe: [], nome: "" }), "contrattiFornitoreReport");
       this._caricaDati();
       this.getOwnerComponent().getRouter().getRoute("dashboard").attachPatternMatched(this._onRouteMatched, this);
@@ -183,6 +184,18 @@ sap.ui.define([
       var oModel = this.getView().getModel("vendorMain");
       oModel.setProperty("/righe", aVendorMain);
       oModel.setProperty("/vuoto", aVendorMain.length === 0);
+      var mCounts = {};
+      aFiltrati.forEach(function (c) {
+        if (c.fornitore_ID) mCounts[c.fornitore_ID] = (mCounts[c.fornitore_ID] || 0) + 1;
+      });
+      var oReportModel = this.getView().getModel("reportMain");
+      if (oReportModel) {
+        oReportModel.setProperty("/righe", this._aFornitoriTutti.map(function (f) {
+          var oR = Object.assign({}, f);
+          oR.numeroContratti = mCounts[f.ID] || 0;
+          return oR;
+        }));
+      }
     },
 
     _costruisciRighe: function (aContratti) {
@@ -235,19 +248,24 @@ sap.ui.define([
 
 
 
-    onApriReportFornitore: function (oEvent) {
-      this._apriReportFornitore(oEvent, "vendor");
-    },
-
     onApriReportFornitoreMain: function (oEvent) {
-      this._apriReportFornitore(oEvent, "vendorMain");
+      this._apriReportTab(oEvent, "vendorMain", "nome");
     },
 
-    _apriReportFornitore: function (oEvent, sModelVendor) {
+    onApriReportFornitore: function (oEvent) {
+      this._apriReportTab(oEvent, "vendor", "nome");
+    },
+
+    _apriReportTab: function (oEvent, sModelVendor, sPropNome) {
       var oCtx = oEvent.getSource().getBindingContext(sModelVendor);
-      var sNome = oCtx && oCtx.getProperty("nome");
+      var sNome = oCtx && oCtx.getProperty(sPropNome);
       if (!sNome) return;
-      this.getOwnerComponent().getRouter().navTo("report", { fornitore: encodeURIComponent(sNome) });
+      this.byId("dashboardTabBar").setSelectedKey("report");
+      var oT = this.byId("rfReportSearch");
+      if (oT) {
+        oT.setValue(sNome);
+        oT.fireSearch({ query: sNome });
+      }
     },
 
     _aggiornaCockpit: function (aContrattiCorrente, aContrattiPrecedente) {
@@ -321,9 +339,10 @@ sap.ui.define([
 
     onApriContrattiFornitoreReport: function (oEvent) {
       var that = this;
-      var oCtx = oEvent.getSource().getBindingContext();
+      var oCtx = oEvent.getSource().getBindingContext("reportMain");
       var oFornitore = oCtx && oCtx.getObject();
       if (!oFornitore || !oFornitore.ID) return;
+      if (!oFornitore.numeroContratti) return;
       var oModel = this.getOwnerComponent().getModel();
       oModel.bindList("/Contratto", {}).requestContexts(0, 2000)
         .then(function (aCtx) {
@@ -343,6 +362,8 @@ sap.ui.define([
           oModel.setProperty("/nome", oFornitore.nomeFornitore);
           oModel.setProperty("/righe", aRighe);
           that.byId("contrattiDrillReport").setVisible(true);
+          var oDrillDom = that.byId("contrattiDrillReport").getDomRef();
+          if (oDrillDom) oDrillDom.scrollIntoView({ block: "start", behavior: "smooth" });
         })
         .catch(function (err) {
           console.error("ReportFornitori drill load error", err);

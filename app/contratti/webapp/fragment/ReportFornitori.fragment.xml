@@ -9,12 +9,13 @@
     </HBox>
     <VBox class="app-table-wrap">
       <Table id="reportFornitoriTable" growing="true" growingThreshold="50"
-        items="{path:'/Fornitore', parameters:{operationMode:'Server'}}" noDataText="Nessun fornitore">
+        items="{reportMain>/righe}" noDataText="Nessun fornitore">
         <columns>
           <Column><Text text="Codice ATECO" /></Column>
           <Column><Text text="Rischio emissioni" /></Column>
           <Column><Text text="ID SAP fornitore" /></Column>
           <Column><Text text="Nome del fornitore" /></Column>
+          <Column><Text text="N. contratti totale" /></Column>
           <Column><Text text="Codice Fiscale" /></Column>
           <Column><Text text="Data Attivazione" /></Column>
           <Column><Text text="N. Addetti" /></Column>
@@ -23,24 +24,27 @@
           <Column><Text text="Anno fatturato tot." /></Column>
           <Column><Text text="Protesti" /></Column>
           <Column><Text text="Pregiudizievoli" /></Column>
-          <Column><Text text="Score Vendor Rating" /></Column>
+          <Column><Text text="Rischio legale" /></Column>
+          <Column><Text text="Rischio computazionale" /></Column>
         </columns>
         <items>
           <ColumnListItem type="Navigation" press="onApriContrattiFornitoreReport">
             <cells>
-              <Text text="{codiceAteco}" />
-              <Text text="{rischioEmissioni}" />
-              <Text text="{idSapFornitore}" />
-              <Text text="{nomeFornitore}" />
-              <Text text="{codiceFiscale}" />
-              <Text text="{dataAttivazione}" />
-              <Text text="{numAddetti}" />
-              <Text text="{cgsScore}" />
-              <Text text="{path:'fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
-              <Text text="{annoFatturatoTot}" />
-              <Text text="{protesti}" />
-              <Text text="{pregiudizievoli}" />
-              <Text text="{scoreVendorRating}" />
+              <Text text="{reportMain>codiceAteco}" />
+              <Text text="{reportMain>rischioEmissioni}" />
+              <Text text="{reportMain>idSapFornitore}" />
+              <Text text="{reportMain>nomeFornitore}" />
+              <Text text="{reportMain>numeroContratti}" />
+              <Text text="{reportMain>codiceFiscale}" />
+              <Text text="{reportMain>dataAttivazione}" />
+              <Text text="{reportMain>numAddetti}" />
+              <Text text="{reportMain>cgsScore}" />
+              <Text text="{path:'reportMain>fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
+              <Text text="{reportMain>annoFatturatoTot}" />
+              <Text text="{reportMain>protesti}" />
+              <Text text="{reportMain>pregiudizievoli}" />
+              <Text text="{reportMain>scoreVendorRating}" />
+              <Text text="{reportMain>scoreVendorRating}" />
             </cells>
           </ColumnListItem>
         </items>
