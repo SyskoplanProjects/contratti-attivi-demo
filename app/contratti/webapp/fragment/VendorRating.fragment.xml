@@ -9,7 +9,7 @@
     </HBox>
     <MessageStrip type="Information" showIcon="true" class="sapUiTinyMarginBottom"
       visible="{= !!${vendor>/vuoto} }" text="Nessun fornitore con contratti attivi." />
-    <VBox class="app-table-wrap">
+    <VBox id="vendorPanel" class="app-table-wrap">
       <Table id="vendorTable" growing="true" growingThreshold="50" items="{vendor>/righe}">
         <columns>
           <Column><Text text="Fornitore" /></Column>
@@ -20,9 +20,9 @@
           <Column><Text text="Rischio" /></Column>
         </columns>
         <items>
-          <ColumnListItem>
+          <ColumnListItem type="Navigation" press="onApriContrattiFornitore">
             <cells>
-              <Text text="{vendor>nome}" />
+              <Link text="{vendor>nome}" press="onApriReportFornitore" />
               <Text text="{path:'vendor>fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
               <Text text="{path:'vendor>totaleContratti', formatter:'.formatter.euroText', targetType:'any'}" />
               <Link text="{vendor>numeroContratti}" press="onApriContrattiFornitore" />
@@ -32,6 +32,46 @@
           </ColumnListItem>
         </items>
       </Table>
+    </VBox>
+
+    <VBox id="contrattiDrillVendor" visible="false" class="sapUiMediumMarginTop">
+      <Toolbar>
+        <Button icon="sap-icon://nav-back" type="Transparent" press="onDrillBackVendor" />
+        <Title text="{= 'Contratti di ' + ${contrattiFornitoreVendor>/nome} }" level="H2" />
+      </Toolbar>
+      <VBox class="app-table-wrap">
+        <Table id="contrattiFornitoreTableVendor" growing="true" growingThreshold="50"
+          items="{contrattiFornitoreVendor>/righe}">
+          <columns>
+            <Column><Text text="Codice" /></Column>
+            <Column><Text text="Fornitore" /></Column>
+            <Column><Text text="Rischio" /></Column>
+            <Column><Text text="Responsabile" /></Column>
+            <Column><Text text="Oggetto" /></Column>
+            <Column><Text text="Categoria" /></Column>
+            <Column><Text text="Stato" /></Column>
+            <Column><Text text="Importo" /></Column>
+            <Column><Text text="Data Stipula" /></Column>
+            <Column><Text text="Data Scadenza" /></Column>
+          </columns>
+          <items>
+            <ColumnListItem type="Navigation" press="onApriContrattoDettaglio">
+              <cells>
+                <Text text="{contrattiFornitoreVendor>codice}" />
+                <Text text="{contrattiFornitoreVendor>intestatario}" />
+                <ObjectStatus text="{contrattiFornitoreVendor>rischioLabel}" state="{contrattiFornitoreVendor>rischioState}" />
+                <Text text="{contrattiFornitoreVendor>responsabile}" />
+                <Text text="{contrattiFornitoreVendor>oggetto}" />
+                <Text text="{path:'contrattiFornitoreVendor>categoria', formatter:'.formatter.categoriaText'}" />
+                <ObjectStatus text="{contrattiFornitoreVendor>stato}" state="{path:'contrattiFornitoreVendor>stato', formatter:'.formatter.statoState'}" />
+                <Text text="{path:'contrattiFornitoreVendor>importo', formatter:'.formatter.euroText', targetType:'any'}" />
+                <Text text="{contrattiFornitoreVendor>dataStipula}" />
+                <Text text="{contrattiFornitoreVendor>dataScadenza}" />
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
     </VBox>
   </VBox>
 </core:FragmentDefinition>

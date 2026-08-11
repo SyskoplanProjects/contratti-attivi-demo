@@ -15,7 +15,9 @@ sap.ui.define([
     onInit: function () {
       this.getView().setModel(new JSONModel({ fornitoreAttivo: null }), "filtro");
       this.getView().setModel(new JSONModel({ righe: [], vuoto: false }), "vendor");
-      this.getView().setModel(new JSONModel({ righe: [] }), "righeContratti");
+      this.getView().setModel(new JSONModel({ righe: [], vuoto: false }), "vendorMain");
+      this.getView().setModel(new JSONModel({ righe: [], nome: "" }), "contrattiFornitoreMain");
+      this.getView().setModel(new JSONModel({ righe: [], nome: "" }), "contrattiFornitoreVendor");
       this._caricaDati();
       this.getOwnerComponent().getRouter().getRoute("dashboard").attachPatternMatched(this._onRouteMatched, this);
     },
@@ -177,13 +179,17 @@ sap.ui.define([
     _aggiornaTabella: function (oFiltriNonPeriodo, oDataDa, oDataA) {
       var aFiltrati = this._filtraContratti(this._aContrattiTutti, oFiltriNonPeriodo, oDataDa, oDataA)
         .filter(function (c) { return c.stato !== 'ARCHIVIATO'; });
-      this._arricchisciRigheDa(aFiltrati);
+      var aVendorMain = aggregateCockpit.buildVendorRating(aFiltrati, this._aFornitoriTutti);
+      this._decorateVendor(aVendorMain);
+      var oModel = this.getView().getModel("vendorMain");
+      oModel.setProperty("/righe", aVendorMain);
+      oModel.setProperty("/vuoto", aVendorMain.length === 0);
     },
 
-    _arricchisciRigheDa: function (aContratti) {
+    _costruisciRighe: function (aContratti) {
       var mF = {};
       (this._aFornitoriTutti || []).forEach(function (f) { mF[f.ID] = f; });
-      var righe = (aContratti || []).map(function (c) {
+      return (aContratti || []).map(function (c) {
         var oFornitore = mF[c.fornitore_ID] || {};
         var oRischio = dashboardUtils.buildRischioFornitore(oFornitore);
         return {
@@ -193,7 +199,6 @@ sap.ui.define([
           rischioLabel: oRischio.label, rischioState: this._statoRischio(oRischio.livello)
         };
       }, this);
-      this.getView().getModel("righeContratti").setProperty("/righe", righe);
     },
 
     _statoRischio: function (sLivello) {
@@ -228,10 +233,50 @@ sap.ui.define([
     },
 
     onApriContrattiFornitore: function (oEvent) {
-      var oCtx = oEvent.getSource().getBindingContext("vendor");
+      this._apriDrillContratti(oEvent, "vendor", "contrattiFornitoreVendor", "vendorPanel", "contrattiDrillVendor");
+    },
+
+    onApriContrattiFornitoreMain: function (oEvent) {
+      this._apriDrillContratti(oEvent, "vendorMain", "contrattiFornitoreMain", "vendorMainPanel", "contrattiDrillMain");
+    },
+
+    _apriDrillContratti: function (oEvent, sModelVendor, sModelDrill, sPanelVendor, sPanelDrill) {
+      var oCtx = oEvent.getSource().getBindingContext(sModelVendor);
+      var oVendor = oCtx && oCtx.getObject();
+      if (!oVendor || !oVendor.id) return;
+      var aRighe = this._costruisciRighe((this._aContrattiTutti || []).filter(function (c) {
+        return c.fornitore_ID === oVendor.id && c.stato !== 'ARCHIVIATO';
+      }));
+      var oModel = this.getView().getModel(sModelDrill);
+      oModel.setProperty("/nome", oVendor.nome);
+      oModel.setProperty("/righe", aRighe);
+      this.byId(sPanelVendor).setVisible(false);
+      this.byId(sPanelDrill).setVisible(true);
+    },
+
+    onDrillBackMain: function () {
+      this.byId("vendorMainPanel").setVisible(true);
+      this.byId("contrattiDrillMain").setVisible(false);
+    },
+
+    onDrillBackVendor: function () {
+      this.byId("vendorPanel").setVisible(true);
+      this.byId("contrattiDrillVendor").setVisible(false);
+    },
+
+    onApriReportFornitore: function (oEvent) {
+      this._apriReportFornitore(oEvent, "vendor");
+    },
+
+    onApriReportFornitoreMain: function (oEvent) {
+      this._apriReportFornitore(oEvent, "vendorMain");
+    },
+
+    _apriReportFornitore: function (oEvent, sModelVendor) {
+      var oCtx = oEvent.getSource().getBindingContext(sModelVendor);
       var sNome = oCtx && oCtx.getProperty("nome");
       if (!sNome) return;
-      this.getOwnerComponent().getRouter().navTo("dashboard", { fornitore: encodeURIComponent(sNome) });
+      this.getOwnerComponent().getRouter().navTo("report", { fornitore: encodeURIComponent(sNome) });
     },
 
     _aggiornaCockpit: function (aContrattiCorrente, aContrattiPrecedente) {
@@ -270,9 +315,14 @@ sap.ui.define([
     },
 
     onApriContrattoDettaglio: function (oEvent) {
-      var sID = oEvent.getSource().getBindingContext().getProperty("ID");
+      var oCtx = oEvent.getSource().getBindingContext("contrattiFornitoreMain") ||
+                 oEvent.getSource().getBindingContext("contrattiFornitoreVendor");
+      var sID = oCtx && oCtx.getProperty("ID");
       if (!sID) return;
       var sHash = this.getOwnerComponent().getRouter().getURL("detail", { id: encodeURIComponent(sID) });
+      if (sHash.charAt(0) !== "#") {
+        sHash = "#/" + sHash.replace(/^\//, "");
+      }
       window.open(sHash, "_blank");
     },
 

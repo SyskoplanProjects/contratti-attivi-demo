@@ -97,42 +97,75 @@
       <core:HTML content="{fornitori>/topFornitoriHtml}" />
     </VBox>
 
-    <VBox class="sapUiMediumMarginTop sapUiTinyMarginBottom">
-      <Title text="Dettaglio contratti" level="H2" />
+    <VBox class="sapUiMediumMarginTop">
+      <Toolbar>
+        <Title text="Vendor Rating" level="H2" />
+      </Toolbar>
     </VBox>
 
-    <VBox class="app-table-wrap">
-      <Table id="dettaglioContrattiTable" growing="true" growingThreshold="50"
-        items="{righeContratti>/righe}">
+    <VBox id="vendorMainPanel" class="app-table-wrap">
+      <Table id="vendorTableMain" growing="true" growingThreshold="50" items="{vendorMain>/righe}">
         <columns>
-          <Column><Text text="Codice" /></Column>
           <Column><Text text="Fornitore" /></Column>
+          <Column><Text text="Fatturato dichiarato" /></Column>
+          <Column><Text text="Totale contratti" /></Column>
+          <Column><Text text="N. contratti" /></Column>
+          <Column><Text text="Indice dipendenza" /></Column>
           <Column><Text text="Rischio" /></Column>
-          <Column><Text text="Responsabile" /></Column>
-          <Column><Text text="Oggetto" /></Column>
-          <Column><Text text="Categoria" /></Column>
-          <Column><Text text="Stato" /></Column>
-          <Column><Text text="Importo" /></Column>
-          <Column><Text text="Data Stipula" /></Column>
-          <Column><Text text="Data Scadenza" /></Column>
         </columns>
         <items>
-          <ColumnListItem type="Navigation" press="onApriContrattoDettaglio">
+          <ColumnListItem type="Navigation" press="onApriContrattiFornitoreMain">
             <cells>
-              <Text text="{righeContratti>codice}" />
-              <Text text="{righeContratti>intestatario}" />
-              <ObjectStatus text="{righeContratti>rischioLabel}" state="{righeContratti>rischioState}" />
-              <Text text="{righeContratti>responsabile}" />
-              <Text text="{righeContratti>oggetto}" />
-              <Text text="{path:'righeContratti>categoria', formatter:'.formatter.categoriaText'}" />
-              <ObjectStatus text="{righeContratti>stato}" state="{path:'righeContratti>stato', formatter:'.formatter.statoState'}" />
-              <Text text="{path:'righeContratti>importo', formatter:'.formatter.euroText', targetType:'any'}" />
-              <Text text="{righeContratti>dataStipula}" />
-              <Text text="{righeContratti>dataScadenza}" />
+              <Link text="{vendorMain>nome}" press="onApriReportFornitoreMain" />
+              <Text text="{path:'vendorMain>fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
+              <Text text="{path:'vendorMain>totaleContratti', formatter:'.formatter.euroText', targetType:'any'}" />
+              <Link text="{vendorMain>numeroContratti}" press="onApriContrattiFornitoreMain" />
+              <core:HTML content="{vendorMain>indiceHtml}" />
+              <ObjectStatus text="{vendorMain>rischioLabel}" state="{vendorMain>rischioState}" />
             </cells>
           </ColumnListItem>
         </items>
       </Table>
+    </VBox>
+
+    <VBox id="contrattiDrillMain" visible="false" class="sapUiMediumMarginTop">
+      <Toolbar>
+        <Button icon="sap-icon://nav-back" type="Transparent" press="onDrillBackMain" />
+        <Title text="{= 'Contratti di ' + ${contrattiFornitoreMain>/nome} }" level="H2" />
+      </Toolbar>
+      <VBox class="app-table-wrap">
+        <Table id="contrattiFornitoreTableMain" growing="true" growingThreshold="50"
+          items="{contrattiFornitoreMain>/righe}">
+          <columns>
+            <Column><Text text="Codice" /></Column>
+            <Column><Text text="Fornitore" /></Column>
+            <Column><Text text="Rischio" /></Column>
+            <Column><Text text="Responsabile" /></Column>
+            <Column><Text text="Oggetto" /></Column>
+            <Column><Text text="Categoria" /></Column>
+            <Column><Text text="Stato" /></Column>
+            <Column><Text text="Importo" /></Column>
+            <Column><Text text="Data Stipula" /></Column>
+            <Column><Text text="Data Scadenza" /></Column>
+          </columns>
+          <items>
+            <ColumnListItem type="Navigation" press="onApriContrattoDettaglio">
+              <cells>
+                <Text text="{contrattiFornitoreMain>codice}" />
+                <Text text="{contrattiFornitoreMain>intestatario}" />
+                <ObjectStatus text="{contrattiFornitoreMain>rischioLabel}" state="{contrattiFornitoreMain>rischioState}" />
+                <Text text="{contrattiFornitoreMain>responsabile}" />
+                <Text text="{contrattiFornitoreMain>oggetto}" />
+                <Text text="{path:'contrattiFornitoreMain>categoria', formatter:'.formatter.categoriaText'}" />
+                <ObjectStatus text="{contrattiFornitoreMain>stato}" state="{path:'contrattiFornitoreMain>stato', formatter:'.formatter.statoState'}" />
+                <Text text="{path:'contrattiFornitoreMain>importo', formatter:'.formatter.euroText', targetType:'any'}" />
+                <Text text="{contrattiFornitoreMain>dataStipula}" />
+                <Text text="{contrattiFornitoreMain>dataScadenza}" />
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
     </VBox>
 
   </VBox>
