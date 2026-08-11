@@ -12,7 +12,38 @@
         visible="{= ${coverage>/coveragePercent} &lt; 50 }"
         text="Copertura clausole troppo bassa: questo riferimento potrebbe non essere coerente con il documento caricato, non trattarlo come confronto affidabile"
         state="Warning" icon="sap-icon://alert" class="sapUiTinyMarginTop" />
+
+      <VBox visible="{= (${coverage>/riferimentoTrovato/candidati} || []).length > 1 }" class="sapUiSmallMarginTop">
+        <Label text="Altri candidati possibili" design="Bold" class="sapUiTinyMarginBottom" />
+        <Table items="{coverage>/riferimentoTrovato/candidati}" growing="true" growingThreshold="3">
+          <columns>
+            <Column><Text text="Template" /></Column>
+            <Column width="8rem"><Text text="Similarity" /></Column>
+            <Column width="8rem"><Text text="Copertura" /></Column>
+            <Column width="8rem"></Column>
+          </columns>
+          <items>
+            <ColumnListItem>
+              <cells>
+                <VBox>
+                  <Text text="{coverage>nome} ({coverage>tipo})" />
+                </VBox>
+                <Text text="{= Math.round((${coverage>similarity} || 0) * 100) }%" />
+                <Text text="{= Math.round(${coverage>coveragePercent} || 0) }%" />
+                <Button text="Usa questo"
+                  enabled="{= ${coverage>templateID} !== ${coverage>/riferimentoTrovato/templateID} }"
+                  press=".onSelezionaCandidato" />
+              </cells>
+            </ColumnListItem>
+          </items>
+        </Table>
+      </VBox>
+
+      <Button text="Nessuno di questi: crea nuovo template da questo documento" icon="sap-icon://add-document"
+        class="sapUiSmallMarginTop" press=".onApriCreaTemplate" />
     </VBox>
+    <Button text="Crea nuovo template da questo documento" icon="sap-icon://add-document"
+      visible="{= !${coverage>/riferimentoTrovato} }" class="sapUiSmallMarginBottom" press=".onApriCreaTemplate" />
 
     <VBox visible="{tips>/has}" class="app-card app-card-padded sapUiSmallMarginBottom">
       <HBox class="sapUiTinyMarginBottom" alignItems="Center">

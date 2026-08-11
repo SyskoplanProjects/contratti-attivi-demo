@@ -37,6 +37,7 @@
     "seed-demo": "node srv/lib/seed-demo.js",
     "seed-fornitori": "node srv/lib/seed-fornitori.js",
     "seed-poc-reali": "node srv/lib/seed-poc-reali.js",
+    "seed-esempi-classificazione": "node srv/lib/seed-esempi-classificazione.js",
     "backfill-template-embeddings": "node srv/lib/backfill-template-embeddings.js",
     "test": "jest --testTimeout=30000 --forceExit"
   },

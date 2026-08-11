@@ -20,11 +20,13 @@ sap.ui.define([
         return;
       }
 
+      const sContrattoOrigineID = this.byId("cbContrattoOrigine").getSelectedKey() || null;
+
       try {
         const oResp = await fetch("/contratti/creaDaTemplate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ templateID: sTemplateID })
+          body: JSON.stringify({ templateID: sTemplateID, contrattoOrigineID: sContrattoOrigineID })
         });
         if (!oResp.ok) {
           const oErr = await oResp.json();

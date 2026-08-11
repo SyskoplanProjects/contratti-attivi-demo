@@ -20,6 +20,13 @@
           <Select id="selTemplateContratto" forceSelection="false" items="{/Template}" width="100%" class="sapUiSmallMarginTop">
             <core:Item key="{ID}" text="{nome}" />
           </Select>
+
+          <Label text="Riusa dati da un contratto precedente (opzionale)" class="app-info-label sapUiSmallMarginTop" />
+          <Text class="app-hint-text" text="Precompila fornitore, referente e altri metadati già estratti su quel contratto." />
+          <ComboBox id="cbContrattoOrigine" forceSelection="false" items="{/Contratto}" width="100%" class="sapUiTinyMarginTop">
+            <core:Item key="{ID}" text="{intestatario}" />
+          </ComboBox>
+
           <Button text="Crea contratto" press="onCrea" class="app-btn app-btn-primary app-mt-md" width="100%" />
           <Link id="lnkContrattoCreato" text="Apri il contratto creato" visible="false" class="sapUiSmallMarginTop" target="_blank" />
         </VBox>

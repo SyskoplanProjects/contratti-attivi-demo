@@ -55,9 +55,11 @@ describe('riferimento-matcher — trovaRiferimento', () => {
     const risultato = await cds.tx(async (tx) => trovaRiferimento([{ numero: 1, titolo: 'Oggetto', testo: 'Testo caricato.' }], tx));
 
     expect(risultato).not.toBeNull();
-    expect(risultato.templateID).toBe(templateVicinoID);
-    expect(risultato.tipo).toBe('CLIENTE');
-    expect(risultato.coveragePercent).toBe(100);
+    expect(risultato.migliore.templateID).toBe(templateVicinoID);
+    expect(risultato.migliore.tipo).toBe('CLIENTE');
+    expect(risultato.migliore.coveragePercent).toBe(100);
+    expect(risultato.candidati).toHaveLength(2);
+    expect(risultato.candidati[0].templateID).toBe(templateVicinoID);
     expect(templateLontanoID).toBeDefined();
   });
 
@@ -86,7 +88,29 @@ describe('riferimento-matcher — trovaRiferimento', () => {
     const risultato = await cds.tx(async (tx) => trovaRiferimento([{ numero: 1, titolo: 'Oggetto', testo: 'Testo caricato.' }], tx));
 
     expect(risultato).not.toBeNull();
-    expect(risultato.templateID).toBe(templateID);
-    expect(risultato.coveragePercent).toBe(100);
+    expect(risultato.migliore.templateID).toBe(templateID);
+    expect(risultato.migliore.coveragePercent).toBe(100);
+  });
+
+  it('doppia scrematura: con annoContratto noto, restringe la shortlist ai Template della stessa epoca prima del ranking per similarity', async () => {
+    const { Template } = cdsRuntime.entities('com.reply.contrattiattivi');
+    const template2024ID = await creaTemplateConEmbedding('Template 2024', 'CLIENTE', [0, 1, 0], [{ titolo: 'Oggetto', testo: 'Testo 2024.' }]);
+    const template2026ID = await creaTemplateConEmbedding('Template 2026', 'CLIENTE', [1, 0, 0], [{ titolo: 'Oggetto', testo: 'Testo 2026.' }]);
+    await UPDATE(Template, template2024ID).with({ annoRiferimento: 2024 });
+    await UPDATE(Template, template2026ID).with({ annoRiferimento: 2026 });
+
+    // Documento caricato più vicino (cosine) al template 2024, ma annoContratto=2026: la
+    // scrematura per epoca deve restringere il pool al solo template 2026 prima ancora di
+    // calcolare la similarity, quindi vince 2026 nonostante la similarity peggiore.
+    mockEmbeddings
+      .mockResolvedValueOnce([[0, 1, 0]])
+      .mockResolvedValueOnce([[0, 1, 0], [1, 0, 0]]);
+
+    const risultato = await cds.tx(async (tx) =>
+      trovaRiferimento([{ numero: 1, titolo: 'Oggetto', testo: 'Testo caricato.' }], tx, 2026));
+
+    expect(risultato).not.toBeNull();
+    expect(risultato.candidati).toHaveLength(1);
+    expect(risultato.migliore.templateID).toBe(template2026ID);
   });
 });

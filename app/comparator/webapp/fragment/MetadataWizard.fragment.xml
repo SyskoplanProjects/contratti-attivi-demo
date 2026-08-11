@@ -5,8 +5,16 @@
       <layoutData>
         <l:SplitterLayoutData size="32%" />
       </layoutData>
-      <Panel headerText="{wizardSezioni>sezione}" expandable="true" expanded="true"
-        class="sapUiTinyMarginBottom">
+      <Panel expandable="true" expanded="true" class="sapUiTinyMarginBottom">
+        <headerToolbar>
+          <Toolbar>
+            <Title text="{wizardSezioni>sezione}" level="H5" />
+            <ToolbarSpacer />
+            <Button icon="sap-icon://add" text="Aggiungi clausola" type="Transparent"
+              visible="{= ${wizardSezioni>sezione} === 'Clausole di rischio' }"
+              press=".onAggiungiClausola" />
+          </Toolbar>
+        </headerToolbar>
         <Table items="{ path: 'wizardSezioni>campi', templateShareable: true }" noDataText="Nessun campo per questa sezione.">
           <columns>
             <Column width="30%"><Text text="Campo" /></Column>

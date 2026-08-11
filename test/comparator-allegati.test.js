@@ -72,6 +72,12 @@ describe('classificaAllegati / confirmCoverage allegati', () => {
     });
     const fileBase64 = (await Packer.toBuffer(doc)).toString('base64');
 
+    // Il pool di riferimento è già in cache (popolato dalla describe CGC end-to-end sopra,
+    // che DEVE restare la prima del file) come vettori one-hot per indice di conRiferimento:
+    // indice 1 = DURC. Dopo la rimozione del pre-check nomeEsplicito, la classificazione DURC
+    // passa per l'embedding reale del documento, quindi va allineata a quell'indice.
+    openai.embeddings.mockImplementationOnce(() => Promise.resolve([[0, 1, 0]]));
+
     const classifica = await POST('/comparator/classificaAllegati', {
       previewID,
       allegati: [{ filename: 'durc.docx', file: fileBase64 }]
@@ -81,7 +87,7 @@ describe('classificaAllegati / confirmCoverage allegati', () => {
     expect(classifica.data.allegati).toHaveLength(1);
     expect(classifica.data.allegati[0].filename).toBe('durc.docx');
     expect(classifica.data.allegati[0].tipo).toBe('DURC');
-    expect(classifica.data.allegati[0].metodoRiconoscimento).toBe('nomeEsplicito');
+    expect(classifica.data.allegati[0].metodoRiconoscimento).toBe('embedding');
 
     const conferma = await POST('/comparator/confirmCoverage', {
       previewID,
@@ -246,7 +252,7 @@ describe('calcolaCoverage / confirmCoverage — metadati contratto principale', 
     // dall'estrazione campi CONTRATTO (estraiCampiAllegato): distingue in base al systemPrompt.
     mockChatJSON.mockImplementation(async (systemPrompt) => {
       if (systemPrompt && systemPrompt.includes('segmenta')) {
-        return { clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola.' }] };
+        return { clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Testo clausola.' }] };
       }
       return {
         titoloContratto: { valore: 'Contratto Cloud', confidenza: 0.9 },
@@ -293,7 +299,7 @@ describe('calcolaCoverage / confirmCoverage — metadati contratto principale', 
   it('usa i metadati corretti a mano nel wizard (parametro metadati) al posto di quelli originali AI', async () => {
     mockChatJSON.mockImplementation(async (systemPrompt) => {
       if (systemPrompt && systemPrompt.includes('segmenta')) {
-        return { clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola.' }] };
+        return { clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Testo clausola.' }] };
       }
       return { titoloContratto: { valore: 'Titolo AI', confidenza: 0.5 } };
     });
@@ -330,7 +336,7 @@ describe('calcolaCoverage / confirmCoverage — metadati contratto principale', 
   it('ritorna anche il testo integrale estratto dal documento', async () => {
     mockChatJSON.mockImplementation(async (systemPrompt) => {
       if (systemPrompt && systemPrompt.includes('segmenta')) {
-        return { clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola per verifica testo.' }] };
+        return { clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Testo clausola per verifica testo.' }] };
       }
       return { titoloContratto: { valore: 'Contratto Testo', confidenza: 0.9 } };
     });
@@ -406,7 +412,7 @@ describe('calcolaCoverage / confirmCoverage — metadati contratto principale', 
   it('confirmCoverage persiste testoOriginale/contenutoOriginale del documento caricato su Contratto', async () => {
     mockChatJSON.mockImplementation(async (systemPrompt) => {
       if (systemPrompt && systemPrompt.includes('segmenta')) {
-        return { clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo clausola persistenza.' }] };
+        return { clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Testo clausola persistenza.' }] };
       }
       return { titoloContratto: { valore: 'Contratto Persistenza', confidenza: 0.9 } };
     });

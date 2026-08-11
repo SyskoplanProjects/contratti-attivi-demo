@@ -20,10 +20,20 @@ function _media(vettori) {
 // senza limite, quindi si evita la query TemplateVersion per-template in loop (1 + N) e
 // si recupera l'ultima versione di ciascun template con un'unica query batched (2 totali,
 // indipendentemente dal numero di template).
-async function _shortlist(embeddingMedio, tx, n) {
+//
+// Doppia scrematura (RF-2.x): se annoContratto è noto, il pool viene prima ristretto ai
+// Template con annoRiferimento coincidente, e solo su quel sottoinsieme si applica il
+// ranking per cosine similarity. Campo opzionale/nuovo: la maggior parte dei Template
+// esistenti non lo ha ancora valorizzato, quindi con pool ristretto vuoto si ricade sul
+// pool completo (nessuna regressione per i dati non ancora migrati).
+async function _shortlist(embeddingMedio, tx, n, annoContratto) {
   const { Template, TemplateVersion } = cds.entities('com.reply.contrattiattivi');
-  const templates = await tx.run(SELECT.from(Template));
+  let templates = await tx.run(SELECT.from(Template));
   if (!templates.length) return [];
+  if (annoContratto) {
+    const stessaEpoca = templates.filter(t => t.annoRiferimento === annoContratto);
+    if (stessaEpoca.length) templates = stessaEpoca;
+  }
   const templateIDs = templates.map(t => t.ID);
   const tutteLeVersioni = await tx.run(
     SELECT.from(TemplateVersion).where({ template_ID: { in: templateIDs } }).orderBy('numero desc')
@@ -44,10 +54,15 @@ async function _shortlist(embeddingMedio, tx, n) {
 }
 
 // Stadio 2 completo: shortlist per cosine similarity sull'embedding medio del documento
-// caricato, poi rifinitura clausola-per-clausola sui top N candidati (riuso di
-// confrontaClausoleConTemplate, nessuna riestrazione delle clausole già estratte in
-// Stadio 1). Vince il candidato con coveragePercent più alto; a parità, similarity più alta.
-async function trovaRiferimento(clausoleEstratte, tx) {
+// caricato (con doppia scrematura per epoca se annoContratto è noto), poi rifinitura
+// clausola-per-clausola sui top N candidati (riuso di confrontaClausoleConTemplate,
+// nessuna riestrazione delle clausole già estratte in Stadio 1). Vince il candidato con
+// coveragePercent più alto; a parità, similarity più alta.
+//
+// Ritorna { migliore, candidati }: candidati è la shortlist rifinita per intero (fino a
+// N_SHORTLIST=3), ordinata come migliore per primo, per esporre a UI un top-3 selezionabile
+// invece del solo best match (RF-1.x).
+async function trovaRiferimento(clausoleEstratte, tx, annoContratto) {
   const { Template } = cds.entities('com.reply.contrattiattivi');
   const tuttiTemplate = await tx.run(SELECT.from(Template));
   if (!tuttiTemplate.length || !clausoleEstratte.length) return null;
@@ -59,7 +74,7 @@ async function trovaRiferimento(clausoleEstratte, tx) {
   const embeddingMedio = _media(vettoriClausole);
   if (!embeddingMedio) return null;
 
-  let candidati = await _shortlist(embeddingMedio, tx, N_SHORTLIST);
+  let candidati = await _shortlist(embeddingMedio, tx, N_SHORTLIST, annoContratto);
   if (!candidati.length) {
     if (tuttiTemplate.length !== 1) return null;
     // Nessun Template ha embeddingDocumento valorizzato, ma ce n'è uno solo in archivio:
@@ -67,19 +82,21 @@ async function trovaRiferimento(clausoleEstratte, tx) {
     candidati = [{ templateID: tuttiTemplate[0].ID, nome: tuttiTemplate[0].nome, tipo: tuttiTemplate[0].tipoRiferimento, similarity: 0 }];
   }
 
-  let migliore = null;
+  const rifiniti = [];
   for (const candidato of candidati) {
     try {
       const { clausole, coveragePercent } = await confrontaClausoleConTemplate(clausoleEstratte, candidato.templateID, tx);
-      const meglio = !migliore
-        || coveragePercent > migliore.coveragePercent
-        || (coveragePercent === migliore.coveragePercent && candidato.similarity > migliore.similarity);
-      if (meglio) migliore = { ...candidato, coveragePercent, clausole };
+      rifiniti.push({ ...candidato, coveragePercent, clausole });
     } catch (e) {
       console.warn('[riferimento-matcher] rifinitura fallita per', candidato.templateID, ':', e.message);
     }
   }
-  return migliore;
+  if (!rifiniti.length) return null;
+
+  rifiniti.sort((a, b) =>
+    b.coveragePercent - a.coveragePercent || b.similarity - a.similarity);
+
+  return { migliore: rifiniti[0], candidati: rifiniti };
 }
 
 module.exports = { trovaRiferimento };

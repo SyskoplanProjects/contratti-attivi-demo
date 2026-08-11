@@ -52,7 +52,7 @@ describe('calcolaCoverage senza templateID (pipeline automatica)', () => {
   it('riconosce il riferimento più simile e popola riferimentoTrovato', async () => {
     const templateID = await creaTemplateConEmbedding('Template auto', [1, 0, 0], ['Testo A.']);
 
-    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo A.' }] });
+    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Testo A.' }] });
     mockEmbeddings
       .mockResolvedValueOnce([[1, 0, 0]])
       .mockResolvedValueOnce([[1, 0, 0], [1, 0, 0]]);
@@ -68,7 +68,7 @@ describe('calcolaCoverage senza templateID (pipeline automatica)', () => {
   });
 
   it('risponde 400 "Nessun template di riferimento disponibile in archivio" se il pool è vuoto', async () => {
-    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo A.' }] });
+    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Testo A.' }] });
 
     await expect(
       POST('/comparator/calcolaCoverage', { file: await bufferDocx('Testo A.'), filename: 'contratto.docx' }, { auth: MOCK_USER })
@@ -77,7 +77,7 @@ describe('calcolaCoverage senza templateID (pipeline automatica)', () => {
 
   it('con templateID esplicito il comportamento resta quello di oggi (nessuna auto-detection)', async () => {
     const templateID = await creaTemplateConEmbedding('Template manuale', [1, 0, 0], ['Testo A.']);
-    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Testo A.' }] });
+    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Testo A.' }] });
     mockEmbeddings.mockResolvedValueOnce([[1, 0, 0], [1, 0, 0]]);
 
     const res = await POST('/comparator/calcolaCoverage', {

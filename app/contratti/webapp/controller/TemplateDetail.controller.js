@@ -47,6 +47,43 @@ sap.ui.define([
       }).getBoundContext();
       const oData = await oContext.requestObject();
       this.getView().setModel(new JSONModel(oData), "contesto");
+      this._caricaCommenti();
+    },
+
+    _caricaCommenti: async function () {
+      const oModel = this.getOwnerComponent().getModel();
+      try {
+        const oResp = await fetch(oModel.getServiceUrl() + `TemplateCommento?$filter=template_ID eq '${this._templateID}'&$orderby=createdAt desc`);
+        const oJson = await oResp.json();
+        this.getView().setModel(new JSONModel({ value: oJson.value || [] }), "commenti");
+      } catch (e) { /* commenti non bloccanti per la pagina */ }
+    },
+
+    onInviaCommentoTemplate: async function () {
+      const oInput = this.byId("nuovoCommentoTemplateInput");
+      const sTesto = (oInput.getValue() || "").trim();
+      if (!sTesto) return;
+      const oModel = this.getOwnerComponent().getModel();
+      try {
+        await oModel.bindContext("/aggiungiCommentoTemplate(...)").setParameter("templateID", this._templateID)
+          .setParameter("testo", sTesto).execute();
+        oInput.setValue("");
+        this._caricaCommenti();
+      } catch (e) {
+        MessageBox.error(e.message || String(e));
+      }
+    },
+
+    onRisolviCommentoTemplate: async function (oEvent) {
+      const oContext = oEvent.getSource().getBindingContext("commenti");
+      const sCommentoID = oContext.getObject().ID;
+      const oModel = this.getOwnerComponent().getModel();
+      try {
+        await oModel.bindContext("/risolviCommentoTemplate(...)").setParameter("commentoID", sCommentoID).execute();
+        this._caricaCommenti();
+      } catch (e) {
+        MessageBox.error(e.message || String(e));
+      }
     },
 
     onNavBack: function () {

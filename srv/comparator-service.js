@@ -1,5 +1,6 @@
 const cds = require('@sap/cds');
 const { calcolaCoverage, buildTemplateClausoleMap, cercaUtilizzoClausola, confrontaClausoleConTemplate, estraiClausole } = require('./lib/comparator-engine');
+const { creaTemplateDaClausole } = require('./lib/import-commit');
 const { trovaRiferimento } = require('./lib/riferimento-matcher');
 const previewStore = require('./lib/preview-store');
 const { computeDocumentoEmbedding } = require('./lib/template-embedding');
@@ -55,37 +56,10 @@ module.exports = class ComparatorService extends cds.ApplicationService {
         : filename.endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         : 'application/octet-stream';
 
-      const result = await cds.tx(req).run(async (tx) => {
-        // templateID fornito esplicitamente: comportamento identico a oggi (retrocompatibilità/debug).
-        if (templateID) {
-          const r = await calcolaCoverage(buffer, filename, mimeType, templateID, tx);
-          return { clausole: r.clausole, coveragePercent: r.coveragePercent, riferimentoTrovato: null };
-        }
-
-        // Nessun templateID: pipeline automatica (Stadio 1 già completato sopra via extractTextMultiFormato
-        // più sotto per i metadati; qui Stadio 1 per le clausole + Stadio 2/3 per il riferimento).
-        const clausoleEstratte = await estraiClausole(buffer, filename, mimeType);
-        if (!clausoleEstratte.length) return req.reject(400, 'Documento non analizzabile');
-
-        const { Template } = cds.entities('com.reply.contrattiattivi');
-        const tuttiTemplate = await tx.run(SELECT.from(Template));
-        if (!tuttiTemplate.length) return req.reject(400, 'Nessun template di riferimento disponibile in archivio');
-
-        const matched = await trovaRiferimento(clausoleEstratte, tx);
-        if (!matched) return req.reject(400, 'Nessun template di riferimento disponibile in archivio');
-
-        return {
-          clausole: matched.clausole,
-          coveragePercent: matched.coveragePercent,
-          riferimentoTrovato: {
-            templateID: matched.templateID, nome: matched.nome, tipo: matched.tipo,
-            similarity: matched.similarity, coveragePercent: matched.coveragePercent
-          }
-        };
-      });
-
       // Estrai metadati del contratto (tipo CONTRATTO, con confidenza per campo) dal testo del documento,
-      // con bbox per campo quando è disponibile un PDF nativo o convertito da docx.
+      // con bbox per campo quando è disponibile un PDF nativo o convertito da docx. Spostato prima del
+      // match (non dipende da templateID/tx) per ricavare annoContratto e abilitare la doppia scrematura
+      // per epoca in trovaRiferimento, senza aggiungere chiamate AI extra.
       let metadati = [];
       let testo = '';
       let pdfBase64 = null;
@@ -99,6 +73,43 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       } catch (e) {
         console.warn('[comparator] estrazione metadati fallita, uso fallback:', e.message);
       }
+
+      const dataContrattoStr = (metadati.find(m => m.campo === 'dataFirma') || metadati.find(m => m.campo === 'dataDecorrenza') || {}).valore;
+      const dataContratto = dataContrattoStr ? new Date(dataContrattoStr) : null;
+      const annoContratto = (dataContratto && !isNaN(dataContratto)) ? dataContratto.getFullYear() : null;
+
+      const result = await cds.tx(req).run(async (tx) => {
+        // templateID fornito esplicitamente: comportamento identico a oggi (retrocompatibilità/debug).
+        if (templateID) {
+          const r = await calcolaCoverage(buffer, filename, mimeType, templateID, tx);
+          return { clausole: r.clausole, coveragePercent: r.coveragePercent, riferimentoTrovato: null };
+        }
+
+        // Nessun templateID: pipeline automatica (Stadio 1 per le clausole + Stadio 2/3 per il riferimento).
+        const clausoleEstratte = await estraiClausole(buffer, filename, mimeType);
+        if (!clausoleEstratte.length) return req.reject(400, 'Documento non analizzabile');
+
+        const { Template } = cds.entities('com.reply.contrattiattivi');
+        const tuttiTemplate = await tx.run(SELECT.from(Template));
+        if (!tuttiTemplate.length) return req.reject(400, 'Nessun template di riferimento disponibile in archivio');
+
+        const matchResult = await trovaRiferimento(clausoleEstratte, tx, annoContratto);
+        if (!matchResult) return req.reject(400, 'Nessun template di riferimento disponibile in archivio');
+
+        const { migliore, candidati } = matchResult;
+        return {
+          clausole: migliore.clausole,
+          coveragePercent: migliore.coveragePercent,
+          riferimentoTrovato: {
+            templateID: migliore.templateID, nome: migliore.nome, tipo: migliore.tipo,
+            similarity: migliore.similarity, coveragePercent: migliore.coveragePercent,
+            candidati: candidati.map(c => ({
+              templateID: c.templateID, nome: c.nome, tipo: c.tipo,
+              similarity: c.similarity, coveragePercent: c.coveragePercent
+            }))
+          }
+        };
+      });
 
       // Le clausole vengono estratte dal testo semplice (estraiClausole), senza bbox: si
       // localizzano qui sull'anteprima PDF cercando il testo della clausola nel testo posizionato
@@ -370,6 +381,65 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       previewStore.update(previewID, { documentoClassificatoID: documentoID });
 
       return { documentoID, esitoGate, categoria, sottoTipo: dp.sottoTipo || null, gravita, dettaglio };
+    });
+
+    this.on('creaTemplateDaCoverage', async (req) => {
+      const { nome, fornitoreID, annoRiferimento, isDefault, clausole } = req.data;
+      if (!nome || !nome.trim()) return req.reject(400, 'Nome template obbligatorio');
+
+      // Solo le clausole realmente presenti nel documento caricato: le NON_PRESENTE sono
+      // clausole di un candidato di riferimento assente dal documento, non vanno riproposte
+      // nel nuovo template (stesso filtro di confirmCoverage sopra).
+      const clausoleFiltrate = (clausole || []).filter(c => c.stato !== 'NON_PRESENTE');
+      if (!clausoleFiltrate.length) return req.reject(400, 'Nessuna clausola disponibile per creare il template');
+
+      const result = await cds.tx(req).run(async (tx) => {
+        const embeddingDocumento = await computeDocumentoEmbedding(clausoleFiltrate);
+        const { templateID } = await creaTemplateDaClausole(tx, nome.trim(), clausoleFiltrate, embeddingDocumento);
+
+        if (fornitoreID && isDefault) {
+          // Un solo default per fornitore: disattiva gli altri prima di attivare questo.
+          const altriDefault = await tx.run(SELECT.from(Template).columns('ID').where({ fornitore_ID: fornitoreID, isDefault: true }));
+          for (const t of altriDefault) await tx.run(UPDATE(Template, t.ID).with({ isDefault: false }));
+        }
+        await tx.run(UPDATE(Template, templateID).with({
+          fornitore_ID: fornitoreID || null, annoRiferimento: annoRiferimento || null, isDefault: !!isDefault
+        }));
+
+        return { templateID };
+      });
+
+      return result;
+    });
+
+    this.on('verificaDocumentoPreliminare', async (req) => {
+      const { file, filename } = req.data;
+      if (!file || !filename) return req.reject(400, 'File e filename obbligatori');
+      const buffer = Buffer.from(file, 'base64');
+      const mimeType = filename.endsWith('.pdf') ? 'application/pdf'
+        : filename.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : filename.endsWith('.xlsx') ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'application/octet-stream';
+
+      let categoria = null, sottoTipo = null;
+      try {
+        const testo = await extractTextMultiFormato(buffer, mimeType, filename);
+        if (testo && testo.trim()) {
+          const { tipo } = await classificaAllegato(testo);
+          const tipologia = TIPOLOGIE_ALLEGATO.find(t => t.key === tipo);
+          categoria = categoriaMacro(tipo);
+          sottoTipo = (tipologia && tipologia.sottoTipologia) ? tipo : null;
+        }
+      } catch (e) {
+        console.warn('[verificaDocumentoPreliminare] classificazione fallita, gate non bloccante:', e.message);
+      }
+
+      const esitoGate = (!categoria || categoria === 'CONTRATTO') ? 'CONTRATTO' : 'ANOMALIA';
+      const gravita = esitoGate === 'ANOMALIA' ? 'BLOCCANTE' : null;
+      const dettaglio = esitoGate === 'ANOMALIA'
+        ? `Documento classificato come ${categoria} (non un contratto): impossibile procedere alla verifica di completezza allegati.`
+        : null;
+      return { esitoGate, categoria, sottoTipo, gravita, dettaglio };
     });
 
     this.on('verificaAllineamentoSAP', async (req) => {

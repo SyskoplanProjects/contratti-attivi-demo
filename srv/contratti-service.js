@@ -18,7 +18,7 @@ function _mimeTypeDaFilename(filename) {
 
 module.exports = class ContrattiService extends cds.ApplicationService {
   async init() {
-    const { Template, TemplateVersion, TemplateVersionClausola, Contratto, ContrattoClausola, Clausola, ClausolaVersione, Revisione, Commento, AlertModificaTemplate, AlertContrattoCoinvolto } =
+    const { Template, TemplateVersion, TemplateVersionClausola, Contratto, ContrattoClausola, Clausola, ClausolaVersione, Revisione, Commento, TemplateCommento, MetadatoDocumento, AlertModificaTemplate, AlertContrattoCoinvolto } =
       cds.entities('com.reply.contrattiattivi');
 
     this.before('CREATE', 'Contratto', async (req) => {
@@ -40,7 +40,7 @@ module.exports = class ContrattiService extends cds.ApplicationService {
     });
 
     this.on('creaDaTemplate', async (req) => {
-      const { templateID } = req.data;
+      const { templateID, contrattoOrigineID } = req.data;
       const template = await SELECT.one.from(Template, templateID);
       if (!template) return req.error(404, 'Template non trovato');
 
@@ -57,7 +57,8 @@ module.exports = class ContrattiService extends cds.ApplicationService {
         ID: contrattoID, stato: 'BOZZA', intestatario: template.nome,
         codice: await prossimoCodiceContratto(cds.tx(req)),
         template_ID: templateID, templateVersion_ID: currentVersion.ID,
-        responsabile: req.user.id
+        responsabile: req.user.id,
+        estrattoDaContratto_ID: contrattoOrigineID || null
       });
 
       for (const riga of righe) {
@@ -65,6 +66,26 @@ module.exports = class ContrattiService extends cds.ApplicationService {
           ID: cds.utils.uuid(), contratto_ID: contrattoID, clausola_ID: riga.clausola_ID,
           clausolaVersione_ID: riga.clausolaVersione_ID, ordine: riga.ordine, rimossa: false
         });
+      }
+
+      // RF-5.x: riusa i metadati già estratti su un contratto precedente (stesso fornitore,
+      // tipicamente) invece di richiederne il re-inserimento manuale. salvaMetadati scrive sia
+      // MetadatoDocumento sia le colonne flat corrispondenti su Contratto (stesso meccanismo del
+      // wizard comparator), quindi il nuovo contratto si comporta come se quei campi fossero
+      // stati appena confermati dall'utente.
+      if (contrattoOrigineID) {
+        const origine = await SELECT.one.from(Contratto).columns('ID').where({ ID: contrattoOrigineID });
+        if (!origine) return req.reject(404, 'Contratto sorgente non trovato');
+        const metadatiOrigine = await SELECT.from(MetadatoDocumento).where({ contratto_ID: contrattoOrigineID });
+        if (metadatiOrigine.length) {
+          await salvaMetadati({
+            tx: cds.tx(req), parentType: 'Contratto', parentID: contrattoID,
+            metadati: metadatiOrigine.map(m => ({
+              campo: m.campo, etichetta: m.etichetta, valore: m.valore,
+              valoreOriginaleAI: m.valoreOriginaleAI, confidenza: m.confidenza, modificatoManualmente: m.modificatoManualmente
+            }))
+          });
+        }
       }
 
       await _creaSnapshotContratto(contrattoID, cds.tx(req));
@@ -553,8 +574,30 @@ module.exports = class ContrattiService extends cds.ApplicationService {
       }
       await DELETE.from(Clausola).where({ template_ID: templateID });
       await DELETE.from(TemplateVersion).where({ template_ID: templateID });
+      await DELETE.from(TemplateCommento).where({ template_ID: templateID });
       await DELETE.from(Template, templateID);
       return true;
+    });
+
+    this.on('aggiungiCommentoTemplate', async (req) => {
+      const { templateID, testo } = req.data;
+      if (!testo || !testo.trim()) return req.reject(400, 'Testo commento obbligatorio');
+      const template = await SELECT.one.from(Template, templateID);
+      if (!template) return req.reject(404, 'Template non trovato');
+
+      const commentoID = cds.utils.uuid();
+      await INSERT.into(TemplateCommento).entries({
+        ID: commentoID, template_ID: templateID, testo: testo.trim(), autore: req.user.id
+      });
+      return SELECT.one.from(TemplateCommento, commentoID);
+    });
+
+    this.on('risolviCommentoTemplate', async (req) => {
+      const { commentoID } = req.data;
+      const commento = await SELECT.one.from(TemplateCommento, commentoID);
+      if (!commento) return req.reject(404, 'Commento non trovato');
+      await UPDATE(TemplateCommento, commentoID).with({ stato: 'RISOLTO' });
+      return SELECT.one.from(TemplateCommento, commentoID);
     });
 
     this.on('classificaAllegatoContratto', async (req) => {

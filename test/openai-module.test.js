@@ -62,6 +62,21 @@ describe('openai-module: embeddings', () => {
     }));
   });
 
+  it('bug reale: input singolo troppo lungo (400 "maximum input length is 8192 tokens") viene troncato prima di chiamare l\'API, senza rompere l\'allineamento indice', async () => {
+    mockCreateEmbedding.mockResolvedValue({
+      data: [{ embedding: [1, 0, 0] }, { embedding: [0, 1, 0] }]
+    });
+
+    const clausolaEnorme = 'parola '.repeat(20000); // molto oltre 8192 token
+
+    await embeddings(['testo corto', clausolaEnorme]);
+
+    const inputInviato = mockCreateEmbedding.mock.calls[0][0].input;
+    expect(inputInviato).toHaveLength(2);
+    expect(inputInviato[0]).toBe('testo corto');
+    expect(inputInviato[1].length).toBeLessThan(clausolaEnorme.length);
+  });
+
   it('tratta anche whitespace-only e null/undefined come vuoti', async () => {
     mockCreateEmbedding.mockResolvedValue({
       data: [{ embedding: [1, 0, 0] }, { embedding: [0, 0, 0] }, { embedding: [0, 0, 0] }]

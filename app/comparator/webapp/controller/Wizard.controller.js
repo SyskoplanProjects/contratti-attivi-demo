@@ -42,6 +42,10 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       aAllegati.forEach(function (a, i) { a.pdfBase64 = (oPdfCache.allegati || [])[i] || null; });
       delete this.getOwnerComponent()._wizardPdfCache;
 
+      // Usato da onSelezionaCandidato per ricalcolare la coverage su un candidato alternativo
+      // del top-3 (vedi ComparatorHome#onAvvia) senza far ricaricare il file all'utente.
+      this._oFileCache = this.getOwnerComponent()._wizardFileCache || null;
+
       this._oCoverageData = oCoverageData;
 
       var oBozzaResp = null;
@@ -62,9 +66,9 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         var aClausoleBozza = (oBozzaResp.clausole || [])
           .filter(function (c) { return c.stato === "VARIANTE" || c.stato === "NUOVA"; })
           .map(function (c) {
-            return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: null, isClausola: true };
+            return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: null, isClausola: true, numero: c.numero };
           });
-        if (aClausoleBozza.length) aSezioniBozza.push({ sezione: "Clausole di rischio", campi: aClausoleBozza });
+        aSezioniBozza.push({ sezione: "Clausole di rischio", campi: aClausoleBozza });
         this._aSezioniBozza = aSezioniBozza;
       }
 
@@ -76,11 +80,12 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         // step finale. Le NON_PRESENTE (mancanti) sono in "Clausole mancanti" nel finale.
         return c.stato === "VARIANTE" || c.stato === "NUOVA";
       }).map(function (c) {
-        return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true };
+        return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true, numero: c.numero };
       });
-      if (aClausoleRischio.length) {
-        aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
-      }
+      // Sezione sempre presente (anche vuota): serve come punto di aggancio per "Aggiungi
+      // clausola" quando l'estrazione automatica ne ha saltata una — l'utente deve poterla
+      // raggiungere anche se non c'è ancora nessuna clausola di rischio rilevata.
+      aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
       this.getView().setModel(new JSONModel(this._aSezioniBozza || aSezioni), "wizardSezioni");
       this.getView().setModel(new JSONModel({ pdfBase64: oCoverageData.pdfBase64 || null }), "wizardDocumento");
       this.getView().setModel(new JSONModel({ value: aAllegati }), "allegati");
@@ -119,6 +124,180 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
 
       this._buildSteps(aAllegati, oDocPrincipale);
     },
+
+    // Ricalcola la coverage sul candidato del top-3 scelto dall'utente (WizardStepFinale
+    // fragment), riusando il path calcolaCoverage con templateID esplicito (già supportato
+    // e testato) invece di aggiungere un endpoint dedicato. Non ripete compliance/tips/deroghe:
+    // quelle restano riferite al match automatico, coerente col fatto che sono AI-based e
+    // costose, non essenziali per la sola scelta del template di riferimento.
+    onSelezionaCandidato: async function (oEvent) {
+      var oContext = oEvent.getSource().getBindingContext("coverage");
+      var oCandidato = oContext.getObject();
+      if (!this._oFileCache) {
+        MessageBox.error("File originale non più disponibile in questa sessione, ripetere il caricamento.");
+        return;
+      }
+
+      var oBusy = new sap.m.BusyDialog({ text: "Ricalcolo copertura su " + oCandidato.nome + "..." });
+      oBusy.open();
+      try {
+        var oResp = await fetch("/comparator/calcolaCoverage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file: this._oFileCache.base64, filename: this._oFileCache.filename, templateID: oCandidato.templateID })
+        });
+        if (!oResp.ok) {
+          oBusy.close();
+          MessageBox.error("Errore ricalcolo copertura: " + await oResp.text());
+          return;
+        }
+        var oData = await oResp.json();
+        if (oData.error) {
+          oBusy.close();
+          MessageBox.error(oData.error.message || JSON.stringify(oData.error));
+          return;
+        }
+
+        var oCoverageModel = this.getView().getModel("coverage");
+        var aCandidati = oCoverageModel.getProperty("/riferimentoTrovato/candidati") || [];
+        oCoverageModel.setProperty("/clausole", oData.clausole);
+        oCoverageModel.setProperty("/coveragePercent", oData.coveragePercent);
+        oCoverageModel.setProperty("/riferimentoTrovato", {
+          templateID: oCandidato.templateID, nome: oCandidato.nome, tipo: oCandidato.tipo,
+          similarity: oCandidato.similarity, coveragePercent: oData.coveragePercent, candidati: aCandidati
+        });
+        this._oCoverageData = oCoverageModel.getData();
+
+        var aClausoleRischio = (oData.clausole || []).filter(function (c) {
+          return c.stato === "VARIANTE" || c.stato === "NUOVA";
+        }).map(function (c) {
+          return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true, numero: c.numero };
+        });
+        var aSezioni = this.metadataWizardHelper.raggruppaPerSezione(this._oCoverageData.metadati || []);
+        if (aClausoleRischio.length) aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
+        this.getView().setModel(new JSONModel(this._aSezioniBozza || aSezioni), "wizardSezioni");
+
+        var aMancanti = (oData.clausole || [])
+          .filter(function (c) { return c.stato === "NON_PRESENTE"; })
+          .map(function (c) { return { codice: c.numero, titolo: c.titolo || "", testo: c.testo || "" }; });
+        this.getView().setModel(new JSONModel({ value: aMancanti, has: aMancanti.length > 0 }), "mancanti");
+
+        oBusy.close();
+      } catch (e) {
+        oBusy.close();
+        MessageBox.error("Errore: " + e.message);
+      }
+    },
+
+    // RF-3.x: crea un Template nuovo dalle clausole del documento corrente, quando nessuno dei
+    // candidati del top-3 (onSelezionaCandidato) è quello giusto. Riusa lo stesso creaTemplateDaClausole
+    // già collaudato per l'import multi-file (srv/lib/import-commit.js), con in più fornitore/anno/isDefault.
+    onApriCreaTemplate: async function () {
+      if (!this._oDialogCreaTemplate) {
+        this._oDialogCreaTemplate = this.loadFragment({ name: "com.reply.contrattiattivi.comparator.fragment.CreaTemplateDialog" });
+      }
+      var oDialog = await this._oDialogCreaTemplate;
+
+      var sNomeDefault = (this._oCoverageData && this._oCoverageData.filename || "Template").replace(/\.[^.]+$/, "");
+      this.getView().setModel(new JSONModel({ nome: sNomeDefault, fornitoreID: null, annoRiferimento: null, isDefault: false }), "creaTemplate");
+
+      if (!this._oFornitoriPromise) {
+        this._oFornitoriPromise = fetch("/contratti/Fornitore?$select=ID,nomeFornitore&$orderby=nomeFornitore")
+          .then(function (r) { return r.ok ? r.json() : { value: [] }; })
+          .catch(function () { return { value: [] }; });
+      }
+      var oFornitoriData = await this._oFornitoriPromise;
+      this.getView().setModel(new JSONModel({ value: oFornitoriData.value || [] }), "fornitoriPicker");
+
+      oDialog.open();
+    },
+
+    onAnnullaCreaTemplate: function () {
+      this._oDialogCreaTemplate.then(function (oDialog) { oDialog.close(); });
+    },
+
+    onConfermaCreaTemplate: async function () {
+      var oDati = this.getView().getModel("creaTemplate").getData();
+      if (!oDati.nome || !oDati.nome.trim()) {
+        MessageBox.error("Nome template obbligatorio.");
+        return;
+      }
+
+      var oDialog = await this._oDialogCreaTemplate;
+      var oBusy = new sap.m.BusyDialog({ text: "Creazione template in corso..." });
+      oBusy.open();
+      try {
+        var oResp = await fetch("/comparator/creaTemplateDaCoverage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nome: oDati.nome.trim(),
+            fornitoreID: oDati.fornitoreID || null,
+            annoRiferimento: oDati.annoRiferimento || null,
+            isDefault: !!(oDati.fornitoreID && oDati.isDefault),
+            clausole: (this._oCoverageData && this._oCoverageData.clausole) || []
+          })
+        });
+        oBusy.close();
+        if (!oResp.ok) {
+          MessageBox.error("Errore creazione template: " + await oResp.text());
+          return;
+        }
+        oDialog.close();
+        sap.m.MessageToast.show("Nuovo template '" + oDati.nome.trim() + "' creato.");
+      } catch (e) {
+        oBusy.close();
+        MessageBox.error("Errore: " + e.message);
+      }
+    },
+
+    // RF-3.x: aggiunge a mano una clausola di rischio che l'estrazione automatica ha saltato
+    // (bottone "Aggiungi clausola" nell'header della sezione). La riga entra in wizardSezioni
+    // per la modifica del testo e una voce NUOVA in _oCoverageData.clausole, così confirmCoverage
+    // la salva come clausola reale del contratto (il server filtra solo le NON_PRESENTE).
+    onAggiungiClausola: function () {
+      var oModel = this.getView().getModel("wizardSezioni");
+      if (!oModel) return;
+      var aSezioni = oModel.getData() || [];
+      var oSezione = null;
+      for (var i = 0; i < aSezioni.length; i++) {
+        if (aSezioni[i].sezione === "Clausole di rischio") { oSezione = aSezioni[i]; break; }
+      }
+      if (!oSezione) {
+        oSezione = { sezione: "Clausole di rischio", campi: [] };
+        aSezioni.push(oSezione);
+      }
+
+      var aClausole = (this._oCoverageData && this._oCoverageData.clausole) || [];
+      var iNumero = aClausole.reduce(function (max, c) { return Math.max(max, c.numero || 0); }, 0) + 1;
+      oSezione.campi.push({ etichetta: "Nuova clausola " + iNumero, valore: "", confidenza: null, posizione: null, isClausola: true, numero: iNumero });
+      aClausole.push({ numero: iNumero, titolo: "Nuova clausola " + iNumero, testo: "", stato: "NUOVA", similarity: null, matchClausolaID: null, utilizzoStorico: [], riferimento: "", templateTitolo: "", versione: null });
+      oModel.setData(aSezioni);
+    },
+
+    // Le righe "Clausole di rischio" del wizard sono editabili ma onConfirm/onSalvaBozza inviano
+    // oData.clausole: senza merge le correzioni/testi aggiunti a mano andrebbero persi. Allinea
+    // il testo di ogni riga (match per numero) sulla voce corrispondente di _oCoverageData.clausole.
+    _sincronizzaClausole: function () {
+      if (!this._oCoverageData) return;
+      var aSezioni = this.getView().getModel("wizardSezioni");
+      if (!aSezioni) return;
+      var aRighe = [];
+      (aSezioni.getData() || []).forEach(function (s) {
+        if (s.sezione !== "Clausole di rischio") return;
+        aRighe = aRighe.concat(s.campi || []);
+      });
+      aRighe.forEach(function (riga) {
+        if (!riga.isClausola || !this._oCoverageData.clausole) return;
+        for (var i = 0; i < this._oCoverageData.clausole.length; i++) {
+          if (this._oCoverageData.clausole[i].numero === riga.numero) {
+            this._oCoverageData.clausole[i].testo = riga.valore || "";
+            break;
+          }
+        }
+      }.bind(this));
+    },
+
 
     // Solo le clausole realmente presenti nel documento caricato (MATCH_TEMPLATE/VARIANTE/NUOVA):
     // le clausole NON_PRESENTE (di un template auto-matchato ma assenti dal documento) non
@@ -295,6 +474,7 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
     },
 
     onConfirm: async function () {
+      this._sincronizzaClausole();
       var oBusy = new sap.m.BusyDialog({ text: "Digitalizzazione contratto in corso..." });
       oBusy.open();
       var oData = this._oCoverageData;
@@ -338,6 +518,7 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
     },
 
     onSalvaBozza: async function () {
+      this._sincronizzaClausole();
       var oData = this._oCoverageData;
       if (!oData || !oData.previewID) { MessageBox.info("Nessuna analisi in corso da salvare."); return; }
 

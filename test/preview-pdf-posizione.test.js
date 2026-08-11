@@ -29,7 +29,7 @@ describe('calcolaCoverage / classificaAllegati — pdfBase64 e posizione end-to-
     await INSERT.into(ClausolaVersione).entries({ ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: 'Contratto di prova ACME S.p.A.', dataCreazione: new Date().toISOString() });
     await INSERT.into(TemplateVersionClausola).entries({ ID: cds.utils.uuid(), templateVersion_ID: versionID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1 });
 
-    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Contratto di prova ACME S.p.A.' }] });
+    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Contratto di prova ACME S.p.A.' }] });
     mockEmbeddings.mockResolvedValue([[1, 0, 0], [1, 0, 0]]);
 
     const pdfFixture = fs.readFileSync(path.join(__dirname, 'fixtures', 'testo-noto.pdf'));
@@ -54,7 +54,7 @@ describe('calcolaCoverage / classificaAllegati — pdfBase64 e posizione end-to-
     await INSERT.into(ClausolaVersione).entries({ ID: clausolaVersioneID, clausola_ID: clausolaID, numero: 0, testo: 'Testo.', dataCreazione: new Date().toISOString() });
     await INSERT.into(TemplateVersionClausola).entries({ ID: cds.utils.uuid(), templateVersion_ID: versionID, clausola_ID: clausolaID, clausolaVersione_ID: clausolaVersioneID, ordine: 1 });
 
-    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'finto xlsx' }] });
+    mockChatJSON.mockResolvedValue({ clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'finto xlsx' }] });
     mockEmbeddings.mockResolvedValue([[1, 0, 0], [1, 0, 0]]);
 
     const res = await POST('/comparator/calcolaCoverage', {

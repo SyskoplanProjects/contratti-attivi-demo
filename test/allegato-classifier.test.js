@@ -47,14 +47,67 @@ describe('allegato-classifier', () => {
     expect(mockChatJSON).not.toHaveBeenCalled();
   });
 
-  it('nome esplicito DURC nel testo -> DURC via pre-check, senza chiamate AI', async () => {
+  it('un vero certificato DURC (embedding indovina già DURC) viene confermato, senza forzatura pre-check', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(1, n)]); // embedding indovina DURC
+
     const result = await classificaAllegato('DOCUMENTO UNICO DI REGOLARITÀ CONTRIBUTIVA. Protocollo INAIL 12345. Denominazione: Acme S.p.A.');
 
     expect(result.tipo).toBe('DURC');
-    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
-    expect(result.confidenza).toBe(1);
-    expect(mockEmbeddings).not.toHaveBeenCalled();
-    expect(mockChatJSON).not.toHaveBeenCalled();
+    expect(result.confidenza).toBeGreaterThanOrEqual(0.75);
+    expect(mockEmbeddings).toHaveBeenCalled();
+  });
+
+  it('bug reale (contratto NOMIOS): un contratto composito lungo che MENZIONA "DURC" in una clausola di pagamento non viene classificato DURC — segue la classificazione reale del contenuto dominante', async () => {
+    // _embeddingsRiferimento filtra CONTRATTO (testoRiferimento: null): il pool inviato a
+    // openai.embeddings ha un elemento in meno di TIPOLOGIE_ALLEGATO, quindi gli indici del
+    // one-hot vanno costruiti su conRiferimento, non sull'elenco completo.
+    const conRiferimento = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
+    const nRef = conRiferimento.length;
+    const idxCGC = conRiferimento.findIndex(t => t.key === 'CGC');
+
+    mockEmbeddings.mockResolvedValueOnce(conRiferimento.map((_, i) => vettoreOneHot(i, nRef)));
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(idxCGC, nRef)]); // profilo CGC
+
+    const testoContrattoConMenzioneDurc =
+      'Condizioni Generali di Contratto. Art. 9.9: il pagamento del corrispettivo sarà subordinato ' +
+      'alla preventiva consegna alla Committente dei seguenti documenti: DURC (Documento Unico di ' +
+      'Regolarità Contributiva) relativo al proprio personale dipendente impiegato nel Contratto.';
+
+    const result = await classificaAllegato(testoContrattoConMenzioneDurc);
+
+    expect(result.tipo).not.toBe('DURC');
+    expect(result.tipo).not.toBe('DURF');
+    expect(result.tipo).toBe('CGC');
+    expect(mockEmbeddings).toHaveBeenCalled();
+  });
+
+  it('bug reale (regressione ODA): contratto con frontespizio/riferimenti amministrativi lunghi (>6000 caratteri) prima delle CGC non viene classificato ODA per troncamento eccessivo del testo inviato a embeddings', async () => {
+    const conRiferimento = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
+    const nRef = conRiferimento.length;
+    const idxCGC = conRiferimento.findIndex(t => t.key === 'CGC');
+    const idxODA = conRiferimento.findIndex(t => t.key === 'ODA');
+
+    mockEmbeddings.mockResolvedValueOnce(conRiferimento.map((_, i) => vettoreOneHot(i, nRef)));
+    // simula il vero comportamento dell'API: l'embedding riflette il contenuto REALE inviato.
+    // Se il testo inviato contiene ancora il marcatore CGC (non è stato troncato via), profilo
+    // CGC; se il marcatore è stato tagliato fuori dal troncamento, l'embedding vede solo il
+    // frontespizio amministrativo e assomiglia a ODA.
+    mockEmbeddings.mockImplementationOnce((testi) => {
+      const inviato = testi[0];
+      const idx = inviato.includes('MARCATORE_CGC') ? idxCGC : idxODA;
+      return Promise.resolve([vettoreOneHot(idx, nRef)]);
+    });
+
+    const frontespizioAmministrativo = 'Riferimenti amministrativi SAP Ciclo Passivo. '.repeat(200); // >6000 caratteri
+    const testoContratto = frontespizioAmministrativo +
+      'MARCATORE_CGC Condizioni Generali di Contratto. Art. 1: oggetto del contratto...';
+
+    const result = await classificaAllegato(testoContratto);
+
+    expect(result.tipo).toBe('CGC');
+    expect(result.tipo).not.toBe('ODA');
   });
 
   it('sigla DURC nel testo con embedding che sbaglia verso DURF -> DURC via regola', async () => {
@@ -68,13 +121,15 @@ describe('allegato-classifier', () => {
     expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
   });
 
-  it('nome esplicito DURF nel testo -> DURF via pre-check, senza chiamate AI', async () => {
+  it('un vero certificato DURF (embedding indovina già DURF) viene confermato, senza forzatura pre-check', async () => {
+    const n = TIPOLOGIE_ALLEGATO.length;
+    mockEmbeddings.mockResolvedValueOnce(TIPOLOGIE_ALLEGATO.map((_, i) => vettoreOneHot(i, n)));
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(2, n)]); // embedding indovina DURF
+
     const result = await classificaAllegato('Documento Unico di Regolarità Fiscale rilasciato dall\'Agenzia delle Entrate.');
 
     expect(result.tipo).toBe('DURF');
-    expect(result.metodoRiconoscimento).toBe('nomeEsplicito');
-    expect(result.confidenza).toBe(1);
-    expect(mockEmbeddings).not.toHaveBeenCalled();
+    expect(mockEmbeddings).toHaveBeenCalled();
   });
 
   it('sigla DURF nel testo con embedding che sbaglia verso DURC -> DURF via regola', async () => {
@@ -241,32 +296,49 @@ describe('rilevaTipiPresenti — fascicolo con più tipologie concatenate in un 
     ({ rilevaTipiPresenti } = require('../srv/lib/allegato-classifier'));
   });
 
-  it('ritorna tutte le tipologie riconosciute (caso reale: OdA+CGC+CPC+Allegati in un solo PDF)', async () => {
-    mockChatJSON.mockResolvedValueOnce({ tipiPresenti: ['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_F'] });
+  // conRiferimento è l'elenco filtrato usato da _embeddingsRiferimento (testoRiferimento != null,
+  // esclude CONTRATTO che ha testoRiferimento: null). Gli indici dei vettori one-hot vanno
+  // costruiti su questo elenco, non su TIPOLOGIE_ALLEGATO per intero (stesso pattern usato nel
+  // test NOMIOS di classificaAllegato più sopra).
+  function _setupProfili() {
+    const conRiferimento = TIPOLOGIE_ALLEGATO.filter(t => t.testoRiferimento != null);
+    const n = conRiferimento.length;
+    mockEmbeddings.mockResolvedValueOnce(conRiferimento.map((_, i) => vettoreOneHot(i, n)));
+    return { conRiferimento, n, idx: key => conRiferimento.findIndex(t => t.key === key) };
+  }
 
-    const risultato = await rilevaTipiPresenti('Testo lungo del fascicolo completo...');
+  it('ritorna le tipologie il cui contenuto reale (per blocco) somiglia abbastanza al profilo (caso reale: OdA+CGC+CPC+Allegati in un solo PDF)', async () => {
+    const { n, idx } = _setupProfili();
+    // documento > 3000 caratteri: si spezza in 2 chunk, uno per tipologia
+    const chunkCgc = 'Condizioni Generali di Contratto. '.repeat(100);
+    const chunkCpc = 'Condizioni Particolari di Contratto. '.repeat(100);
+    mockEmbeddings.mockResolvedValueOnce([vettoreOneHot(idx('CGC'), n), vettoreOneHot(idx('CPC'), n)]);
 
-    expect(risultato).toEqual(['CGC', 'CPC', 'ALLEGATO_A', 'ALLEGATO_F']);
-    expect(mockEmbeddings).not.toHaveBeenCalled();
+    const risultato = await rilevaTipiPresenti(chunkCgc + chunkCpc);
+
+    expect(risultato.sort()).toEqual(['CGC', 'CPC']);
   });
 
-  it('scarta chiavi non valide e deduplica', async () => {
-    mockChatJSON.mockResolvedValueOnce({ tipiPresenti: ['CGC', 'CGC', 'CHIAVE_INESISTENTE', 'MAIL'] });
+  it('bug reale (Contratto_ADAM.pdf): un chunk che si limita a CITARE gli allegati in un indice non somiglia abbastanza al contenuto reale di nessuna tipologia', async () => {
+    const { n } = _setupProfili();
+    // vettore diffuso, nessuna similarity forte con alcun profilo (tutti sotto SOGLIA_TIPO_ALLEGATO)
+    const vettoreDiffuso = new Array(n).fill(1 / Math.sqrt(n));
+    mockEmbeddings.mockResolvedValueOnce([vettoreDiffuso]);
 
-    const risultato = await rilevaTipiPresenti('Testo.');
+    const risultato = await rilevaTipiPresenti('Ai fini dell’erogazione dei Servizi sono allegati: A) Allegati Tecnici B) Allegati Economici G) Indirizzi delle Parti e PEC.');
 
-    // MAIL è una macro-categoria, non una sottoTipologia: non deve comparire tra i risultati.
-    expect(risultato).toEqual(['CGC']);
+    expect(risultato).toEqual([]);
   });
 
   it('testo vuoto -> nessuna chiamata, array vuoto', async () => {
     const risultato = await rilevaTipiPresenti('');
     expect(risultato).toEqual([]);
-    expect(mockChatJSON).not.toHaveBeenCalled();
+    expect(mockEmbeddings).not.toHaveBeenCalled();
   });
 
-  it('fallback ad array vuoto se la chiamata LLM fallisce', async () => {
-    mockChatJSON.mockRejectedValueOnce(new Error('LLM down'));
+  it('fallback ad array vuoto se la chiamata embeddings fallisce', async () => {
+    _setupProfili();
+    mockEmbeddings.mockRejectedValueOnce(new Error('rete non disponibile'));
     const risultato = await rilevaTipiPresenti('Testo.');
     expect(risultato).toEqual([]);
   });

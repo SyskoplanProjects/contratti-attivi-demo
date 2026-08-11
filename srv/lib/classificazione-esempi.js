@@ -1,7 +1,8 @@
 const cds = require('@sap/cds');
 const openai = require('../modules/openai-module');
 
-const TRUNCATE_LEN = 6000;
+// Vedi allegato-classifier.js#TRUNCATE_LEN: stesso valore per coerenza nel confronto embedding.
+const TRUNCATE_LEN = 24000;
 
 let _poolCache = null;
 

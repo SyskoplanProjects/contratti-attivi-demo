@@ -33,6 +33,30 @@
           </Table>
         </VBox>
       </VBox>
+      <Panel headerText="Commenti" expandable="true" expanded="true">
+        <VBox class="sapUiSmallMargin">
+          <HBox class="sapUiSmallMarginBottom">
+            <TextArea id="nuovoCommentoTemplateInput" width="100%" rows="2" placeholder="Aggiungi un commento su questo template..." />
+            <Button text="Invia" class="sapUiTinyMarginBegin" press="onInviaCommentoTemplate" />
+          </HBox>
+          <List items="{commenti>/value}" noDataText="Nessun commento.">
+            <items>
+              <CustomListItem>
+                <HBox class="sapUiTinyMargin" alignItems="Center" justifyContent="SpaceBetween">
+                  <VBox>
+                    <Text text="{commenti>autore}" class="app-hint-text" />
+                    <Text text="{commenti>testo}" wrapping="true" />
+                  </VBox>
+                  <HBox alignItems="Center">
+                    <ObjectStatus text="{commenti>stato}" state="{= ${commenti>stato} === 'APERTO' ? 'Warning' : 'Success' }" class="sapUiTinyMarginEnd" />
+                    <Button text="Risolvi" visible="{= ${commenti>stato} === 'APERTO' }" press="onRisolviCommentoTemplate" />
+                  </HBox>
+                </HBox>
+              </CustomListItem>
+            </items>
+          </List>
+        </VBox>
+      </Panel>
       <Panel headerText="Alert modifiche clausole" expandable="true" expanded="false" visible="{alertModel>/hasAlerts}">
         <List items="{alertModel>/alerts}">
           <items>

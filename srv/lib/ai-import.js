@@ -3,11 +3,21 @@ const mammoth = require('mammoth');
 const XLSX = require('xlsx');
 const openai = require('../modules/openai-module');
 
-const SEGMENTAZIONE_SYSTEM_PROMPT = `Sei un assistente che segmenta un documento contrattuale italiano in clausole numerate.
-Rispondi SOLO con un oggetto JSON nella forma: { "clausole": [ { "numero": <intero progressivo a partire da 1>, "titolo": <stringa breve>, "testo": <testo completo della clausola> } ] }.
-Le sottosezioni di una clausola (es. commi 5.1, 5.2 dentro l'articolo 5) NON vanno restituite come clausole separate: il numero resta quello della clausola madre e tutte le sottosezioni vanno incluse nel campo "testo" della clausola madre, nell'ordine in cui compaiono nel documento.
-Il campo "testo" deve riportare il contenuto della clausola COPIATO LETTERALMENTE dal documento originale (stessa punteggiatura, stesse parole, nessuna correzione, riformulazione o riassunto): viene usato per localizzare la clausola nell'anteprima del documento tramite ricerca testuale, quindi anche piccole modifiche al testo impediscono di trovarla.
-Se il documento non contiene clausole riconoscibili, rispondi con { "clausole": [] }.`;
+// Il modello indica solo dove INIZIA ogni clausola/articolo (numero, titolo, prime parole
+// esatte del corpo): il testo completo viene poi ritagliato direttamente dal documento
+// originale (vedi estraiClausoleAI), non ri-trascritto dal modello. Chiedere al modello di
+// ricopiare per intero il corpo di una clausola lunga (anche centinaia di parole) è un compito
+// soggetto a variabilità di campionamento — bug reale osservato (Contratto_ADAM.pdf): anche
+// dopo aver corretto i problemi tipografici noti (virgolette, numeri di pagina iniettati), una
+// clausola su otto veniva scartata in modo non deterministico, con una piccola differenza di
+// trascrizione diversa a ogni chiamata. Un'ancora breve (poche parole) ha una probabilità di
+// trascrizione imperfetta molto più bassa di un corpo intero, e il testo reale viene preso
+// direttamente dalla fonte: non può mai divergere da essa.
+const SEGMENTAZIONE_SYSTEM_PROMPT = `Sei un assistente che segmenta un documento contrattuale italiano individuando i confini delle clausole/articoli di primo livello.
+Rispondi SOLO con un oggetto JSON nella forma: { "clausole": [ { "numero": <intero progressivo dell'articolo, a partire da 1>, "titolo": <stringa breve>, "inizio": <le prime 8-12 parole ESATTE con cui inizia il CORPO dell'articolo, copiate letteralmente> } ] }.
+Considera solo i confini di clausola/articolo di primo livello (numerazione intera 1, 2, 3...): le sottosezioni (es. commi 5.1, 5.2 dentro l'articolo 5) NON vanno restituite come voci separate, fanno parte del corpo dell'articolo genitore e verranno incluse automaticamente.
+Il campo "inizio" deve essere copiato ESATTAMENTE dal documento (stesse parole, stessa punteggiatura, senza il numero/titolo dell'articolo): viene usato per localizzare l'inizio dell'articolo nel testo originale tramite ricerca testuale.
+Se il documento non contiene clausole/articoli riconoscibili, rispondi con { "clausole": [] }.`;
 
 const SOGLIA_RIUSO = 0.92;
 const SOGLIA_POSSIBILE_MODIFICA = 0.75;
@@ -61,6 +71,23 @@ function _eRuotato(transform) {
   return Math.abs(transform[1]) > 1e-3 || Math.abs(transform[2]) > 1e-3;
 }
 
+// Numero di pagina in piè/capo pagina: pdf.js lo restituisce come text-item a sé (spesso il
+// PRIMO item della pagina, prima di qualunque contenuto reale) posizionato nella fascia di
+// margine — bug reale osservato (Contratto_ADAM.pdf): il "2" di piè pagina 2 e il "3" di
+// piè pagina 3 arrivano come primissimo item della rispettiva pagina (prev=undefined) alla
+// stessa quota (y≈59.6 su pagina alta 842pt, fascia di margine standard ~1 pollice/72pt) e,
+// senza un a-capo che li isoli, si fondono nella riga successiva del corpo del testo
+// ("dati; 2 • allegato..."). Il testo AI-estratto (corretto, senza il numero) non trova più
+// riscontro letterale nel documento e la clausola viene scartata da _clausolaPresenteNelTesto.
+function _eNumeroPagina(it, altezzaPagina) {
+  const testo = (it.str || '').trim();
+  if (!/^[0-9]{1,4}$/.test(testo)) return false;
+  const y = it.transform ? it.transform[5] : null;
+  if (y == null || !altezzaPagina) return false;
+  const margine = 72;
+  return y < margine || y > altezzaPagina - margine;
+}
+
 // Intestazioni/piè di pagina ripetuti identici su ogni pagina (es. "Registro Imprese",
 // "Archivio ufficiale della CCIAA", numero documento, codice fiscale...) non aggiungono
 // informazione dalla seconda occorrenza in poi: le teniamo solo la prima volta.
@@ -88,10 +115,11 @@ async function estraiTestoPdf(buffer) {
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
+    const altezzaPagina = page.getViewport ? page.getViewport({ scale: 1 }).height : null;
     let riga = '';
     let prev = null;
     for (const it of content.items) {
-      if (it.str && !_eRuotato(it.transform)) {
+      if (it.str && !_eRuotato(it.transform) && !_eNumeroPagina(it, altezzaPagina)) {
         if (riga && _serveSpazioTra(prev, it)) riga += ' ';
         riga += it.str;
         prev = it;
@@ -124,111 +152,64 @@ async function extractTextMultiFormato(buffer, mimeType, filename) {
   throw err;
 }
 
-// Il prompt chiede al modello di copiare il testo letteralmente, ma nulla lo impedisce di
-// riformulare o inventare una clausola plausibile (specialmente su documenti lunghi): senza
-// verifica, capita che vengano restituite clausole che nel documento non ci sono affatto.
-// Normalizza gli spazi bianchi (whitespace/newline collassati, case-insensitive) e verifica che
-// il testo della clausola sia effettivamente un sottostringa del documento originale.
-function _normalizzaSpazi(testo) {
-  return String(testo || '').replace(/\s+/g, ' ').trim().toLowerCase();
+// Costruisce una regex tollerante a spazi multipli/newline (\s+ tra ogni parola) e a varianti
+// tipografiche di virgolette (dritte/curve equivalenti), per localizzare l'ancora ESATTAMENTE
+// nel documento originale — non in una copia normalizzata: la posizione trovata è quella reale,
+// usata direttamente per il taglio del testo (vedi estraiClausoleAI), senza bisogno di rimappare
+// indici tra versione normalizzata e originale.
+function _regexDaAncora(ancora) {
+  const parole = String(ancora || '').trim().split(/\s+/).filter(Boolean);
+  if (!parole.length) return null;
+  const pattern = parole
+    .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .map(p => p.replace(/["“”„‟″]/g, '["“”„‟″]').replace(/['‘’‚‛′]/g, "['‘’‚‛′]"))
+    .join('\\s+');
+  return new RegExp(pattern, 'i');
 }
 
-function _clausolaPresenteNelTesto(testoClausola, testoDocumento) {
-  const normClausola = _normalizzaSpazi(testoClausola);
-  if (!normClausola) return false;
-  return _normalizzaSpazi(testoDocumento).includes(normClausola);
-}
-
-// Il modello può restituire le sottosezioni di una clausola (5.1, 5.2) come clausole separate con
-// numero decimale: se lasciate così l'anteprima mostra commi orfani e la clausola madre senza
-// contenuto. La riportiamo dentro la clausola madre (numero = parte intera), nell'ordine del
-// documento. Se la madre non c'è, la sezione va aggregata alla clausola con numero intero
-// immediatamente precedente (comportamento del parser regex).
-function _fondeSezioni(clausole) {
-  const madri = [];
-  const sezioni = [];
-  for (const c of clausole) {
-    (Number.isInteger(c.numero) ? madri : sezioni).push(c);
-  }
-
-  // Un riepilogo/allegato del documento può ricitare un articolo già estratto altrove
-  // (es. "...con riferimento all'art. 3) (Osservanza di leggi...)..."): il modello lo segmenta
-  // come clausola a sé con lo stesso numero intero della clausola reale, ma testo minimo
-  // (poche parole tra parentesi). Tra due candidate con lo stesso numero si tiene quella con
-  // testo più lungo (la clausola vera) e si scarta l'altra.
-  const madriPerNumero = new Map();
-  for (const m of madri) {
-    const esistente = madriPerNumero.get(m.numero);
-    if (!esistente || m.testo.length > esistente.testo.length) madriPerNumero.set(m.numero, m);
-  }
-  const madriUniche = [...madriPerNumero.values()];
-
-  if (!sezioni.length) return madriUniche.sort((a, b) => a.numero - b.numero);
-
-  const risultato = [...madriUniche];
-
-  const madrePerSezione = s => {
-    const madre = madriPerNumero.get(Math.floor(s.numero));
-    if (madre) return madre;
-    let precedente = null;
-    for (const m of madriUniche) {
-      if (m.numero < s.numero) precedente = m;
-    }
-    return precedente;
-  };
-
-  for (const s of sezioni) {
-    const madre = madrePerSezione(s);
-    if (!madre) { risultato.push(s); continue; }
-    madre.testo = madre.testo ? `${madre.testo}\n${s.testo}` : s.testo;
-  }
-
-  return risultato.sort((a, b) => a.numero - b.numero);
-}
-
-// Alcuni documenti hanno l'intestazione della clausola scritta a ridosso del testo (senza
-// separazione tipografica netta): il modello a volte la lascia dentro "testo" invece di
-// valorizzare "titolo", che arriva vuoto. Se la prima riga del testo è breve e non è già
-// l'inizio di una sottosezione numerata (es. "1.1 ..."), la trattiamo come titolo recuperato
-// e la stacchiamo dal corpo, invece del placeholder generico "Clausola N".
-function _recuperaTitoloDaTesto(sTesto) {
-  const iNewline = sTesto.indexOf('\n');
-  const sPrimaRiga = (iNewline === -1 ? sTesto : sTesto.slice(0, iNewline)).trim();
-  if (!sPrimaRiga || sPrimaRiga.length > 100 || /^\d+(\.\d+)*[\s.)]/.test(sPrimaRiga)) return null;
-  return { titolo: sPrimaRiga, resto: (iNewline === -1 ? '' : sTesto.slice(iNewline + 1)).replace(/^\s+/, '') };
+// Cerca l'ancora nel documento a partire da `daPosizione` (non dall'inizio): le clausole
+// vengono elaborate nell'ordine restituito dal modello, che corrisponde all'ordine reale nel
+// documento (richiesto esplicitamente nel prompt) — ricominciare la ricerca da dove si era
+// arrivati impedisce che un'ancora corta trovi per errore un'occorrenza precedente (es. una
+// citazione dell'articolo dentro una clausola-indice più in alto nel documento, bug reale visto
+// con l'approccio precedente basato su corpo intero, vedi commento su SEGMENTAZIONE_SYSTEM_PROMPT).
+function _trovaPosizioneAncora(ancora, testoDocumento, daPosizione) {
+  const regex = _regexDaAncora(ancora);
+  if (!regex) return -1;
+  const match = testoDocumento.slice(daPosizione).match(regex);
+  return match ? daPosizione + match.index : -1;
 }
 
 async function estraiClausoleAI(testoDocumento) {
   const result = await openai.chatJSON(SEGMENTAZIONE_SYSTEM_PROMPT, testoDocumento);
-  const clausole = Array.isArray(result?.clausole) ? result.clausole : [];
-  if (!clausole.length) throw new Error('AI non ha estratto nessuna clausola');
+  const clausoleGrezze = Array.isArray(result?.clausole) ? result.clausole : [];
+  if (!clausoleGrezze.length) throw new Error('AI non ha estratto nessuna clausola');
 
   const scartate = [];
-  const valide = clausole
-    .map((c, i) => {
-      const sTestoGrezzo = String(c.testo || '');
-      const sTitoloAI = String(c.titolo || '').trim();
-      if (sTitoloAI) return { numero: Number(c.numero) || i + 1, titolo: sTitoloAI, testo: sTestoGrezzo };
-
-      const recuperato = sTestoGrezzo && _recuperaTitoloDaTesto(sTestoGrezzo);
-      return {
-        numero: Number(c.numero) || i + 1,
-        titolo: recuperato ? recuperato.titolo : `Clausola ${i + 1}`,
-        testo: recuperato ? recuperato.resto : sTestoGrezzo
-      };
-    })
-    .filter(c => c.testo)
-    .filter(c => {
-      const presente = _clausolaPresenteNelTesto(c.testo, testoDocumento);
-      if (!presente) scartate.push(c.titolo);
-      return presente;
-    });
+  const posizionate = [];
+  let cursore = 0;
+  clausoleGrezze.forEach((c, i) => {
+    const numero = Number(c.numero) || i + 1;
+    const titolo = String(c.titolo || '').trim() || `Clausola ${numero}`;
+    const posizione = _trovaPosizioneAncora(c.inizio, testoDocumento, cursore);
+    if (posizione === -1) { scartate.push(titolo); return; }
+    posizionate.push({ numero, titolo, posizione });
+    cursore = posizione + 1;
+  });
 
   if (scartate.length) {
-    console.warn('[ai-import] clausole scartate perché non trovate letteralmente nel documento:', scartate.join('; '));
+    console.warn('[ai-import] clausole scartate perché il testo di inizio non è stato trovato nel documento:', scartate.join('; '));
   }
-  if (!valide.length) throw new Error('AI non ha estratto nessuna clausola verificabile nel documento');
-  return _fondeSezioni(valide);
+  if (!posizionate.length) throw new Error('AI non ha estratto nessuna clausola verificabile nel documento');
+
+  // Il testo di ciascuna clausola è il taglio REALE del documento tra il proprio inizio e
+  // l'inizio della clausola successiva (o fine documento per l'ultima): non può mai divergere
+  // dalla fonte, e include automaticamente tutte le sottosezioni intermedie (es. 5.1, 5.2 tra
+  // l'inizio dell'articolo 5 e l'inizio dell'articolo 6), senza bisogno di fonderle a parte.
+  return posizionate.map((c, i) => {
+    const fine = i + 1 < posizionate.length ? posizionate[i + 1].posizione : testoDocumento.length;
+    return { numero: c.numero, titolo: c.titolo, testo: testoDocumento.slice(c.posizione, fine).trim() };
+  });
 }
 
 async function estraiClausoleConFallback(buffer, filename, mimeType) {

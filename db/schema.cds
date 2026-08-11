@@ -10,7 +10,11 @@ entity Template : cuid, managed {
   // le versioni di clausola di un singolo contratto digitalizzato: non è un template pensato per
   // essere riusato come riferimento, va escluso dalla picklist di selezione (getTemplates).
   generatoDaDigitalizzazione : Boolean default false;
+  fornitore       : Association to Fornitore;
+  annoRiferimento : Integer;
+  isDefault       : Boolean default false;
   versioni     : Composition of many TemplateVersion on versioni.template = $self;
+  commenti     : Composition of many TemplateCommento on commenti.template = $self;
 }
 
 entity TemplateVersion : cuid, managed {
@@ -81,6 +85,10 @@ entity Contratto : cuid, managed {
   // perdendo intestazione/frontespizio (fornitore, date, importo) mai presenti in una clausola.
   testoOriginale      : LargeString;
   contenutoOriginale  : LargeString;
+  // RF-5.x: tracciabilità del contratto sorgente usato per pre-compilare i metadati di questo
+  // contratto in creaDaTemplate (stesso fornitore, dati già estratti in un contratto precedente
+  // invece di re-inserirli manualmente).
+  estrattoDaContratto : Association to Contratto;
   clausole        : Composition of many ContrattoClausola on clausole.contratto = $self;
   allegati        : Composition of many ContrattoAllegato on allegati.contratto = $self;
   metadati        : Composition of many MetadatoDocumento on metadati.contratto = $self;
@@ -156,6 +164,17 @@ entity Commento : cuid, managed {
   testo              : LargeString not null;
   autore             : String(255) not null;
   stato              : StatoCommento default 'APERTO' @assert.range;
+}
+
+// RF-4.1/4.2: commenti liberi sul Template (non su una revisione/contratto specifico), es. note
+// di dominio su quando/come usare questo template. Entity dedicata invece di riusare Commento:
+// Commento ha revisione/contrattoClausola not null, legati al workflow di revisione contratto,
+// non applicabile a un Template in sé.
+entity TemplateCommento : cuid, managed {
+  template : Association to Template not null;
+  testo    : LargeString not null;
+  autore   : String(255) not null;
+  stato    : StatoCommento default 'APERTO' @assert.range;
 }
 
 entity ChatThread : cuid, managed {

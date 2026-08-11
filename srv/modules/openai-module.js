@@ -120,13 +120,25 @@ async function chat(systemPrompt, userPrompt) {
   return completion.choices[0].message.content;
 }
 
+// text-embedding-3-small rifiuta input oltre 8191 token (400 "maximum input length").
+// Rapporto caratteri/token osservato su testo giuridico italiano reale è più basso del
+// previsto (~2 char/token, non ~3-4 come per l'inglese semplice): un tentativo precedente
+// di troncare a 24000 caratteri a monte (allegato-classifier.js) ha comunque superato il
+// limite su un input reale. Guardia qui, nel punto unico da cui passano tutte le chiamate
+// embeddings(), così ogni chiamante (batch di clausole, esempi, classificazione) è protetto
+// senza dover applicare lo stesso taglio in ciascun punto di chiamata.
+const MAX_CHARS_PER_INPUT = 16000;
+
 async function embeddings(testi) {
   const client = await getClient();
   // L'API rifiuta stringhe vuote nell'array `input` (400 "input cannot be an empty string"):
   // capita con clausole/testi vuoti prodotti dallo split di documenti reali (es. intestazioni
   // senza corpo). Placeholder neutro per non rompere l'array di ritorno, su cui tutti i
   // chiamanti assumono testi[i] <-> vettori[i] allineati per indice.
-  const testiSicuri = testi.map(t => (t && String(t).trim()) ? t : ' ');
+  const testiSicuri = testi.map(t => {
+    const s = (t && String(t).trim()) ? String(t) : ' ';
+    return s.length > MAX_CHARS_PER_INPUT ? s.slice(0, MAX_CHARS_PER_INPUT) : s;
+  });
   const response = await client.embeddings.create({
     model: 'text-embedding-3-small',
     input: testiSicuri

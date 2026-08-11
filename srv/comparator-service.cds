@@ -7,12 +7,23 @@ type UtilizzoClausolaEntry {
   variante    : Boolean;
 }
 
+type CandidatoRiferimento {
+  templateID      : UUID;
+  nome            : String;
+  tipo            : String;
+  similarity      : Decimal(5,4);
+  coveragePercent : Decimal(5,2);
+}
+
 type RiferimentoTrovato {
   templateID      : UUID;
   nome            : String;
   tipo            : String;
   similarity      : Decimal(5,4);
   coveragePercent : Decimal(5,2);
+  // Top-3 shortlist rifinita (RF-1.x): il primo elemento coincide col match sopra, esposto
+  // per permettere all'utente di scegliere un candidato alternativo invece del solo best match.
+  candidati       : array of CandidatoRiferimento;
 }
 
 type PosizioneCampo {
@@ -163,6 +174,13 @@ service ComparatorService @(requires: 'Utente') {
 
   action verificaDocumento(previewID: UUID) returns EsitoGateDocumento;
 
+  // RF-7.2: gate economico eseguibile PRIMA dell'estrazione AI costosa (calcolaCoverage), a
+  // differenza di verificaDocumento sopra che presuppone una preview già creata da
+  // calcolaCoverage/uploadCoverage. Stessa logica di classificazione, nessuna scrittura su
+  // DocumentoClassificato (persistita più avanti dal verificaDocumento "vero" sulla preview,
+  // una volta che il flusso è comunque proseguito).
+  action verificaDocumentoPreliminare(file: LargeString, filename: String) returns EsitoGateDocumento;
+
   type EsitoAllineamentoSAPCampo {
     campo           : String;
     valoreContratto : String;
@@ -245,6 +263,13 @@ service ComparatorService @(requires: 'Utente') {
 
   action getTipologieAllegato() returns array of TipologiaAllegato;
   action getTemplates() returns array of Template;
+
+  // RF-3.x: crea un Template nuovo dalle clausole del documento appena analizzato nel wizard
+  // (quando nessuno dei candidati del top-3 è quello giusto), opzionalmente associato a un
+  // Fornitore e marcato come default per quel fornitore.
+  action creaTemplateDaCoverage(nome: String, fornitoreID: UUID, annoRiferimento: Integer, isDefault: Boolean, clausole: array of ClausolaCoverageResult) returns {
+    templateID: UUID;
+  };
   action confirmCoverage(previewID: UUID, clausole: array of ClausolaCoverageResult, allegati: array of AllegatoConferma, metadati: array of MetadatoConfermato, tipoDocumento: String null, dataDecorrenzaSAP: Date null, dataScadenzaSAP: Date null, importoSAP: Decimal(15,2) null) returns Contratto;
   action cercaUtilizzoClausola(clausolaID: UUID) returns array of UtilizzoClausolaEntry;
 

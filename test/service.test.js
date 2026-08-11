@@ -4,7 +4,7 @@ const cds = require('@sap/cds');
 jest.mock('../srv/modules/openai-module', () => ({
   openThread: jest.fn(), sendMessage: jest.fn(), deleteThread: jest.fn(),
   chatJSON: jest.fn().mockResolvedValue({
-    clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'Contenuto di prova per confirmImportAI.' }]
+    clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Contenuto di prova per confirmImportAI.' }]
   }),
   embeddings: jest.fn().mockResolvedValue([[1, 0, 0]])
 }));
@@ -72,6 +72,35 @@ describe('creaDaTemplate', () => {
     const clausole = await GET(`/contratti/ContrattoClausola?$filter=contratto_ID eq ${res.data.ID}`, { auth: MOCK_USER });
     expect(clausole.data.value).toHaveLength(1);
     expect(clausole.data.value[0].clausolaVersione_ID).toBe(versioneClausolaID);
+  });
+
+  it('con contrattoOrigineID, riusa i metadati del contratto sorgente e imposta estrattoDaContratto (RF-5.x)', async () => {
+    const { templateID } = await seedTemplateConClausole();
+    const origine = (await POST('/contratti/creaDaTemplate', { templateID }, { auth: MOCK_USER })).data;
+
+    const cds = require('@sap/cds');
+    const { MetadatoDocumento } = cds.entities('com.reply.contrattiattivi');
+    await INSERT.into(MetadatoDocumento).entries({
+      ID: cds.utils.uuid(), contratto_ID: origine.ID, campo: 'fornitore', etichetta: 'Fornitore',
+      valore: 'ACME Srl', valoreOriginaleAI: 'ACME Srl', confidenza: 0.9, modificatoManualmente: false
+    });
+
+    const res = await POST('/contratti/creaDaTemplate', { templateID, contrattoOrigineID: origine.ID }, { auth: MOCK_USER });
+
+    expect(res.status).toBe(200);
+    expect(res.data.estrattoDaContratto_ID).toBe(origine.ID);
+    expect(res.data.societaContraente).toBe('ACME Srl');
+
+    const metadati = await GET(`/contratti/MetadatoDocumento?$filter=contratto_ID eq ${res.data.ID}`, { auth: MOCK_USER });
+    expect(metadati.data.value.find(m => m.campo === 'fornitore').valore).toBe('ACME Srl');
+  });
+
+  it('risponde 404 se contrattoOrigineID non esiste', async () => {
+    const { templateID } = await seedTemplateConClausole();
+    const cds = require('@sap/cds');
+    await expect(
+      POST('/contratti/creaDaTemplate', { templateID, contrattoOrigineID: cds.utils.uuid() }, { auth: MOCK_USER })
+    ).rejects.toMatchObject({ response: { status: 404 } });
   });
 });
 

@@ -113,10 +113,36 @@ function (BaseController, MessageBox) {
 
       var oFile = this._oFile;
       var sBase64 = await this._fileToBase64(oFile);
+      // Tenuto in memoria sul Component (non sessionStorage, stessa ragione di _wizardPdfCache:
+      // la codifica base64 può superare la quota ~5MB) per permettere al wizard di ricalcolare
+      // la coverage su un candidato alternativo (onSelezionaCandidato) senza far ricaricare il file.
+      this.getOwnerComponent()._wizardFileCache = { base64: sBase64, filename: oFile.name };
 
       var sDefaultPrompt = "Verifica che il documento copra tutti i requisiti previsti dal template di riferimento e dalla normativa applicabile. Per ogni requisito rilevato, indica se presente, parzialmente presente o assente, con riferimento al punto nel documento.";
 
       try {
+        // Gate economico PRIMA dell'estrazione AI costosa (RF-7.2): se il documento non è un
+        // contratto, ci si ferma qui senza sprecare l'estrazione clausole + matching template
+        // sotto. Il verificaDocumento "vero" (che persiste su DocumentoClassificato) resta più
+        // sotto, dopo classificaAllegati, per non duplicare quella scrittura.
+        oBusy.setText("Riconoscimento tipo documento in corso...");
+        try {
+          var oGatePrelResp = await fetch("/comparator/verificaDocumentoPreliminare", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: sBase64, filename: oFile.name })
+          });
+          if (oGatePrelResp.ok) {
+            var oGatePrelData = await oGatePrelResp.json();
+            if (oGatePrelData.esitoGate === "ANOMALIA") {
+              oBusy.close();
+              MessageBox.error(oGatePrelData.dettaglio || "Documento non riconosciuto come contratto.", {
+                title: "Anomalia bloccante — " + (oGatePrelData.categoria || "documento non contrattuale")
+              });
+              return;
+            }
+          }
+        } catch (e) { /* gate preliminare non disponibile: non blocca l'analisi, si passa al flusso pieno */ }
+
         oBusy.setText("Analisi copertura in corso...");
 
         var oCoverageResp = await fetch("/comparator/calcolaCoverage", {

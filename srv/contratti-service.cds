@@ -82,6 +82,7 @@ service ContrattiService @(requires: ['Utente','Revisore']) {
   @readonly entity ClausolaVersione as projection on db.ClausolaVersione { ID, clausola, numero, testo, dataCreazione, modificata, dettaglioDelta, templateVersionOrigine, contrattoOrigine };
   @readonly entity TemplateVersionClausola as projection on db.TemplateVersionClausola;
   @readonly entity Fornitore as projection on db.Fornitore;
+  @readonly entity TemplateCommento as projection on db.TemplateCommento;
 
   // @restrict not used — CDS 7.9.5 bug: @restrict + bound action annotations
   // cause 403 for all roles on bound actions. CRUD gating done in JS before handlers.
@@ -99,7 +100,7 @@ service ContrattiService @(requires: ['Utente','Revisore']) {
 
   function getCategorieContratto() returns array of String;
 
-  @(requires: 'Utente') action creaDaTemplate(templateID: UUID) returns Contratto;
+  @(requires: 'Utente') action creaDaTemplate(templateID: UUID, contrattoOrigineID: UUID) returns Contratto;
   @(requires: 'Utente') action importTemplate(templateID: UUID) returns ImportResult;
   @(requires: 'Utente') action previewImportAI(templateID: UUID) returns PreviewImportResult;
   @(requires: 'Utente') action confirmImportAI(previewID: UUID, clausole: array of ClausolaProposta) returns ImportResult;
@@ -113,6 +114,8 @@ service ContrattiService @(requires: ['Utente','Revisore']) {
   @(requires: 'Utente') action duplicaContratto(contrattoID: UUID) returns Contratto;
   @(requires: 'Utente') action cancellaClausola(clausolaID: UUID) returns Boolean;
   @(requires: 'Utente') action cancellaTemplate(templateID: UUID) returns Boolean;
+  @(requires: 'Utente') action aggiungiCommentoTemplate(templateID: UUID, testo: LargeString) returns TemplateCommento;
+  @(requires: 'Utente') action risolviCommentoTemplate(commentoID: UUID) returns TemplateCommento;
   @(requires: 'Utente') action classificaAllegatoContratto(filename: String, file: LargeString) returns AllegatoClassificatoInfo;
   @(requires: 'Utente') action aggiungiAllegatoContratto(contrattoID: UUID, filename: String, file: LargeString, tipo: String, confidenza: Decimal(5,4), metodoRiconoscimento: String, testo: LargeString, metadati: array of MetadatoConfermato) returns ContrattoAllegato;
   @(requires: 'Utente') action eliminaAllegatoContratto(allegatoID: UUID) returns Boolean;

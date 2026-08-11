@@ -1,0 +1,27 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+  <Dialog id="dialogCreaTemplate" title="Crea nuovo template da questo documento">
+    <content>
+      <VBox class="sapUiSmallMargin">
+        <Label text="Nome template" required="true" />
+        <Input value="{creaTemplate>/nome}" class="sapUiSmallMarginBottom" />
+
+        <Label text="Fornitore (opzionale)" />
+        <ComboBox selectedKey="{creaTemplate>/fornitoreID}" items="{fornitoriPicker>/value}" class="sapUiSmallMarginBottom">
+          <core:Item key="{fornitoriPicker>ID}" text="{fornitoriPicker>nomeFornitore}" />
+        </ComboBox>
+
+        <Label text="Anno di riferimento (opzionale)" />
+        <StepInput value="{creaTemplate>/annoRiferimento}" min="2000" max="2100" class="sapUiSmallMarginBottom" />
+
+        <CheckBox selected="{creaTemplate>/isDefault}" enabled="{= !!${creaTemplate>/fornitoreID} }"
+          text="Imposta come template di default per questo fornitore" />
+      </VBox>
+    </content>
+    <beginButton>
+      <Button text="Crea" type="Emphasized" press=".onConfermaCreaTemplate" />
+    </beginButton>
+    <endButton>
+      <Button text="Annulla" press=".onAnnullaCreaTemplate" />
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

@@ -40,7 +40,8 @@ jest.mock('pdfjs-dist/legacy/build/pdf.js', () => ({
     promise: Promise.resolve({
       numPages: 1,
       getPage: jest.fn().mockResolvedValue({
-        getTextContent: jest.fn().mockResolvedValue({ items: [{ str: 'Contenuto PDF di prova.' }] })
+        getTextContent: jest.fn().mockResolvedValue({ items: [{ str: 'Contenuto PDF di prova.' }] }),
+        getViewport: jest.fn().mockReturnValue({ height: 842 })
       })
     })
   })
@@ -64,6 +65,30 @@ describe('extractTextMultiFormato', () => {
     expect(testo).toMatch(/Contenuto PDF di prova/);
   });
 
+  it('bug reale (Contratto_ADAM.pdf): numero di piè di pagina isolato in fascia di margine non si fonde nella riga di testo successiva', async () => {
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    pdfjsLib.getDocument.mockReturnValueOnce({
+      promise: Promise.resolve({
+        numPages: 1,
+        getPage: jest.fn().mockResolvedValue({
+          getViewport: jest.fn().mockReturnValue({ height: 842 }),
+          getTextContent: jest.fn().mockResolvedValue({
+            items: [
+              // numero di pagina isolato, primo item della pagina, in fascia di margine (y<72)
+              { str: '2', transform: [1, 0, 0, 1, 50, 59.6], hasEOL: false },
+              { str: 'allegato d', transform: [1, 0, 0, 1, 50, 500], hasEOL: true }
+            ]
+          })
+        })
+      })
+    });
+
+    const testo = await extractTextMultiFormato(Buffer.from('finto pdf'), 'application/pdf', 'doc.pdf');
+
+    expect(testo).not.toMatch(/^2/);
+    expect(testo.trim()).toBe('allegato d');
+  });
+
   it('rejects an unsupported format', async () => {
     await expect(extractTextMultiFormato(Buffer.from('x'), 'text/plain', 'doc.txt'))
       .rejects.toMatchObject({ code: 'UNSUPPORTED_FORMAT' });
@@ -73,29 +98,45 @@ describe('extractTextMultiFormato', () => {
 describe('estraiClausoleConFallback', () => {
   beforeEach(() => { openai.chatJSON.mockReset(); });
 
-  it('uses the AI segmentation when it returns valid clausole presenti letteralmente nel documento', async () => {
+  it('uses the AI segmentation when it returns un\'ancora trovabile nel documento', async () => {
     const sTesto = 'Il presente contratto ha per oggetto la fornitura di servizi ICT.';
     openai.chatJSON.mockResolvedValue({
-      clausole: [{ numero: 1, titolo: 'Oggetto', testo: sTesto }]
+      clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'Il presente contratto ha per oggetto' }]
     });
     const buffer = await buildDocxFixture();
+    // buildDocxFixture produce un paragrafo "Art. 1 - Oggetto" + "Il presente contratto ha per oggetto la fornitura di servizi ICT."
     const clausole = await estraiClausoleConFallback(buffer, 'doc.docx',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    expect(clausole).toEqual([{ numero: 1, titolo: 'Oggetto', testo: sTesto }]);
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].titolo).toBe('Oggetto');
+    expect(clausole[0].testo).toContain(sTesto);
   });
 
-  it('scarta le clausole allucinate (testo non presente nel documento) e tiene solo quelle reali', async () => {
-    const sTestoReale = 'Il presente contratto ha per oggetto la fornitura di servizi ICT.';
+  it('scarta le clausole la cui ancora non è presente nel documento e tiene solo quelle reali', async () => {
     openai.chatJSON.mockResolvedValue({
       clausole: [
-        { numero: 1, titolo: 'Oggetto', testo: sTestoReale },
-        { numero: 2, titolo: 'Clausola inventata', testo: 'Questa frase non esiste da nessuna parte nel documento originale.' }
+        { numero: 1, titolo: 'Oggetto', inizio: 'Il presente contratto ha per oggetto' },
+        { numero: 2, titolo: 'Clausola inventata', inizio: 'Questa frase non esiste da nessuna parte' }
       ]
     });
     const buffer = await buildDocxFixture();
     const clausole = await estraiClausoleConFallback(buffer, 'doc.docx',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    expect(clausole).toEqual([{ numero: 1, titolo: 'Oggetto', testo: sTestoReale }]);
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].titolo).toBe('Oggetto');
+  });
+
+  it('bug reale (Contratto_ADAM.pdf): virgolette dritte nell\'ancora LLM vs virgolette curve nel documento non fanno scartare la clausola', async () => {
+    const sTestoDocumento = 'Le Premesse e gli Allegati costituiscono parte integrante delle presenti Condizioni Particolari di Contratto (di seguito anche “CPC”).';
+    openai.chatJSON.mockResolvedValue({
+      clausole: [{ numero: 1, titolo: 'Premesse ed Allegati', inizio: 'Le Premesse e gli Allegati costituiscono parte integrante delle presenti Condizioni Particolari di Contratto (di seguito anche "CPC")' }]
+    });
+
+    const clausole = await estraiClausoleAI(sTestoDocumento);
+
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].titolo).toBe('Premesse ed Allegati');
+    expect(clausole[0].testo).toBe(sTestoDocumento);
   });
 
   it('falls back to regex parsing when the AI call fails', async () => {
@@ -116,89 +157,41 @@ describe('estraiClausoleConFallback', () => {
   });
 });
 
-describe('estraiClausoleAI — filtro anti-allucinazione (le clausole devono esistere nel documento)', () => {
+describe('estraiClausoleAI — filtro anti-allucinazione (l\'ancora deve esistere nel documento)', () => {
   beforeEach(() => { openai.chatJSON.mockReset(); });
 
-  it('accetta una clausola il cui testo coincide dopo normalizzazione spazi/maiuscole', async () => {
+  it('accetta un\'ancora che coincide dopo normalizzazione spazi/maiuscole', async () => {
     openai.chatJSON.mockResolvedValue({
-      clausole: [{ numero: 1, titolo: 'Oggetto', testo: 'IL FORNITORE   eroga\nservizi.' }]
+      clausole: [{ numero: 1, titolo: 'Oggetto', inizio: 'IL FORNITORE   eroga\nservizi' }]
     });
     const clausole = await estraiClausoleAI('Testo introduttivo. Il fornitore eroga servizi. Testo finale.');
     expect(clausole).toHaveLength(1);
   });
 
-  it('rigetta con errore se tutte le clausole restituite sono allucinate', async () => {
+  it('rigetta con errore se tutte le ancore restituite sono allucinate', async () => {
     openai.chatJSON.mockResolvedValue({
-      clausole: [{ numero: 1, titolo: 'Fantasma', testo: 'Frase completamente inventata dal modello.' }]
+      clausole: [{ numero: 1, titolo: 'Fantasma', inizio: 'Frase completamente inventata dal modello' }]
     });
     await expect(estraiClausoleAI('Documento reale che non contiene quella frase.'))
       .rejects.toThrow('nessuna clausola verificabile');
   });
 });
 
-describe('estraiClausoleAI — clausole con sezioni (es. clausola 5 con 5.1, 5.2)', () => {
+describe('estraiClausoleAI — testo ritagliato dal documento reale (non ri-trascritto dal modello)', () => {
   beforeEach(() => { openai.chatJSON.mockReset(); });
 
   const sDocumento =
-    'Clausola 5 Requisiti di sicurezza.\n' +
+    'Articolo 5 - Requisiti di sicurezza\n' +
     '5.1 Governance: il fornitore applica una governance della sicurezza ICT.\n' +
     '5.2 Protezione dati: il fornitore protegge i dati personali.\n' +
-    'Clausola 6 Clausola finale.';
+    'Articolo 6 - Clausola finale\n' +
+    'Testo della clausola finale.';
 
-  it('mantiene le sezioni dentro il testo della clausola madre quando il modello le restituisce già incluse', async () => {
-    openai.chatJSON.mockResolvedValue({
-      clausole: [{
-        numero: 5, titolo: 'Requisiti di sicurezza',
-        testo: 'Requisiti di sicurezza.\n5.1 Governance: il fornitore applica una governance della sicurezza ICT.\n5.2 Protezione dati: il fornitore protegge i dati personali.'
-      }]
-    });
-
-    const clausole = await estraiClausoleAI(sDocumento);
-
-    expect(clausole).toHaveLength(1);
-    expect(clausole[0].numero).toBe(5);
-    expect(clausole[0].testo).toContain('5.1 Governance');
-    expect(clausole[0].testo).toContain('5.2 Protezione dati');
-  });
-
-  it('fonde le sezioni restituite come clausole separate (numero decimale) nel testo della clausola madre', async () => {
+  it('include automaticamente le sottosezioni (5.1, 5.2) nel testo della clausola madre, ritagliandolo dal documento reale', async () => {
     openai.chatJSON.mockResolvedValue({
       clausole: [
-        { numero: 5, titolo: 'Requisiti di sicurezza', testo: 'Requisiti di sicurezza.' },
-        { numero: 5.1, titolo: '5.1 Governance', testo: '5.1 Governance: il fornitore applica una governance della sicurezza ICT.' },
-        { numero: 5.2, titolo: '5.2 Protezione dati', testo: '5.2 Protezione dati: il fornitore protegge i dati personali.' }
-      ]
-    });
-
-    const clausole = await estraiClausoleAI(sDocumento);
-
-    expect(clausole).toHaveLength(1);
-    expect(clausole[0].numero).toBe(5);
-    expect(clausole[0].testo.split('\n').length).toBeGreaterThanOrEqual(3);
-    expect(clausole[0].testo).toContain('5.1 Governance');
-    expect(clausole[0].testo).toContain('5.2 Protezione dati');
-  });
-
-  it('sezione senza clausola madre esplicita viene aggregata nella clausola con numero intero immediatamente precedente', async () => {
-    openai.chatJSON.mockResolvedValue({
-      clausole: [
-        { numero: 5.1, titolo: '5.1 Governance', testo: '5.1 Governance: il fornitore applica una governance della sicurezza ICT.' },
-        { numero: 5, titolo: 'Requisiti di sicurezza', testo: 'Requisiti di sicurezza.' }
-      ]
-    });
-
-    const clausole = await estraiClausoleAI(sDocumento);
-
-    expect(clausole).toHaveLength(1);
-    expect(clausole[0].numero).toBe(5);
-    expect(clausole[0].testo).toContain('5.1 Governance');
-  });
-
-  it('clausole senza sezioni restano invariate', async () => {
-    openai.chatJSON.mockResolvedValue({
-      clausole: [
-        { numero: 5, titolo: 'Requisiti di sicurezza', testo: 'Requisiti di sicurezza.' },
-        { numero: 6, titolo: 'Clausola finale', testo: 'Clausola finale.' }
+        { numero: 5, titolo: 'Requisiti di sicurezza', inizio: '5.1 Governance: il fornitore applica' },
+        { numero: 6, titolo: 'Clausola finale', inizio: 'Testo della clausola finale' }
       ]
     });
 
@@ -206,52 +199,35 @@ describe('estraiClausoleAI — clausole con sezioni (es. clausola 5 con 5.1, 5.2
 
     expect(clausole).toHaveLength(2);
     expect(clausole[0].numero).toBe(5);
-    expect(clausole[1].numero).toBe(6);
+    expect(clausole[0].testo).toContain('5.1 Governance');
+    expect(clausole[0].testo).toContain('5.2 Protezione dati');
+    // il taglio si ferma esattamente all'inizio del CORPO della clausola successiva (l'ancora
+    // indicata dal modello è "Testo della clausola finale", non il titolo "Articolo 6" che la
+    // precede — la riga di titolo resta quindi in coda al taglio della clausola precedente,
+    // dettaglio di confine innocuo, non perdita di contenuto)
+    expect(clausole[0].testo).not.toContain('Testo della clausola finale');
+    expect(clausole[1].testo).toBe('Testo della clausola finale.');
   });
 
-  it('scarta il frammento fantasma con lo stesso numero intero di una clausola reale (es. riepilogo in un allegato), tenendo quella con testo più lungo', async () => {
-    const sDoc = sDocumento + '\nAllegato: con riferimento all\'art. 5) (Requisiti di sicurezza);';
+  it('bug reale (Contratto_ADAM.pdf): la ricerca riparte da dove si era arrivati, non trova per errore un\'ancora corta citata prima nel documento', async () => {
+    const sDoc =
+      'Premesse: gli allegati previsti includono B) Condizioni economiche descritte più avanti.\n' +
+      'Articolo 4 - Condizioni economiche\n' +
+      'I corrispettivi dovuti sono indicati in Allegato B.';
     openai.chatJSON.mockResolvedValue({
-      clausole: [
-        {
-          numero: 5, titolo: 'Requisiti di sicurezza',
-          testo: 'Requisiti di sicurezza.\n5.1 Governance: il fornitore applica una governance della sicurezza ICT.\n5.2 Protezione dati: il fornitore protegge i dati personali.'
-        },
-        { numero: 5, titolo: '(Requisiti di sicurezza)', testo: '(Requisiti di sicurezza);' },
-        { numero: 6, titolo: 'Clausola finale', testo: 'Clausola finale.' }
-      ]
+      clausole: [{ numero: 4, titolo: 'Condizioni economiche', inizio: 'I corrispettivi dovuti sono indicati' }]
     });
 
     const clausole = await estraiClausoleAI(sDoc);
 
-    const perNumero = clausole.filter(c => c.numero === 5);
-    expect(perNumero).toHaveLength(1);
-    expect(perNumero[0].testo).toContain('5.1 Governance');
-    expect(clausole).toHaveLength(2);
+    expect(clausole).toHaveLength(1);
+    expect(clausole[0].testo).toBe('I corrispettivi dovuti sono indicati in Allegato B.');
   });
-});
 
-describe('estraiClausoleAI — recupero titolo quando il modello lo lascia vuoto', () => {
-  beforeEach(() => { openai.chatJSON.mockReset(); });
-
-  it('recupera il titolo dalla prima riga del testo se breve e non è già una sottosezione numerata', async () => {
+  it('titolo vuoto -> placeholder "Clausola N"', async () => {
     const sDoc = 'Definizioni\n1.1 Nelle presenti Condizioni Generali di Contratto i termini hanno il significato indicato.';
     openai.chatJSON.mockResolvedValue({
-      clausole: [{ numero: 1, titolo: '', testo: sDoc }]
-    });
-
-    const clausole = await estraiClausoleAI(sDoc);
-
-    expect(clausole).toHaveLength(1);
-    expect(clausole[0].titolo).toBe('Definizioni');
-    expect(clausole[0].testo).toContain('1.1 Nelle presenti');
-    expect(clausole[0].testo).not.toMatch(/^Definizioni/);
-  });
-
-  it('usa il placeholder "Clausola N" quando la prima riga non è recuperabile come titolo (già numerata)', async () => {
-    const sDoc = '1.1 Nelle presenti Condizioni Generali di Contratto i termini hanno il significato indicato.';
-    openai.chatJSON.mockResolvedValue({
-      clausole: [{ numero: 1, titolo: '', testo: sDoc }]
+      clausole: [{ numero: 1, titolo: '', inizio: '1.1 Nelle presenti Condizioni' }]
     });
 
     const clausole = await estraiClausoleAI(sDoc);

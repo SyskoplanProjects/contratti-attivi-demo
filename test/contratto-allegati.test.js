@@ -4,9 +4,12 @@ const cds = require('@sap/cds');
 jest.mock('../srv/modules/openai-module', () => ({
   openThread: jest.fn(), sendMessage: jest.fn(), deleteThread: jest.fn(),
   chatJSON: jest.fn(),
-  // stesso embedding per qualunque testo -> similarity 1.0 con qualunque profilo di riferimento,
-  // il codice sceglie il primo profilo (indice 0) essendo tutte le similarity uguali.
-  embeddings: jest.fn((testi) => Promise.resolve(testi.map(() => [1, 0, 0])))
+  // Discrimina per contenuto (non più un embedding fisso uguale per tutti i testi): dopo la
+  // rimozione del pre-check nomeEsplicito su classificaAllegato, la classificazione DURC passa
+  // per l'embedding reale, quindi il mock deve poter distinguere il profilo DURC dagli altri.
+  embeddings: jest.fn((testi) => Promise.resolve(testi.map(t =>
+    /regolarit[àa] contributiva/i.test(t) ? [1, 0, 0] : [0, 0, 1]
+  )))
 }));
 
 const { POST } = cds.test(path.join(__dirname, '..'));
@@ -40,7 +43,7 @@ describe('classificaAllegatoContratto / aggiungiAllegatoContratto', () => {
 
     expect(classifica.status).toBe(200);
     expect(classifica.data.tipo).toBe('DURC');
-    expect(classifica.data.metodoRiconoscimento).toBe('nomeEsplicito');
+    expect(classifica.data.metodoRiconoscimento).toBe('embedding');
     expect(classifica.data.testo).toContain('Documento Unico di Regolarità Contributiva');
     expect(Array.isArray(classifica.data.metadati)).toBe(true);
 
