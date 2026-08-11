@@ -70,7 +70,11 @@ sap.ui.define([
                 description: `${c.stato || 'N/D'}${c.importo ? ' — € ' + c.importo : ''}`,
                 type: "Navigation",
                 press: () => {
-                  this.getOwnerComponent().getRouter().navTo("detail", { id: encodeURIComponent(c.ID) });
+                  var sHash = this.getOwnerComponent().getRouter().getURL("detail", { id: encodeURIComponent(c.ID) });
+                  if (sHash.charAt(0) !== "#") {
+                    sHash = "#/" + sHash.replace(/^\//, "");
+                  }
+                  window.open(sHash, "_blank");
                   oDialog.close();
                 }
               }))

@@ -122,7 +122,11 @@ sap.ui.define([
         this._loadStat();
         var sNewID = oNew.ID || (oNew.value && oNew.value.ID);
         if (sNewID) {
-          this.getOwnerComponent().getRouter().navTo("detail", { id: encodeURIComponent(sNewID) });
+          var sHash = this.getOwnerComponent().getRouter().getURL("detail", { id: encodeURIComponent(sNewID) });
+          if (sHash.charAt(0) !== "#") {
+            sHash = "#/" + sHash.replace(/^\//, "");
+          }
+          window.open(sHash, "_blank");
         }
       } catch (e) {
         MessageBox.error("Errore rete: " + e.message);
