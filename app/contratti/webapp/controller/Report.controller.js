@@ -1,15 +1,18 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
+  "sap/ui/model/json/JSONModel",
   "sap/ui/model/Filter",
   "sap/ui/model/FilterOperator",
-  "../formatter"
-], function (Controller, Filter, FilterOperator, formatter) {
+  "../formatter",
+  "../model/dashboardUtils"
+], function (Controller, JSONModel, Filter, FilterOperator, formatter, dashboardUtils) {
   "use strict";
   return Controller.extend("com.reply.contrattiattivi.app.controller.Report", {
     formatter: formatter,
     onInit: function () {
       this._oHighlighted = null;
       this._oFornitoreAtteso = null;
+      this.getView().setModel(new JSONModel({ righe: [], nome: "" }), "contrattiFornitore");
       this.getOwnerComponent().getRouter().getRoute("report").attachPatternMatched(this._onRouteMatched, this);
     },
     _onRouteMatched: function (oEvent) {
@@ -96,6 +99,54 @@ sap.ui.define([
         var oBinding = oTable.getBinding("items");
         if (oBinding) oBinding.filter(aFilters);
       }
+    },
+    onApriContrattiFornitore: function (oEvent) {
+      var that = this;
+      var oCtx = oEvent.getSource().getBindingContext();
+      var oFornitore = oCtx && oCtx.getObject();
+      if (!oFornitore || !oFornitore.ID) return;
+      var oModel = this.getOwnerComponent().getModel();
+      oModel.bindList("/Contratto", {}).requestContexts(0, 2000)
+        .then(function (aCtx) {
+          var aRighe = (aCtx || [])
+            .map(function (c) { return c.getObject(); })
+            .filter(function (o) { return o.fornitore_ID === oFornitore.ID && o.stato !== 'ARCHIVIATO'; })
+            .map(function (o) {
+              var oRischio = dashboardUtils.buildRischioFornitore(oFornitore);
+              return {
+                ID: o.ID, codice: o.codice, intestatario: o.intestatario, responsabile: o.responsabile,
+                oggetto: o.oggetto, categoria: o.categoria, stato: o.stato, importo: o.importo,
+                dataStipula: o.dataStipula, dataScadenza: o.dataScadenza,
+                rischioLabel: oRischio.label, rischioState: that._statoRischio(oRischio.livello)
+              };
+            });
+          var oModel = that.getView().getModel("contrattiFornitore");
+          oModel.setProperty("/nome", oFornitore.nomeFornitore);
+          oModel.setProperty("/righe", aRighe);
+          var oDrill = that.byId("contrattiDrill");
+          oDrill.setVisible(true);
+          var oDom = oDrill.getDomRef();
+          if (oDom) oDom.scrollIntoView({ block: "start", behavior: "smooth" });
+        })
+        .catch(function (err) {
+          console.error("Report drill load error", err);
+        });
+    },
+    onDrillBack: function () {
+      this.byId("contrattiDrill").setVisible(false);
+    },
+    onApriContrattoDettaglio: function (oEvent) {
+      var oCtx = oEvent.getSource().getBindingContext("contrattiFornitore");
+      var sID = oCtx && oCtx.getProperty("ID");
+      if (!sID) return;
+      var sHash = this.getOwnerComponent().getRouter().getURL("detail", { id: encodeURIComponent(sID) });
+      if (sHash.charAt(0) !== "#") {
+        sHash = "#/" + sHash.replace(/^\//, "");
+      }
+      window.open(sHash, "_blank");
+    },
+    _statoRischio: function (sLivello) {
+      return sLivello === 'alto' ? 'Error' : sLivello === 'medio' ? 'Warning' : sLivello === 'basso' ? 'Success' : 'None';
     }
   });
 });

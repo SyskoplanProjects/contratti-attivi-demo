@@ -37,7 +37,7 @@
           <Column><Text text="Score Vendor Rating" /></Column>
         </columns>
         <items>
-          <ColumnListItem>
+          <ColumnListItem type="Navigation" press="onApriContrattiFornitore">
             <cells>
               <Text text="{codiceAteco}" />
               <Text text="{rischioEmissioni}" />
@@ -56,6 +56,45 @@
           </ColumnListItem>
         </items>
         </Table>
+        <VBox id="contrattiDrill" visible="false" class="sapUiMediumMarginTop">
+          <Toolbar>
+            <Button icon="sap-icon://nav-back" type="Transparent" press="onDrillBack" />
+            <Title text="{= 'Contratti di ' + ${contrattiFornitore>/nome} }" level="H2" />
+          </Toolbar>
+          <VBox class="app-table-wrap">
+            <Table id="contrattiFornitoreTable" growing="true" growingThreshold="50"
+              items="{contrattiFornitore>/righe}">
+              <columns>
+                <Column><Text text="Codice" /></Column>
+                <Column><Text text="Fornitore" /></Column>
+                <Column><Text text="Rischio" /></Column>
+                <Column><Text text="Responsabile" /></Column>
+                <Column><Text text="Oggetto" /></Column>
+                <Column><Text text="Categoria" /></Column>
+                <Column><Text text="Stato" /></Column>
+                <Column><Text text="Importo" /></Column>
+                <Column><Text text="Data Stipula" /></Column>
+                <Column><Text text="Data Scadenza" /></Column>
+              </columns>
+              <items>
+                <ColumnListItem type="Navigation" press="onApriContrattoDettaglio">
+                  <cells>
+                    <Text text="{contrattiFornitore>codice}" />
+                    <Text text="{contrattiFornitore>intestatario}" />
+                    <ObjectStatus text="{contrattiFornitore>rischioLabel}" state="{contrattiFornitore>rischioState}" />
+                    <Text text="{contrattiFornitore>responsabile}" />
+                    <Text text="{contrattiFornitore>oggetto}" />
+                    <Text text="{path:'contrattiFornitore>categoria', formatter:'.formatter.categoriaText'}" />
+                    <ObjectStatus text="{contrattiFornitore>stato}" state="{path:'contrattiFornitore>stato', formatter:'.formatter.statoState'}" />
+                    <Text text="{path:'contrattiFornitore>importo', formatter:'.formatter.euroText', targetType:'any'}" />
+                    <Text text="{contrattiFornitore>dataStipula}" />
+                    <Text text="{contrattiFornitore>dataScadenza}" />
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </VBox>
+        </VBox>
       </VBox>
     </content>
   </Page>

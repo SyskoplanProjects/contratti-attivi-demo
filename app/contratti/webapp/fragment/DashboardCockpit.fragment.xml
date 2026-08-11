@@ -1,172 +1,126 @@
 <core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m">
-  <VBox class="sapUiSmallMargin app-dash-tab">
-
-    <HBox class="app-dash-filterbar sapUiSmallMarginBottom" justifyContent="SpaceBetween" wrap="Wrap" alignItems="End">
-      <HBox wrap="Wrap" class="app-dash-filter-fields">
-        <VBox class="app-dash-filter-field">
-          <Label text="Categoria" />
-          <Select id="filtroCategoria" width="10rem" items="{filtriOpzioni>/categorie}">
-            <core:Item key="{filtriOpzioni>key}" text="{filtriOpzioni>text}" />
-          </Select>
-        </VBox>
-        <VBox class="app-dash-filter-field">
-          <Label text="Responsabile" />
-          <Select id="filtroResponsabile" width="13rem" items="{filtriOpzioni>/responsabili}">
-            <core:Item key="{filtriOpzioni>key}" text="{filtriOpzioni>text}" />
-          </Select>
-        </VBox>
-        <VBox class="app-dash-filter-field">
-          <Label text="Data da" />
-          <DatePicker id="filtroDataDa" width="9rem" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" />
-        </VBox>
-        <VBox class="app-dash-filter-field">
-          <Label text="Data a" />
-          <DatePicker id="filtroDataA" width="9rem" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" />
-        </VBox>
-        <VBox class="app-dash-filter-field">
-          <Label text="Fornitore" />
-          <Input id="filtroFornitore" width="12rem" placeholder="Cerca fornitore..." />
-        </VBox>
-      </HBox>
-      <Button text="Esegui" type="Emphasized" press="onEseguiFiltri" class="app-btn app-btn-primary" />
-    </HBox>
-
-    <MessageStrip type="Information" showIcon="true" showCloseButton="true"
-      class="sapUiTinyMarginBottom"
-      visible="{= !!${filtro>/fornitoreAttivo} }"
-      text="{= 'Filtrato per fornitore: ' + ${filtro>/fornitoreAttivo} }"
-      close="onResetFiltroFornitore" />
-
-    <HBox class="app-dash-kpi-grid" wrap="Wrap">
-      <VBox class="app-dash-kpi-card">
-        <Text class="app-dash-kpi-value" text="{cockpit>/totaleContrattiAnno}" />
-        <Text class="app-dash-kpi-label" text="Totale contratti nell'anno" />
-        <HBox class="app-dash-kpi-trend" alignItems="Center">
-          <core:Icon src="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"
-            class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
-          <Text class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"
-            text="{= (${cockpit>/trendContratti/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendContratti/percentuale} + '% vs periodo prec.' }" />
-        </HBox>
-      </VBox>
-      <VBox class="app-dash-kpi-card">
-        <Text class="app-dash-kpi-value" text="{path:'cockpit>/importoTotaleAnno', formatter:'.formatter.euroText'}" />
-        <Text class="app-dash-kpi-label" text="Importo totale dei contratti" />
-        <HBox class="app-dash-kpi-trend" alignItems="Center">
-          <core:Icon src="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"
-            class="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
-          <Text class="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"
-            text="{= (${cockpit>/trendImporto/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendImporto/percentuale} + '% vs periodo prec.' }" />
-        </HBox>
-      </VBox>
-      <VBox class="app-dash-kpi-card">
-        <Text class="app-dash-kpi-value" text="{cockpit>/trendContratti/valore}" />
-        <Text class="app-dash-kpi-label" text="Trend contratti" />
-        <HBox class="app-dash-kpi-trend" alignItems="Center">
-          <core:Icon src="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"
-            class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
-          <Text class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"
-            text="{= (${cockpit>/trendContratti/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendContratti/percentuale} + '% vs periodo prec.' }" />
-        </HBox>
-      </VBox>
-      <VBox class="app-dash-kpi-card app-dash-kpi-card-wide">
-        <Text class="app-dash-kpi-label" text="Tipologia contratti" />
-        <core:HTML content="{cockpit>/donutTipologiaHtml}" />
-      </VBox>
-      <VBox class="app-dash-kpi-card app-dash-kpi-card-wide">
-        <Text class="app-dash-kpi-label" text="Stato survey" />
-        <core:HTML content="{cockpit>/donutSurveyHtml}" />
-      </VBox>
-    </HBox>
-
-    <VBox class="app-dash-kpi-card app-dash-trend-card sapUiSmallMarginTop">
-      <Text class="app-dash-kpi-label" text="Trend contratti — attivati vs in scadenza" />
-      <core:HTML content="{cockpit>/trendHtml}" />
-    </VBox>
-
-    <VBox class="sapUiMediumMarginTop">
-      <Toolbar>
-        <Title text="Top Fornitori" level="H2" />
-        <ToolbarSpacer />
-        <SegmentedButton selectedKey="{fornitori>/vista}" select="onCambiaVistaFornitori">
-          <items>
-            <SegmentedButtonItem key="numero" text="Numero contratti" />
-            <SegmentedButtonItem key="importi" text="Importi economici" />
-          </items>
-        </SegmentedButton>
-      </Toolbar>
-      <core:HTML content="{fornitori>/topFornitoriHtml}" />
-    </VBox>
-
-    <VBox class="sapUiMediumMarginTop">
-      <Toolbar>
-        <Title text="Vendor Rating" level="H2" />
-      </Toolbar>
-    </VBox>
-
-    <VBox id="vendorMainPanel" class="app-table-wrap">
-      <Table id="vendorTableMain" growing="true" growingThreshold="50" items="{vendorMain>/righe}">
-        <columns>
-          <Column><Text text="Fornitore" /></Column>
-          <Column><Text text="Fatturato dichiarato" /></Column>
-          <Column><Text text="Totale contratti" /></Column>
-          <Column><Text text="N. contratti" /></Column>
-          <Column><Text text="Indice dipendenza" /></Column>
-          <Column><Text text="Rischio" /></Column>
-        </columns>
-        <items>
-          <ColumnListItem type="Navigation" press="onApriContrattiFornitoreMain">
-            <cells>
-              <Link text="{vendorMain>nome}" press="onApriReportFornitoreMain" />
-              <Text text="{path:'vendorMain>fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
-              <Text text="{path:'vendorMain>totaleContratti', formatter:'.formatter.euroText', targetType:'any'}" />
-              <Link text="{vendorMain>numeroContratti}" press="onApriContrattiFornitoreMain" />
-              <core:HTML content="{vendorMain>indiceHtml}" />
-              <ObjectStatus text="{vendorMain>rischioLabel}" state="{vendorMain>rischioState}" />
-            </cells>
-          </ColumnListItem>
-        </items>
-      </Table>
-    </VBox>
-
-    <VBox id="contrattiDrillMain" visible="false" class="sapUiMediumMarginTop">
-      <Toolbar>
-        <Button icon="sap-icon://nav-back" type="Transparent" press="onDrillBackMain" />
-        <Title text="{= 'Contratti di ' + ${contrattiFornitoreMain>/nome} }" level="H2" />
-      </Toolbar>
-      <VBox class="app-table-wrap">
-        <Table id="contrattiFornitoreTableMain" growing="true" growingThreshold="50"
-          items="{contrattiFornitoreMain>/righe}">
-          <columns>
-            <Column><Text text="Codice" /></Column>
-            <Column><Text text="Fornitore" /></Column>
-            <Column><Text text="Rischio" /></Column>
-            <Column><Text text="Responsabile" /></Column>
-            <Column><Text text="Oggetto" /></Column>
-            <Column><Text text="Categoria" /></Column>
-            <Column><Text text="Stato" /></Column>
-            <Column><Text text="Importo" /></Column>
-            <Column><Text text="Data Stipula" /></Column>
-            <Column><Text text="Data Scadenza" /></Column>
-          </columns>
-          <items>
-            <ColumnListItem type="Navigation" press="onApriContrattoDettaglio">
-              <cells>
-                <Text text="{contrattiFornitoreMain>codice}" />
-                <Text text="{contrattiFornitoreMain>intestatario}" />
-                <ObjectStatus text="{contrattiFornitoreMain>rischioLabel}" state="{contrattiFornitoreMain>rischioState}" />
-                <Text text="{contrattiFornitoreMain>responsabile}" />
-                <Text text="{contrattiFornitoreMain>oggetto}" />
-                <Text text="{path:'contrattiFornitoreMain>categoria', formatter:'.formatter.categoriaText'}" />
-                <ObjectStatus text="{contrattiFornitoreMain>stato}" state="{path:'contrattiFornitoreMain>stato', formatter:'.formatter.statoState'}" />
-                <Text text="{path:'contrattiFornitoreMain>importo', formatter:'.formatter.euroText', targetType:'any'}" />
-                <Text text="{contrattiFornitoreMain>dataStipula}" />
-                <Text text="{contrattiFornitoreMain>dataScadenza}" />
-              </cells>
-            </ColumnListItem>
-          </items>
-        </Table>
-      </VBox>
-    </VBox>
-
-  </VBox>
+<VBox class="sapUiSmallMargin app-dash-tab">
+<HBox class="app-dash-filterbar sapUiSmallMarginBottom" justifyContent="SpaceBetween" wrap="Wrap" alignItems="End">
+<HBox wrap="Wrap" class="app-dash-filter-fields">
+<VBox class="app-dash-filter-field">
+<Label text="Categoria" />
+<Select id="filtroCategoria" width="10rem" items="{filtriOpzioni>/categorie}">
+<core:Item key="{filtriOpzioni>key}" text="{filtriOpzioni>text}" />
+</Select>
+</VBox>
+<VBox class="app-dash-filter-field">
+<Label text="Responsabile" />
+<Select id="filtroResponsabile" width="13rem" items="{filtriOpzioni>/responsabili}">
+<core:Item key="{filtriOpzioni>key}" text="{filtriOpzioni>text}" />
+</Select>
+</VBox>
+<VBox class="app-dash-filter-field">
+<Label text="Data da" />
+<DatePicker id="filtroDataDa" width="9rem" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" />
+</VBox>
+<VBox class="app-dash-filter-field">
+<Label text="Data a" />
+<DatePicker id="filtroDataA" width="9rem" valueFormat="yyyy-MM-dd" displayFormat="dd/MM/yyyy" />
+</VBox>
+<VBox class="app-dash-filter-field">
+<Label text="Fornitore" />
+<Input id="filtroFornitore" width="12rem" placeholder="Cerca fornitore..." />
+</VBox>
+</HBox>
+<Button text="Esegui" type="Emphasized" press="onEseguiFiltri" class="app-btn app-btn-primary" />
+</HBox>
+<MessageStrip type="Information" showIcon="true" showCloseButton="true"      class="sapUiTinyMarginBottom"      visible="{= !!${filtro>/fornitoreAttivo} }"      text="{= 'Filtrato per fornitore: ' + ${filtro>/fornitoreAttivo} }"      close="onResetFiltroFornitore" />
+<HBox class="app-dash-kpi-grid" wrap="Wrap">
+<VBox class="app-dash-kpi-card">
+<Text class="app-dash-kpi-value" text="{cockpit>/totaleContrattiAnno}" />
+<Text class="app-dash-kpi-label" text="Totale contratti nell'anno" />
+<HBox class="app-dash-kpi-trend" alignItems="Center">
+<core:Icon src="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"            class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
+<Text class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"            text="{= (${cockpit>/trendContratti/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendContratti/percentuale} + '% vs periodo prec.' }" />
+</HBox>
+</VBox>
+<VBox class="app-dash-kpi-card">
+<Text class="app-dash-kpi-value" text="{path:'cockpit>/importoTotaleAnno', formatter:'.formatter.euroText'}" />
+<Text class="app-dash-kpi-label" text="Importo totale dei contratti" />
+<HBox class="app-dash-kpi-trend" alignItems="Center">
+<core:Icon src="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"            class="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
+<Text class="{= ${cockpit>/trendImporto/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"            text="{= (${cockpit>/trendImporto/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendImporto/percentuale} + '% vs periodo prec.' }" />
+</HBox>
+</VBox>
+<VBox class="app-dash-kpi-card">
+<Text class="app-dash-kpi-value" text="{cockpit>/trendContratti/valore}" />
+<Text class="app-dash-kpi-label" text="Trend contratti" />
+<HBox class="app-dash-kpi-trend" alignItems="Center">
+<core:Icon src="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'sap-icon://arrow-top' : 'sap-icon://arrow-bottom' }"            class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-icon-up' : 'app-dash-kpi-trend-icon-down' }" />
+<Text class="{= ${cockpit>/trendContratti/direzione} === 'up' ? 'app-dash-kpi-trend-up' : 'app-dash-kpi-trend-down' }"            text="{= (${cockpit>/trendContratti/percentuale} >= 0 ? '+' : '') + ${cockpit>/trendContratti/percentuale} + '% vs periodo prec.' }" />
+</HBox>
+</VBox>
+<VBox class="app-dash-kpi-card app-dash-kpi-card-wide">
+<Text class="app-dash-kpi-label" text="Tipologia contratti" />
+<core:HTML content="{cockpit>/donutTipologiaHtml}" />
+</VBox>
+<VBox class="app-dash-kpi-card app-dash-kpi-card-wide">
+<Text class="app-dash-kpi-label" text="Stato survey" />
+<core:HTML content="{cockpit>/donutSurveyHtml}" />
+</VBox>
+</HBox>
+<VBox class="app-dash-kpi-card app-dash-trend-card sapUiSmallMarginTop">
+<Text class="app-dash-kpi-label" text="Trend contratti — attivati vs in scadenza" />
+<core:HTML content="{cockpit>/trendHtml}" />
+</VBox>
+<VBox class="sapUiMediumMarginTop">
+<Toolbar>
+<Title text="Top Fornitori" level="H2" />
+<ToolbarSpacer />
+<SegmentedButton selectedKey="{fornitori>/vista}" select="onCambiaVistaFornitori">
+<items>
+<SegmentedButtonItem key="numero" text="Numero contratti" />
+<SegmentedButtonItem key="importi" text="Importi economici" />
+</items>
+</SegmentedButton>
+</Toolbar>
+<core:HTML content="{fornitori>/topFornitoriHtml}" />
+</VBox>
+<VBox class="sapUiMediumMarginTop">
+<Toolbar>
+<Title text="Vendor Rating" level="H2" />
+</Toolbar>
+</VBox>
+<VBox id="vendorMainPanel" class="app-table-wrap">
+<Table id="vendorTableMain" growing="true" growingThreshold="50" items="{vendorMain>/righe}">
+<columns>
+<Column>
+<Text text="Fornitore" />
+</Column>
+<Column>
+<Text text="Fatturato dichiarato" />
+</Column>
+<Column>
+<Text text="Totale contratti" />
+</Column>
+<Column>
+<Text text="N. contratti" />
+</Column>
+<Column>
+<Text text="Indice dipendenza" />
+</Column>
+<Column>
+<Text text="Rischio" />
+</Column>
+</columns>
+<items>
+<ColumnListItem type="Navigation" press="onApriReportFornitoreMain">
+<cells>
+<Link text="{vendorMain>nome}" press="onApriReportFornitoreMain" />
+<Text text="{path:'vendorMain>fatturatoTot', formatter:'.formatter.euroText', targetType:'any'}" />
+<Text text="{path:'vendorMain>totaleContratti', formatter:'.formatter.euroText', targetType:'any'}" />
+<Text text="{vendorMain>numeroContratti}" />
+<core:HTML content="{vendorMain>indiceHtml}" />
+<ObjectStatus text="{vendorMain>rischioLabel}" state="{vendorMain>rischioState}" />
+</cells>
+</ColumnListItem>
+</items>
+</Table>
+</VBox>
+</VBox>
 </core:FragmentDefinition>
