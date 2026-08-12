@@ -2,6 +2,7 @@ node_modules/
 gen/
 dist/
 .env
+vars.yaml
 default-env.json
 db.sqlite
 db.sqlite-shm

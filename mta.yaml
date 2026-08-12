@@ -116,15 +116,3 @@ resources:
       service: destination
       service-plan: lite
       service-name: contratti-attivi-destination
-      config:
-        init_data:
-          instance:
-            existing_destinations_policy: update
-            existing_certificates_policy: ignore
-            destinations:
-              - Name: contratti-attivi-openai
-                Type: HTTP
-                URL: https://api.openai.com
-                Authentication: NoAuthentication
-                ProxyType: Internet
-                apiKey: '{{OPENAI_API_KEY}}'
