@@ -33,7 +33,9 @@ sap.ui.define([
         $filter: "stato ne 'ARCHIVIATO'",
         $select: "ID,codice,fornitore_ID,stato,importo,categoria,esitoVerifica,dataStipula,dataScadenza,intestatario,responsabile,oggetto"
       }).requestContexts(0, 2000);
-      var oFornitoriBinding = oModel.bindList("/Fornitore", {}).requestContexts(0, 2000);
+      var oFornitoriBinding = oModel.bindList("/Fornitore", {
+        $select: "ID,idSapFornitore,nomeFornitore,codiceAteco,rischioEmissioni,codiceFiscale,dataAttivazione,numAddetti,cgsScore,fatturatoTot,annoFatturatoTot,protesti,pregiudizievoli,scoreVendorRating"
+      }).requestContexts(0, 2000);
       Promise.all([
         oContrattiBinding,
         oFornitoriBinding
