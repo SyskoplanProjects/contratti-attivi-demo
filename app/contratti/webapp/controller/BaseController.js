@@ -273,11 +273,13 @@ sap.ui.define([
         oDialog.open();
         try {
           const oModel = this.getOwnerComponent().getModel();
+          // Accesso diretto per chiave, non $filter=ID eq <guid>: su hana quel filtro da' sempre
+          // 400 (vedi Detail.controller.js#_caricaContesto), mai capitato su sqlite.
           const sUrl = oModel.getServiceUrl()
-            + `Contratto?$filter=ID eq ${sContrattoID}&$expand=clausole($expand=clausolaVersione,clausola;$filter=rimossa eq false;$orderby=ordine)&$top=1`;
+            + `Contratto(${sContrattoID})?$expand=clausole($expand=clausolaVersione,clausola;$filter=rimossa eq false;$orderby=ordine)`;
           const oResp = await fetch(sUrl);
-          const oJson = await oResp.json();
-          oDialog.setModel(new JSONModel((oJson.value || [])[0] || {}), "anteprima");
+          const oContratto = oResp.ok ? await oResp.json() : {};
+          oDialog.setModel(new JSONModel(oContratto), "anteprima");
         } catch (e) {
           MessageBox.error("Errore caricamento anteprima: " + (e.message || String(e)));
         }

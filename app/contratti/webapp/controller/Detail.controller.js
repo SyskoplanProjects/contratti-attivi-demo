@@ -46,16 +46,23 @@ sap.ui.define([
           + "responsabileControparte,emailControparte,oggetto,dataDecorrenza,dataScadenza,categoria,"
           + "bozzaSalvata,previewID,template_ID,templateVersion_ID,dataUltimaVerifica,esitoVerifica,"
           + "dataArchiviazione,estrattoDaContratto_ID";
-        const sClausolaVersioneSelect = "ID,createdAt,createdBy,modifiedAt,modifiedBy,clausola_ID,numero,"
-          + "testo,dataCreazione,modificata,templateVersionOrigine_ID,contrattoOrigine_ID";
+        // clausolaVersione e' esposta in srv/contratti-service.cds come proiezione ristretta
+        // (niente createdAt/createdBy/...): un $select con quei campi da' 400 su hana ("Property
+        // 'createdAt' does not exist in type 'ClausolaVersione'"), mai capitato su sqlite perche'
+        // li' il motore SQL non valida le colonne selezionate contro la proiezione OData.
+        const sClausolaVersioneSelect = "ID,clausola_ID,numero,testo,dataCreazione,modificata,"
+          + "templateVersionOrigine_ID,contrattoOrigine_ID";
+        // Accesso diretto per chiave invece di $filter=ID eq <guid>: su hana quel filtro da'
+        // sempre 400 ("Edm.Guid not compatible to Edm.Boolean"), indipendente da $select/$expand
+        // (riprodotto anche con la query originale, pre-esistente al giro di ottimizzazione di
+        // oggi). Mai fallito su sqlite, che non applica lo stesso controllo di tipo sul filtro.
         const sUrl = oOwnerModel.getServiceUrl()
-          + `Contratto?$filter=ID eq ${this._contrattoID}&$select=${sContrattoSelect}`
-          + `&$expand=clausole($expand=clausolaVersione($select=${sClausolaVersioneSelect}),clausola)&$top=1`;
+          + `Contratto(${this._contrattoID})?$select=${sContrattoSelect}`
+          + `&$expand=clausole($expand=clausolaVersione($select=${sClausolaVersioneSelect}),clausola)`;
         const oResp = await fetch(sUrl);
+        if (oResp.status === 404) { MessageBox.error("Nessun contratto trovato"); return; }
         if (!oResp.ok) { MessageBox.error("HTTP " + oResp.status); return; }
-        const oJson = await oResp.json();
-        if (!oJson.value || !oJson.value.length) { MessageBox.error("Nessun contratto trovato"); return; }
-        const oContratto = oJson.value[0];
+        const oContratto = await oResp.json();
         this.getView().getModel("contesto").setData(oContratto);
         await this._segnalaClausoleVecchie(oContratto);
       } catch (e) {
