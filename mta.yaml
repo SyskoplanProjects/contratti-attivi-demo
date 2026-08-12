@@ -12,7 +12,7 @@ build-parameters:
         # (o si tronca) sulla rete BAS/CF build. Non serve un browser durante il build, solo a
         # runtime (docx-to-pdf.js usa @sparticuz/chromium li', un binario che arriva via npm
         # registry, non da CDN esterno).
-        - PUPPETEER_SKIP_DOWNLOAD=true npm ci
+        - env PUPPETEER_SKIP_DOWNLOAD=true npm ci
         - npx cds build --production
         - node -e "const p=require('./gen/db/package.json');p.engines.node='>=20';require('fs').writeFileSync('gen/db/package.json',JSON.stringify(p,null,2)+'\n')"
 modules:
