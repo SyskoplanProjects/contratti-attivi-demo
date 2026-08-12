@@ -6,7 +6,7 @@ async function connectDb(cds) {
   const vcap = process.env.VCAP_SERVICES && JSON.parse(process.env.VCAP_SERVICES);
   const hana = vcap?.hana?.[0];
   if (hana) {
-    cds.env.requires.db = { kind: 'hana-cloud', credentials: hana.credentials };
+    cds.env.requires.db = { kind: 'hana-cloud', dialect: 'hana', credentials: hana.credentials };
   }
   return cds.connect.to('db');
 }
