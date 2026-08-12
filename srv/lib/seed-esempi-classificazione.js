@@ -3,6 +3,7 @@ const path = require('path');
 const { extractTextMultiFormato } = require('./ai-import');
 const { categoriaMacro, TIPOLOGIE_ALLEGATO } = require('./tipologie-allegato');
 const { salvaEsempio } = require('./classificazione-esempi');
+const { connectDb } = require('./connect-db');
 
 // Esempi reali dal POC (cartella fuori dal repo, path assoluto locale) usati per calibrare il
 // classificatore embedding (srv/lib/allegato-classifier.js#_poolEmbeddings) con documenti veri
@@ -110,7 +111,7 @@ async function main() {
   const cds = require('@sap/cds');
   const csn = await cds.load(path.join(__dirname, '..', '..', 'db', 'schema.cds'));
   cds.model = csn;
-  await cds.connect.to('db');
+  await connectDb(cds);
   await seed();
 }
 

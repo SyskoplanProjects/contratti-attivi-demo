@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { connectDb } = require('./connect-db');
 
 const NAMESPACE = 'com.reply.contrattiattivi';
 const CSV_PATH = path.join(__dirname, '..', '..', 'db', 'data', 'fornitori.csv');
@@ -94,7 +95,7 @@ async function main() {
   const cds = require('@sap/cds');
   const csn = await cds.load(path.join(__dirname, '..', '..', 'db', 'schema.cds'));
   cds.model = csn;
-  await cds.connect.to('db');
+  await connectDb(cds);
   await seed(cds);
 }
 

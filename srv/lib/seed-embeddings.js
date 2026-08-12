@@ -1,10 +1,11 @@
 const cds = require('@sap/cds');
+const { connectDb } = require('./connect-db');
 const path = require('path');
 
 async function main() {
   const csn = await cds.load(path.join(__dirname, '..', '..', 'db', 'schema.cds'));
   cds.model = csn;
-  const db = await cds.connect.to('db');
+  const db = await connectDb(cds);
 
   const ClausolaVersione = 'com.reply.contrattiattivi.ClausolaVersione';
 

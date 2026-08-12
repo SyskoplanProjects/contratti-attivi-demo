@@ -1,4 +1,5 @@
 const cds = require('@sap/cds');
+const { connectDb } = require('./connect-db');
 const path = require('path');
 const { prossimoCodiceContratto } = require('./codice-contratto');
 
@@ -47,7 +48,7 @@ async function backfill(cds) {
 async function main() {
   const csn = await cds.load(path.join(__dirname, '..', '..', 'db', 'schema.cds'));
   cds.model = csn;
-  await cds.connect.to('db');
+  await connectDb(cds);
   const res = await backfill(cds);
   console.log('Backfill:', JSON.stringify(res));
 }
