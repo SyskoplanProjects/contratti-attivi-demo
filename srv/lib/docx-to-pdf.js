@@ -1,5 +1,20 @@
+const fs = require('fs');
 const mammoth = require('mammoth');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
+
+// Il download del Chromium bundle di `puppeteer` (pacchetto completo) fallisce sulla rete
+// BAS/CF build (vedi mta.yaml), quindi in produzione non è mai presente. In locale invece
+// `puppeteer` (devDependency-like, ma tenuto in dependencies per compatibilità) scarica il
+// browser regolarmente: si usa quello se c'è, altrimenti si cade su @sparticuz/chromium, un
+// binario Linux già incluso nel pacchetto npm (nessun download esterno, funziona in CF).
+async function _executablePath() {
+  try {
+    const p = require('puppeteer').executablePath();
+    if (fs.existsSync(p)) return { executablePath: p, args: ['--no-sandbox'] };
+  } catch (_) { /* puppeteer non installato o browser non scaricato: fallback sotto */ }
+  const chromium = require('@sparticuz/chromium');
+  return { executablePath: await chromium.executablePath(), args: chromium.args };
+}
 
 // classificaAllegati chiama convertiDocxInPdf una volta per allegato docx, in loop:
 // un browser Chromium per chiamata significa N cold start serializzati. Si tiene invece
@@ -8,7 +23,8 @@ const puppeteer = require('puppeteer');
 let _browserPromise = null;
 function _getBrowser() {
   if (!_browserPromise) {
-    _browserPromise = puppeteer.launch({ headless: true, args: ['--no-sandbox'] })
+    _browserPromise = _executablePath()
+      .then(opts => puppeteer.launch({ headless: true, ...opts }))
       .catch(e => { _browserPromise = null; throw e; }); // consente un retry alla chiamata successiva se il launch fallisce
   }
   return _browserPromise;
