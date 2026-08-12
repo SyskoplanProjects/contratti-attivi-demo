@@ -11,7 +11,9 @@ const { connectDb } = require('./connect-db');
 // compositi (es. "Contratti ICT", CGC+CPC+Allegati+OdA concatenati in un unico PDF) sono esclusi
 // di proposito — userli come esempio a etichetta singola inquinerebbe il pool con un embedding
 // medio che non rappresenta nessuno dei tipi realmente contenuti.
-const BASE_DIR = '/Users/emiliocasella/Desktop/POC Contratti_ER_0408/03. Contratti da analizzare/a. Contratti SAP';
+const BASE_DIR = process.env.POC_DIR
+  ? path.join(process.env.POC_DIR, '03. Contratti da analizzare', 'a. Contratti SAP')
+  : '/Users/emiliocasella/Desktop/POC Contratti_ER_0408/03. Contratti da analizzare/a. Contratti SAP';
 
 const FILE_ENTRIES = [
   { file: 'OdA/4200017108 CAD IT S.P.A__signed.pdf', tipo: 'ODA' },
