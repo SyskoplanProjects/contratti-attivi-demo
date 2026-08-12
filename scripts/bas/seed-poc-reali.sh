@@ -26,7 +26,19 @@ fi
 UAA_URL=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).credentials.url")
 CLIENTID=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).credentials.clientid")
 CLIENTSECRET=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).credentials.clientsecret")
-AUTH_TOKEN=$(curl -sf "$UAA_URL/oauth/token" -u "$CLIENTID:$CLIENTSECRET" -d "grant_type=client_credentials" | node -pe "JSON.parse(require('fs').readFileSync(0)).access_token")
+if [ -n "${SEED_USER:-}" ] && [ -n "${SEED_PASS:-}" ]; then
+  # password grant: porta gli scope Utente/Revisore assegnati all'utente via role-collection.
+  # client_credentials invece NON li porta (le role-collection si assegnano a utenti, non a client) -> 403.
+  AUTH_TOKEN=$(curl -sf "$UAA_URL/oauth/token" -u "$CLIENTID:$CLIENTSECRET" \
+    --data-urlencode "grant_type=password" \
+    --data-urlencode "username=$SEED_USER" \
+    --data-urlencode "password=$SEED_PASS" \
+    --data-urlencode "response_type=token" | node -pe "JSON.parse(require('fs').readFileSync(0)).access_token")
+else
+  echo "SEED_USER/SEED_PASS non settate: uso client_credentials, le action protette da @requires('Utente'/'Revisore') risponderanno 403." >&2
+  echo "Assegna le role-collection ContrattiAttivi_Utente/ContrattiAttivi_Revisore a un utente reale via BTP Cockpit, poi rilancia con SEED_USER/SEED_PASS." >&2
+  AUTH_TOKEN=$(curl -sf "$UAA_URL/oauth/token" -u "$CLIENTID:$CLIENTSECRET" -d "grant_type=client_credentials" | node -pe "JSON.parse(require('fs').readFileSync(0)).access_token")
+fi
 
 echo "BASE_URL=$BASE_URL"
 echo "POC_DIR=$POC_DIR"
