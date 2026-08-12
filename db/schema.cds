@@ -28,7 +28,7 @@ entity TemplateVersion : cuid, managed {
 
 entity Clausola : cuid, managed {
   codice     : String(20) not null;
-  titolo     : String(200) not null;
+  titolo     : String(500) not null;
   aggiuntiva : Boolean default false;
   template   : Association to Template;
   versioni   : Composition of many ClausolaVersione on versioni.clausola = $self;
@@ -138,7 +138,7 @@ entity MetadatoDocumento : cuid, managed {
 entity ClausolaImportata : cuid {
   contrattoImportato : Association to ContrattoImportato not null;
   numero             : Integer not null;
-  titolo             : String(200);
+  titolo             : String(500);
   testo              : LargeString not null;
   embedding          : LargeString;
   clausolaTemplate   : Association to Clausola;
