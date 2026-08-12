@@ -4,8 +4,8 @@ const cds = require('@sap/cds');
 // Confronta SEMPRE contro contratti/clausole della stessa tipologia (stesso template),
 // mai tra tipologie diverse (es. DORA vs non-DORA), perché una riga Clausola appartiene
 // a un'unica linea di template e un Contratto ha un solo template_ID.
-async function getTipsAI({ contrattoID, templateID, clausole }) {
-  const { Contratto, ContrattoClausola, Clausola, ClausolaVersione } = cds.entities('com.reply.contrattiattivi');
+async function getTipsAI({ contrattoID, templateID, clausole, accordoQuadroOAutonomo }) {
+  const { Contratto, ContrattoClausola, Clausola, ClausolaVersione, Template } = cds.entities('com.reply.contrattiattivi');
 
   let templateIDEffettivo = templateID;
   let clausoleUsate;
@@ -32,6 +32,24 @@ async function getTipsAI({ contrattoID, templateID, clausole }) {
   }
 
   const tips = [];
+
+  // 0. Classificazione del contratto: template cliente o standard Iccrea, accordo quadro o
+  // contratto autonomo. Deterministico, non generato: tipoRiferimento viene dal Template
+  // (db/schema.cds), quadro/autonomo dal metadato accordoQuadroOAutonomo già estratto in fase
+  // di digitalizzazione (vedi allegati-attesi.js, stessa logica di rilevazione "quadro").
+  if (templateIDEffettivo) {
+    const template = await SELECT.one.from(Template, templateIDEffettivo);
+    if (template) {
+      const sRiferimento = template.tipoRiferimento === 'CLIENTE' ? 'contratto cliente' : 'contratto standard Iccrea';
+      const sQuadro = !accordoQuadroOAutonomo
+        ? 'quadro/autonomo non determinabile dal documento'
+        : (/quadro/i.test(accordoQuadroOAutonomo) ? 'Accordo Quadro' : 'Contratto autonomo');
+      tips.push({
+        tipo: 'CLASSIFICAZIONE',
+        messaggio: `Classificazione: ${sRiferimento} (template "${template.nome}") — ${sQuadro}.`
+      });
+    }
+  }
 
   // 1. Versione più recente della stessa clausola già adottata in un altro contratto
   for (const cu of clausoleUsate) {

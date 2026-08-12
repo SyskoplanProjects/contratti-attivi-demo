@@ -303,7 +303,7 @@ service ComparatorService @(requires: 'Utente') {
     messaggio : String;
   }
 
-  action generaTipsAI(templateID: UUID, contractID: UUID, clausole: array of ClausolaUsataInput) returns array of TipAI;
+  action generaTipsAI(templateID: UUID, contractID: UUID, clausole: array of ClausolaUsataInput, accordoQuadroOAutonomo: String) returns array of TipAI;
 
   @readonly entity Template as projection on db.Template;
   @readonly entity Contratto as projection on db.Contratto;

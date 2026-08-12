@@ -7,7 +7,7 @@ const { computeDocumentoEmbedding } = require('./lib/template-embedding');
 const { normalizeText } = require('./lib/diff-utils');
 const { extractTextMultiFormato } = require('./lib/ai-import');
 const { classificaAllegato, rilevaTipiPresenti } = require('./lib/allegato-classifier');
-const { estraiCampiAllegato, trovaPosizione } = require('./lib/allegato-extractor');
+const { estraiCampiAllegato, trovaPosizioneClausole } = require('./lib/allegato-extractor');
 const { salvaMetadati } = require('./lib/metadati-writer');
 const { salvaEsempio } = require('./lib/classificazione-esempi');
 const { TIPOLOGIE_ALLEGATO, categoriaMacro } = require('./lib/tipologie-allegato');
@@ -112,9 +112,13 @@ module.exports = class ComparatorService extends cds.ApplicationService {
       });
 
       // Le clausole vengono estratte dal testo semplice (estraiClausole), senza bbox: si
-      // localizzano qui sull'anteprima PDF cercando il testo della clausola nel testo posizionato
-      // già calcolato sopra per i metadati, stesso meccanismo di _trovaPosizione.
-      result.clausole.forEach(function (c) { c.posizione = trovaPosizione(c.testo, testoPosizionato); });
+      // localizzano qui sull'anteprima PDF nel testo posizionato già calcolato sopra per i
+      // metadati. trovaPosizioneClausole (non trovaPosizione) perché cerca solo l'inizio di
+      // ogni clausola e delimita la fine all'inizio della successiva, invece di cercare l'intero
+      // corpo: più robusto e non sconfina mai nel titolo dell'articolo dopo (vedi commento in
+      // allegato-extractor.js#trovaPosizioneClausole).
+      const posizioni = trovaPosizioneClausole(result.clausole, testoPosizionato);
+      result.clausole.forEach(function (c, i) { c.posizione = posizioni[i]; });
 
       const templateIDFinale = templateID || (result.riferimentoTrovato && result.riferimentoTrovato.templateID) || null;
       const previewID = previewStore.put({
@@ -726,9 +730,9 @@ module.exports = class ComparatorService extends cds.ApplicationService {
     });
 
     this.on('generaTipsAI', async (req) => {
-      const { templateID, contractID, clausole } = req.data;
+      const { templateID, contractID, clausole, accordoQuadroOAutonomo } = req.data;
       const { getTipsAI } = require('./lib/tips-ai');
-      const result = await getTipsAI({ contrattoID: contractID, templateID, clausole });
+      const result = await getTipsAI({ contrattoID: contractID, templateID, clausole, accordoQuadroOAutonomo });
       if (result && result.errore) return req.reject(404, result.errore);
       return result;
     });

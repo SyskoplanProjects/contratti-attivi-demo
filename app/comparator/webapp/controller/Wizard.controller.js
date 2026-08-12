@@ -64,7 +64,7 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         });
         var aSezioniBozza = metadataWizardHelper.raggruppaPerSezione(oBozzaResp.metadati || []);
         var aClausoleBozza = (oBozzaResp.clausole || [])
-          .filter(function (c) { return c.stato === "VARIANTE" || c.stato === "NUOVA"; })
+          .filter(function (c) { return c.stato !== "NON_PRESENTE"; })
           .map(function (c) {
             return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: null, isClausola: true, numero: c.numero };
           });
@@ -75,16 +75,21 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       this.getView().setModel(new JSONModel({ ...oCoverageData, filename: sFilename }), "coverage");
       var aSezioni = metadataWizardHelper.raggruppaPerSezione(oCoverageData.metadati || []);
       var aClausoleRischio = (oCoverageData.clausole || []).filter(function (c) {
-        // Solo clausole effettivamente nel documento caricato. Le MATCH_TEMPLATE sono clausole
-        // del template confrontate, non del documento: si vedono nella tabella compliance del
-        // step finale. Le NON_PRESENTE (mancanti) sono in "Clausole mancanti" nel finale.
-        return c.stato === "VARIANTE" || c.stato === "NUOVA";
+        // Tutte le clausole effettivamente nel documento caricato, MATCH_TEMPLATE incluse: prima
+        // solo VARIANTE/NUOVA finivano qui e le MATCH_TEMPLATE si vedevano solo nella tabella
+        // compliance del passo finale — risultato: appena caricato un documento senza scostamenti
+        // dal template questa sezione appariva vuota, sembrando che l'estrazione non avesse letto
+        // nulla (bug reale osservato: contratto con 8/8 clausole estratte correttamente ma sezione
+        // "Clausole di rischio" vuota, e "Aggiungi clausola" partiva da numero 9 senza che le 8
+        // precedenti fossero mai visibili). Le NON_PRESENTE (mancanti dal documento) restano fuori,
+        // sono in "Clausole mancanti" nel passo finale.
+        return c.stato !== "NON_PRESENTE";
       }).map(function (c) {
-        return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true, numero: c.numero };
+        return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true, numero: c.numero, stato: c.stato };
       });
       // Sezione sempre presente (anche vuota): serve come punto di aggancio per "Aggiungi
       // clausola" quando l'estrazione automatica ne ha saltata una — l'utente deve poterla
-      // raggiungere anche se non c'è ancora nessuna clausola di rischio rilevata.
+      // raggiungere anche se non c'è ancora nessuna clausola rilevata.
       aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
       this.getView().setModel(new JSONModel(this._aSezioniBozza || aSezioni), "wizardSezioni");
       this.getView().setModel(new JSONModel({ pdfBase64: oCoverageData.pdfBase64 || null }), "wizardDocumento");
@@ -169,12 +174,12 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
         this._oCoverageData = oCoverageModel.getData();
 
         var aClausoleRischio = (oData.clausole || []).filter(function (c) {
-          return c.stato === "VARIANTE" || c.stato === "NUOVA";
+          return c.stato !== "NON_PRESENTE";
         }).map(function (c) {
-          return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true, numero: c.numero };
+          return { etichetta: c.titolo || ("Clausola " + c.numero), valore: c.testo || "", confidenza: null, posizione: c.posizione || null, isClausola: true, numero: c.numero, stato: c.stato };
         });
         var aSezioni = this.metadataWizardHelper.raggruppaPerSezione(this._oCoverageData.metadati || []);
-        if (aClausoleRischio.length) aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
+        aSezioni.push({ sezione: "Clausole di rischio", campi: aClausoleRischio });
         this.getView().setModel(new JSONModel(this._aSezioniBozza || aSezioni), "wizardSezioni");
 
         var aMancanti = (oData.clausole || [])
@@ -351,13 +356,12 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
     _buildSteps: async function (aAllegati, oDocPrincipale) {
       var oWizard = this.byId("reviewWizard");
       var sFilename = sessionStorage.getItem("comparatorFilename") || "documento";
-      var sContrattoLabel = this._mTipologieLabel[oDocPrincipale && oDocPrincipale.codiceSelezionato] || "Non classificato";
 
       var oContractContent = await Fragment.load({
         id: this.getView().getId(),
         name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizard", controller: this
       });
-      oWizard.addStep(new WizardStep({ title: "Contratto: " + sFilename + " [" + sContrattoLabel + "]", content: [].concat(oContractContent) }));
+      oWizard.addStep(new WizardStep({ title: "Contratto: " + sFilename, content: [].concat(oContractContent) }));
 
       this._aAllegatoPreviews = [];
       for (var i = 0; i < aAllegati.length; i++) {

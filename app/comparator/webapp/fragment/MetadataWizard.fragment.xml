@@ -1,5 +1,19 @@
 <core:FragmentDefinition xmlns:core="sap.ui.core" xmlns="sap.m" xmlns:l="sap.ui.layout"
   xmlns:control="com.reply.contrattiattivi.comparator.control">
+  <HBox alignItems="Center" class="app-tipo-suggerito sapUiSmallMarginTop sapUiTinyMarginBottom"
+    visible="{= !!${documentoPrincipale>/categoria} }">
+    <core:Icon src="sap-icon://lightbulb" class="sapUiTinyMarginEnd" />
+    <Label text="Tipo documento suggerito dall'AI:" class="sapUiTinyMarginEnd" design="Bold" />
+    <Select selectedKey="{documentoPrincipale>/codiceSelezionato}" items="{tipologie>/value}" width="16rem"
+      valueState="{path: 'documentoPrincipale>/confidenza', formatter: '.metadataWizardHelper.statoConfidenza'}">
+      <core:Item key="{tipologie>codice}" text="{tipologie>label}" />
+    </Select>
+    <ObjectStatus
+      text="{= ${documentoPrincipale>/confidenza} !== null &amp;&amp; ${documentoPrincipale>/confidenza} !== undefined ? Math.round(${documentoPrincipale>/confidenza} * 100) + '% confidenza' : '' }"
+      state="{path: 'documentoPrincipale>/confidenza', formatter: '.metadataWizardHelper.statoConfidenza'}"
+      class="sapUiTinyMarginBegin"
+      visible="{= ${documentoPrincipale>/confidenza} !== null &amp;&amp; ${documentoPrincipale>/confidenza} !== undefined }" />
+  </HBox>
   <l:Splitter height="60vh" class="sapUiSmallMarginTop">
     <VBox class="sapUiSmallMargin" items="{ path: 'wizardSezioni>/', templateShareable: true }">
       <layoutData>

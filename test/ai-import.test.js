@@ -284,3 +284,48 @@ describe('trovaMatch', () => {
     expect(result[0].stato).toBe('NUOVA');
   });
 });
+
+describe('estraiClausoleAI — ri-segmentazione di una clausola anomala (bug reale: Accordo Quadro Dedacredit, un\'unica chiamata smette di trovare confini a metà di un documento lungo e l\'ultima clausola rilevata assorbe tutto il resto)', () => {
+  beforeEach(() => { openai.chatJSON.mockReset(); });
+
+  it('quando una clausola supera la soglia, ri-segmenta solo quel tratto e recupera il confine mancato', async () => {
+    const unit = 'Lorem ipsum dolor sit amet consectetur. ';
+    const riempitivo = unit.repeat(Math.ceil(60000 / unit.length));
+    const sDocumento =
+      'Articolo 1 - Oggetto\n' +
+      'Il fornitore eroga i servizi come da capitolato.\n' +
+      'Articolo 2 - Corpo lungo\n' +
+      riempitivo +
+      'Articolo 3 - Finale\n' +
+      'Testo della clausola finale.';
+
+    openai.chatJSON
+      // 1° chiamata: segmentazione dell'intero documento, si ferma all'articolo 2 (anomalo:
+      // il taglio "fino a fine documento" gli fa assorbire il riempitivo + l'articolo 3 interi).
+      .mockResolvedValueOnce({
+        clausole: [
+          { numero: 1, titolo: 'Oggetto', inizio: 'Il fornitore eroga i servizi' },
+          { numero: 2, titolo: 'Corpo lungo', inizio: 'Lorem ipsum dolor sit amet' }
+        ]
+      })
+      // 2° chiamata: ri-segmentazione del solo tratto anomalo, trova il confine dell'articolo 3.
+      .mockResolvedValueOnce({
+        clausole: [
+          { numero: 1, titolo: 'Corpo lungo', inizio: 'Lorem ipsum dolor sit amet' },
+          { numero: 2, titolo: 'Finale', inizio: 'Testo della clausola finale' }
+        ]
+      })
+      // 3° chiamata: il riempitivo residuo tra articolo 2 e 3 resta comunque sopra soglia
+      // (è un unico blocco ripetitivo senza altri confini reali) — il modello non trova nulla
+      // di nuovo, il ciclo di ri-segmentazione si ferma.
+      .mockResolvedValueOnce({ clausole: [] });
+
+    const clausole = await estraiClausoleAI(sDocumento);
+
+    expect(clausole.map(c => c.titolo)).toEqual(['Oggetto', 'Corpo lungo', 'Finale']);
+    expect(clausole.map(c => c.numero)).toEqual([1, 2, 3]);
+    expect(clausole[1].testo).toContain(riempitivo.trim());
+    expect(clausole[1].testo).not.toContain('Testo della clausola finale');
+    expect(clausole[2].testo).toBe('Testo della clausola finale.');
+  });
+});

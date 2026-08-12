@@ -95,11 +95,12 @@ function _sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function chatJSON(systemPrompt, userPrompt) {
+async function chatJSON(systemPrompt, userPrompt, options) {
   const client = await getClient();
   const completion = await client.chat.completions.create({
     model: 'gpt-4o-mini',
     response_format: { type: 'json_object' },
+    ...(options && typeof options.temperature === 'number' ? { temperature: options.temperature } : {}),
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }

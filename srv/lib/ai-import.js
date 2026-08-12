@@ -180,10 +180,14 @@ function _trovaPosizioneAncora(ancora, testoDocumento, daPosizione) {
   return match ? daPosizione + match.index : -1;
 }
 
-async function estraiClausoleAI(testoDocumento) {
-  const result = await openai.chatJSON(SEGMENTAZIONE_SYSTEM_PROMPT, testoDocumento);
+async function _segmentaConfini(testoDocumento) {
+  // temperature 0: individuare TUTTI i confini di un documento lungo è un compito di
+  // enumerazione esaustiva, non creativo — la variabilità di campionamento di default (bug
+  // reale osservato: la stessa identica chiamata su Accordo Quadro Dedacredit ha trovato 33,
+  // 100 o 13 confini in run successivi) va ridotta il più possibile, non è un comportamento
+  // desiderato da preservare.
+  const result = await openai.chatJSON(SEGMENTAZIONE_SYSTEM_PROMPT, testoDocumento, { temperature: 0 });
   const clausoleGrezze = Array.isArray(result?.clausole) ? result.clausole : [];
-  if (!clausoleGrezze.length) throw new Error('AI non ha estratto nessuna clausola');
 
   const scartate = [];
   const posizionate = [];
@@ -200,7 +204,57 @@ async function estraiClausoleAI(testoDocumento) {
   if (scartate.length) {
     console.warn('[ai-import] clausole scartate perché il testo di inizio non è stato trovato nel documento:', scartate.join('; '));
   }
+  return posizionate;
+}
+
+// Soglia oltre la quale l'ultima clausola rilevata è considerata anomala (in caratteri) — nessun
+// articolo reale osservato sui contratti di test supera i ~22K caratteri, quindi 50K è già un
+// margine ampio prima di sospettare un confine mancato piuttosto che un articolo lungo.
+const SOGLIA_CLAUSOLA_ANOMALA = 50000;
+const MAX_RISEGMENTAZIONI = 10;
+
+async function estraiClausoleAI(testoDocumento) {
+  let posizionate = await _segmentaConfini(testoDocumento);
   if (!posizionate.length) throw new Error('AI non ha estratto nessuna clausola verificabile nel documento');
+
+  // Su un documento molto lungo (fascicolo composito con più sezioni/allegati, es. CGC+CPC+
+  // Allegati uniti in un unico file) la segmentazione in una sola chiamata può smettere di
+  // riconoscere confini per un tratto, non solo in coda: il taglio "fino alla clausola
+  // successiva" fa allora assorbire tutto il tratto non riconosciuto nella clausola che lo
+  // precede — bug reale osservato (Accordo Quadro Dedacredit BCC Sinergia, 340K caratteri: sia
+  // l'ultima clausola sia una a metà documento assorbivano decine/centinaia di migliaia di
+  // caratteri). Si cerca ad ogni giro la PRIMA clausola più grande della soglia assoluta (non
+  // relativa alle sorelle: una sorella già grande renderebbe un confronto relativo troppo
+  // permissivo) e si ri-segmenta SOLO quel tratto, sostituendola con i nuovi confini trovati al
+  // suo interno — ripetendo finché nessuna clausola resta anomala o il modello non trova più
+  // nulla di nuovo in quel tratto (max 10 giri: un fascicolo reale non ha decine di sezioni
+  // indipendenti fuse in un unico blocco).
+  let risegmentato = false;
+  for (let i = 0; i < MAX_RISEGMENTAZIONI; i++) {
+    posizionate.sort((a, b) => a.posizione - b.posizione);
+    const idxAnomala = posizionate.findIndex((c, j) => {
+      const fine = j + 1 < posizionate.length ? posizionate[j + 1].posizione : testoDocumento.length;
+      return (fine - c.posizione) > SOGLIA_CLAUSOLA_ANOMALA;
+    });
+    if (idxAnomala === -1) break;
+
+    const anomala = posizionate[idxAnomala];
+    const fineBlocco = idxAnomala + 1 < posizionate.length ? posizionate[idxAnomala + 1].posizione : testoDocumento.length;
+    const blocco = testoDocumento.slice(anomala.posizione, fineBlocco);
+    const nuove = (await _segmentaConfini(blocco))
+      .filter(c => c.posizione > 0) // posizione 0 = la stessa clausola già nota, non un nuovo confine
+      .map(c => ({ ...c, posizione: c.posizione + anomala.posizione }));
+    if (!nuove.length) break; // niente da scomporre ulteriormente in questo tratto
+    posizionate = posizionate.concat(nuove);
+    risegmentato = true;
+  }
+  posizionate.sort((a, b) => a.posizione - b.posizione);
+
+  // Rinumera in sequenza SOLO se c'è stata ri-segmentazione: dopo la fusione di più giri i
+  // numeri grezzi del modello (ripartiti da 1 ad ogni chiamata) non sono più progressivi/univoci.
+  // Nel caso normale (nessuna anomalia) si preserva invece la numerazione originale del modello
+  // (es. "Articolo 5"), che è informazione reale del documento, non solo un indice di posizione.
+  if (risegmentato) posizionate.forEach((c, i) => { c.numero = i + 1; });
 
   // Il testo di ciascuna clausola è il taglio REALE del documento tra il proprio inizio e
   // l'inizio della clausola successiva (o fine documento per l'ultima): non può mai divergere

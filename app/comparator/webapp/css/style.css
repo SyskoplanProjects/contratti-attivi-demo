@@ -122,6 +122,13 @@
 .app-badge-warning { background: #fff3e0; color: #e85d04; }
 .app-badge-error { background: #fce4ec; color: #b71c1c; }
 .app-badge-info { background: #e0f2ec; color: #008766; }
+.app-tipo-suggerito {
+  padding: .6rem .9rem;
+  background: rgba(0,135,102,.08);
+  border: 1px solid rgba(0,135,102,.25);
+  border-radius: 10px;
+}
+.app-tipo-suggerito .sapUiIcon { color: #008766 !important; }
 .app-stat-grid {
   display: flex; gap: .75rem; margin-bottom: 1rem;
 }

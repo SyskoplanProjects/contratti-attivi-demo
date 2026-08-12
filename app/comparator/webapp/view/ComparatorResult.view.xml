@@ -30,7 +30,7 @@
           <List items="{tips>/value}" noDataText="Nessun suggerimento.">
             <items>
               <StandardListItem
-                icon="{= ${tips>tipo} === 'AGGIORNAMENTO' ? 'sap-icon://synchronize' : 'sap-icon://add-document' }"
+                icon="{= ${tips>tipo} === 'AGGIORNAMENTO' ? 'sap-icon://synchronize' : ${tips>tipo} === 'CLASSIFICAZIONE' ? 'sap-icon://document-text' : 'sap-icon://add-document' }"
                 title="{tips>messaggio}"
                 wrapping="true" />
             </items>

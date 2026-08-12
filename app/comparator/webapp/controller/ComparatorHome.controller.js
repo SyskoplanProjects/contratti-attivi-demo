@@ -1,5 +1,5 @@
-sap.ui.define(["./BaseController", "sap/m/MessageBox"],
-function (BaseController, MessageBox) {
+sap.ui.define(["./BaseController", "sap/m/MessageBox", "sap/m/MessageToast"],
+function (BaseController, MessageBox, MessageToast) {
   "use strict";
   return BaseController.extend("com.reply.contrattiattivi.comparator.controller.ComparatorHome", {
     onInit: function () {
@@ -56,6 +56,7 @@ function (BaseController, MessageBox) {
           return new sap.ui.core.Item({ key: t.ID, text: t.nome });
         });
         this.byId("templateSelect").destroyItems();
+        this.byId("templateSelect").addItem(new sap.ui.core.Item({ key: "", text: "Nessun template" }));
         aItems.forEach(function (oItem) { this.byId("templateSelect").addItem(oItem); }.bind(this));
         if (this._sTemplateID) {
           this.byId("templateSelect").setSelectedKey(this._sTemplateID);
@@ -121,10 +122,11 @@ function (BaseController, MessageBox) {
       var sDefaultPrompt = "Verifica che il documento copra tutti i requisiti previsti dal template di riferimento e dalla normativa applicabile. Per ogni requisito rilevato, indica se presente, parzialmente presente o assente, con riferimento al punto nel documento.";
 
       try {
-        // Gate economico PRIMA dell'estrazione AI costosa (RF-7.2): se il documento non è un
-        // contratto, ci si ferma qui senza sprecare l'estrazione clausole + matching template
-        // sotto. Il verificaDocumento "vero" (che persiste su DocumentoClassificato) resta più
-        // sotto, dopo classificaAllegati, per non duplicare quella scrittura.
+        // Gate economico PRIMA dell'estrazione AI costosa (RF-7.2): solo un avviso, non un
+        // blocco — la classificazione a monte è AI e può sbagliare (falso positivo osservato:
+        // documento vero contratto classificato ODA/altro), e l'analisi va fatta sempre anche
+        // in quel caso. Il verificaDocumento "vero" (che persiste su DocumentoClassificato)
+        // resta più sotto, dopo classificaAllegati, per non duplicare quella scrittura.
         oBusy.setText("Riconoscimento tipo documento in corso...");
         try {
           var oGatePrelResp = await fetch("/comparator/verificaDocumentoPreliminare", {
@@ -134,11 +136,7 @@ function (BaseController, MessageBox) {
           if (oGatePrelResp.ok) {
             var oGatePrelData = await oGatePrelResp.json();
             if (oGatePrelData.esitoGate === "ANOMALIA") {
-              oBusy.close();
-              MessageBox.error(oGatePrelData.dettaglio || "Documento non riconosciuto come contratto.", {
-                title: "Anomalia bloccante — " + (oGatePrelData.categoria || "documento non contrattuale")
-              });
-              return;
+              MessageToast.show((oGatePrelData.dettaglio || "Documento non riconosciuto come contratto.") + " Analisi comunque avviata.");
             }
           }
         } catch (e) { /* gate preliminare non disponibile: non blocca l'analisi, si passa al flusso pieno */ }
@@ -212,9 +210,13 @@ function (BaseController, MessageBox) {
           } catch (e) { /* classificazione fallback non bloccante */ }
         }
 
-        // Gate step 1-2 del flusso: se il documento non è riconosciuto come contratto, si
-        // interrompe qui e si registra l'anomalia bloccante invece di proseguire alla
-        // verifica di completezza (che presuppone un contratto già identificato).
+        // Gate step 1-2 del flusso: la classificazione a monte (basata su AI, quindi fallibile
+        // — specie con allegati, dove più chiamate AI in sequenza aumentano il rischio che
+        // proprio questa classificazione fallisca/timeouti) resta solo un'anomalia da tracciare
+        // (già persistita server-side in DocumentoClassificato). Non deve MAI bloccare l'analisi
+        // già calcolata (coverage, tips, completezza, deroghe): l'utente la vede sempre e valuta
+        // lui l'anomalia segnalata, invece di perdere l'intero lavoro già fatto su un falso
+        // positivo di classificazione.
         try {
           var oGateResp = await fetch("/comparator/verificaDocumento", {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -223,11 +225,7 @@ function (BaseController, MessageBox) {
           if (oGateResp.ok) {
             var oGateData = await oGateResp.json();
             if (oGateData.esitoGate === "ANOMALIA") {
-              oBusy.close();
-              MessageBox.error(oGateData.dettaglio || "Documento non riconosciuto come contratto.", {
-                title: "Anomalia bloccante — " + (oGateData.categoria || "documento non contrattuale")
-              });
-              return;
+              MessageToast.show((oGateData.dettaglio || "Documento non riconosciuto come contratto.") + " Analisi comunque disponibile.");
             }
           }
         } catch (e) { /* gate non disponibile: non blocca l'analisi in corso */ }
@@ -249,10 +247,11 @@ function (BaseController, MessageBox) {
             var aClausoleUsate = (oCoverageData.clausole || [])
               .filter(function (c) { return c.matchClausolaID; })
               .map(function (c) { return { clausolaID: c.matchClausolaID, versione: c.versione }; });
+            var oMetaAccordo = (oCoverageData.metadati || []).find(function (m) { return m.campo === "accordoQuadroOAutonomo"; });
             var oTipsResp = await fetch("/comparator/generaTipsAI", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ templateID: sTemplateIDPerTips, clausole: aClausoleUsate })
+              body: JSON.stringify({ templateID: sTemplateIDPerTips, clausole: aClausoleUsate, accordoQuadroOAutonomo: oMetaAccordo ? oMetaAccordo.valore : null })
             });
             if (oTipsResp.ok) {
               oTipsData = await oTipsResp.json();
@@ -349,10 +348,11 @@ function (BaseController, MessageBox) {
         oBusy.setText("Generazione tips AI in corso...");
         var oTipsData = null;
         try {
+          var oMetaAccordo = (oCoverageData.metadati || []).find(function (m) { return m.campo === "accordoQuadroOAutonomo"; });
           var oTipsResp = await fetch("/comparator/generaTipsAI", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ templateID: sTemplateID, contractID: sContractID, clausole: [] })
+            body: JSON.stringify({ templateID: sTemplateID, contractID: sContractID, clausole: [], accordoQuadroOAutonomo: oMetaAccordo ? oMetaAccordo.valore : null })
           });
           if (oTipsResp.ok) {
             oTipsData = await oTipsResp.json();

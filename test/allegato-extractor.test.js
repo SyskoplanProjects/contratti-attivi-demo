@@ -5,7 +5,7 @@ jest.mock('../srv/modules/openai-module', () => ({
   embeddings: (...args) => mockEmbeddings(...args)
 }));
 
-const { estraiCampiAllegato } = require('../srv/lib/allegato-extractor');
+const { estraiCampiAllegato, trovaPosizioneClausole } = require('../srv/lib/allegato-extractor');
 
 describe('allegato-extractor — confidenza per campo', () => {
   beforeEach(() => {
@@ -134,5 +134,80 @@ describe('allegato-extractor — posizione (bbox) per campo', () => {
 
     const numProtocollo = metadati.find(m => m.campo === 'numeroProtocollo');
     expect(numProtocollo.posizione).toBeNull();
+  });
+});
+
+describe('trovaPosizioneClausole — evidenziazione clausole in anteprima PDF', () => {
+  // items costruiti riga per riga: ogni riga del testo diventa un item pdf.js con la propria y,
+  // così il box calcolato (min/max su x/y/width/height degli item coinvolti) riflette davvero
+  // quali righe sono state incluse.
+  function itemsPerRighe(testo) {
+    const items = [];
+    let y = 0;
+    let offset = 0;
+    testo.split('\n').forEach(riga => {
+      if (riga.length) {
+        items.push({ testo: riga, pagina: 1, x: 10, y, width: riga.length * 5, height: 12, offsetInizio: offset, offsetFine: offset + riga.length });
+      }
+      offset += riga.length + 1; // +1 per il \n
+      y += 15;
+    });
+    return items;
+  }
+
+  it('bug reale: il corpo intero non combacia (rumore tra le due pipeline pdf.js) -> con il prefisso breve trova comunque il box', () => {
+    // testoPosizionato contiene un numero di pagina a metà clausola (oltre i primi 120 caratteri,
+    // fuori dalla finestra del prefisso) che la pipeline di estrazione clausole invece filtra via
+    // (vedi ai-import.js#estraiTestoPdf): il corpo intero salvato in c.testo non esiste mai
+    // letteralmente in questo testo, ma il solo INIZIO sì.
+    const inizioComune = 'Corpo primo articolo con testo giuridico reale che si estende per diverse decine di parole prima di arrivare a un punto rilevante del documento.';
+    const fineComune = 'Da qui il contenuto prosegue fino alla fine naturale della clausola qui.';
+    expect(inizioComune.length).toBeGreaterThan(120); // garantisce che il rumore sotto sia fuori dal prefisso cercato
+
+    const testo = inizioComune + '\n2\n' + fineComune;
+    const testoPosizionato = { testo, items: itemsPerRighe(testo) };
+    const clausole = [{ numero: 1, testo: inizioComune + '\n' + fineComune }]; // "2" (rumore) filtrato dalla pipeline clausole
+
+    const posizioni = trovaPosizioneClausole(clausole, testoPosizionato);
+
+    expect(posizioni[0]).not.toBeNull();
+    expect(posizioni[0].pagina).toBe(1);
+  });
+
+  it('bug reale: c.testo include la riga di titolo dell\'articolo successivo (taglio ad ancora) -> il box non la include', () => {
+    const testo = 'Corpo primo articolo qui.\nArticolo 2 - Corpo lungo\nCorpo secondo articolo qui.';
+    const testoPosizionato = { testo, items: itemsPerRighe(testo) };
+    // Come prodotto da estraiClausoleAI: il taglio si ferma all'inizio del CORPO dell'articolo 2,
+    // quindi la clausola 1 include in coda la riga di titolo "Articolo 2 - Corpo lungo".
+    const clausole = [
+      { numero: 1, testo: 'Corpo primo articolo qui.\nArticolo 2 - Corpo lungo' },
+      { numero: 2, testo: 'Corpo secondo articolo qui.' }
+    ];
+
+    const posizioni = trovaPosizioneClausole(clausole, testoPosizionato);
+
+    const yTitoloArticolo2 = testoPosizionato.items.find(it => it.testo === 'Articolo 2 - Corpo lungo').y;
+    // Il box della clausola 1 si ferma prima della riga di titolo dell'articolo 2, non la include
+    // come faceva la ricerca sull'intero corpo (che conteneva quella riga in coda).
+    expect(posizioni[0].y + posizioni[0].height).toBeLessThanOrEqual(yTitoloArticolo2);
+  });
+
+  it('nessun match per il prefisso -> null, non blocca le altre clausole', () => {
+    const testo = 'Corpo primo articolo qui.\nCorpo secondo articolo qui.';
+    const testoPosizionato = { testo, items: itemsPerRighe(testo) };
+    const clausole = [
+      { numero: 1, testo: 'Testo completamente diverso, mai presente nel documento.' },
+      { numero: 2, testo: 'Corpo secondo articolo qui.' }
+    ];
+
+    const posizioni = trovaPosizioneClausole(clausole, testoPosizionato);
+
+    expect(posizioni[0]).toBeNull();
+    expect(posizioni[1]).not.toBeNull();
+  });
+
+  it('testoPosizionato assente -> null per tutte, non lancia eccezioni', () => {
+    const posizioni = trovaPosizioneClausole([{ numero: 1, testo: 'Testo.' }], null);
+    expect(posizioni).toEqual([null]);
   });
 });
