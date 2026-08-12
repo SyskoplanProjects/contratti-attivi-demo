@@ -23,9 +23,9 @@ if [ -z "$KEY_JSON" ]; then
   echo "$KEY_RAW" >&2
   exit 1
 fi
-UAA_URL=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).url")
-CLIENTID=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).clientid")
-CLIENTSECRET=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).clientsecret")
+UAA_URL=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).credentials.url")
+CLIENTID=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).credentials.clientid")
+CLIENTSECRET=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).credentials.clientsecret")
 AUTH_TOKEN=$(curl -sf "$UAA_URL/oauth/token" -u "$CLIENTID:$CLIENTSECRET" -d "grant_type=client_credentials" | node -pe "JSON.parse(require('fs').readFileSync(0)).access_token")
 
 echo "BASE_URL=$BASE_URL"
