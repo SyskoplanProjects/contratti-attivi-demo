@@ -16,7 +16,13 @@ BASE_URL="https://$(cf app "$SRV_APP" | awk '/^routes:/{print $2; exit}')"
 [ -n "$BASE_URL" ] && [ "$BASE_URL" != "https://" ] || { echo "Route non trovata per $SRV_APP, controlla 'cf app $SRV_APP'" >&2; exit 1; }
 
 echo "Token OAuth da service-key $AUTH_SERVICE/$AUTH_KEY..."
-KEY_JSON=$(cf service-key "$AUTH_SERVICE" "$AUTH_KEY" | tail -n +2)
+KEY_RAW=$(cf service-key "$AUTH_SERVICE" "$AUTH_KEY")
+KEY_JSON=$(echo "$KEY_RAW" | sed -n '/^{/,/^}/p')
+if [ -z "$KEY_JSON" ]; then
+  echo "Non trovo JSON nell'output di 'cf service-key $AUTH_SERVICE $AUTH_KEY':" >&2
+  echo "$KEY_RAW" >&2
+  exit 1
+fi
 UAA_URL=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).url")
 CLIENTID=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).clientid")
 CLIENTSECRET=$(echo "$KEY_JSON" | node -pe "JSON.parse(require('fs').readFileSync(0)).clientsecret")
