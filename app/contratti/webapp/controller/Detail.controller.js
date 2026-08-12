@@ -38,8 +38,19 @@ sap.ui.define([
     _caricaContesto: async function () {
       try {
         const oOwnerModel = this.getOwnerComponent().getModel();
+        // $select esclude i blob non usati in questa vista (testoOriginale/contenutoOriginale/
+        // snapshotBozza su Contratto, embedding/dettaglioDelta su ClausolaVersione): su contratti
+        // reali (PDF/docx multi-MB) erano il grosso del payload di una pagina dettaglio.
+        const sContrattoSelect = "ID,createdAt,createdBy,modifiedAt,modifiedBy,intestatario,codice,"
+          + "fornitore_ID,responsabile,importo,codiceFiscale,dataStipula,stato,societaContraente,"
+          + "responsabileControparte,emailControparte,oggetto,dataDecorrenza,dataScadenza,categoria,"
+          + "bozzaSalvata,previewID,template_ID,templateVersion_ID,dataUltimaVerifica,esitoVerifica,"
+          + "dataArchiviazione,estrattoDaContratto_ID";
+        const sClausolaVersioneSelect = "ID,createdAt,createdBy,modifiedAt,modifiedBy,clausola_ID,numero,"
+          + "testo,dataCreazione,modificata,templateVersionOrigine_ID,contrattoOrigine_ID";
         const sUrl = oOwnerModel.getServiceUrl()
-          + `Contratto?$filter=ID eq ${this._contrattoID}&$expand=clausole($expand=clausolaVersione,clausola)&$top=1`;
+          + `Contratto?$filter=ID eq ${this._contrattoID}&$select=${sContrattoSelect}`
+          + `&$expand=clausole($expand=clausolaVersione($select=${sClausolaVersioneSelect}),clausola)&$top=1`;
         const oResp = await fetch(sUrl);
         if (!oResp.ok) { MessageBox.error("HTTP " + oResp.status); return; }
         const oJson = await oResp.json();

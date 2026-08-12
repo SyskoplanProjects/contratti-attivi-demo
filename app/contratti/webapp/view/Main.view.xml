@@ -75,7 +75,7 @@
           </VBox>
         </HBox>
         <VBox class="app-table-wrap">
-          <Table id="contrattiTable" items="{path: '/Contratto', filters: [{path: 'stato', operator: 'NE', value1: 'ARCHIVIATO'}]}" growing="true" growingThreshold="50" class="sapUiResponsiveMargin">
+          <Table id="contrattiTable" items="{path: '/Contratto', filters: [{path: 'stato', operator: 'NE', value1: 'ARCHIVIATO'}], parameters: {$select: 'ID,intestatario,responsabile,stato,dataStipula'}}" growing="true" growingThreshold="50" class="sapUiResponsiveMargin">
             <columns>
               <Column width="3rem" hAlign="Center"></Column>
               <Column minScreenWidth="Tablet" demandPopin="true"><Text text="ID Contratto" /></Column>

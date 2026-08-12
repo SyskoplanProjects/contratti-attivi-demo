@@ -29,7 +29,10 @@ sap.ui.define([
         this.getView().setModel(new JSONModel({ totaleContrattiAnno: 0, importoTotaleAnno: 0 }), "cockpit");
         return;
       }
-      var oContrattiBinding = oModel.bindList("/Contratto", { $filter: "stato ne 'ARCHIVIATO'" }).requestContexts(0, 2000);
+      var oContrattiBinding = oModel.bindList("/Contratto", {
+        $filter: "stato ne 'ARCHIVIATO'",
+        $select: "ID,codice,fornitore_ID,stato,importo,categoria,esitoVerifica,dataStipula,dataScadenza,intestatario,responsabile,oggetto"
+      }).requestContexts(0, 2000);
       var oFornitoriBinding = oModel.bindList("/Fornitore", {}).requestContexts(0, 2000);
       Promise.all([
         oContrattiBinding,
@@ -344,11 +347,13 @@ sap.ui.define([
       if (!oFornitore || !oFornitore.ID) return;
       if (!oFornitore.numeroContratti) return;
       var oModel = this.getOwnerComponent().getModel();
-      oModel.bindList("/Contratto", {}).requestContexts(0, 2000)
+      oModel.bindList("/Contratto", {
+        $filter: "fornitore_ID eq '" + String(oFornitore.ID).replace(/'/g, "''") + "' and stato ne 'ARCHIVIATO'",
+        $select: "ID,codice,intestatario,responsabile,oggetto,categoria,stato,importo,dataStipula,dataScadenza"
+      }).requestContexts(0, 2000)
         .then(function (aCtx) {
           var aRighe = (aCtx || [])
             .map(function (c) { return c.getObject(); })
-            .filter(function (o) { return o.fornitore_ID === oFornitore.ID && o.stato !== 'ARCHIVIATO'; })
             .map(function (o) {
               var oRischio = dashboardUtils.buildRischioFornitore(oFornitore);
               return {

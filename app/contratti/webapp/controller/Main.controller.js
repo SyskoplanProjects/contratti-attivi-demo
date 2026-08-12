@@ -38,7 +38,7 @@ sap.ui.define([
     _loadStat: async function () {
       try {
         const oModel = this.getOwnerComponent().getModel();
-        const all = await oModel.bindList("/Contratto", { $filter: "stato ne 'ARCHIVIATO'" }).requestContexts(0, 999);
+        const all = await oModel.bindList("/Contratto", { $filter: "stato ne 'ARCHIVIATO'", $select: "stato" }).requestContexts(0, 999);
         const bozza = all.filter(c => c.getProperty("stato") === "BOZZA").length;
         const inRev = all.filter(c => c.getProperty("stato") === "IN_REVISIONE").length;
         const approvato = all.filter(c => c.getProperty("stato") === "APPROVATO").length;

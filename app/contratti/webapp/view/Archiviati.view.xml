@@ -12,7 +12,7 @@
     </customHeader>
     <content>
       <VBox class="sapUiSmallMargin app-page-content">
-        <Table id="archiviatiTable" items="{path: '/Contratto', filters: [{path: 'stato', operator: 'EQ', value1: 'ARCHIVIATO'}]}" growing="true" growingThreshold="50">
+        <Table id="archiviatiTable" items="{path: '/Contratto', filters: [{path: 'stato', operator: 'EQ', value1: 'ARCHIVIATO'}], parameters: {$select: 'ID,intestatario,responsabile,dataArchiviazione,stato'}}" growing="true" growingThreshold="50">
           <columns>
             <Column><Text text="Intestatario" /></Column>
             <Column><Text text="Responsabile" /></Column>

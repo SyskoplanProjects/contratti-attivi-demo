@@ -80,7 +80,7 @@ sap.ui.define([
           const oClausolaSel = aClausole.find(c => c.ID === sKey);
           oTxtOrigine.setText(oClausolaSel ? ("Oggetto: " + (oClausolaSel.origineDettaglio || "Manuale")) : "");
           try {
-            const oResp = await fetch(oModel.getServiceUrl() + `ClausolaVersione?$filter=clausola_ID eq ${sKey}&$orderby=numero desc`);
+            const oResp = await fetch(oModel.getServiceUrl() + `ClausolaVersione?$filter=clausola_ID eq ${sKey}&$select=ID,numero,testo&$orderby=numero desc`);
             const oJson = await oResp.json();
             aVersioniBase = oJson.value || [];
             aVersioniBase.forEach(v => oSelVersione.addItem(new sap.ui.core.Item({ key: v.ID, text: `Versione ${v.numero}` })));
@@ -358,7 +358,7 @@ sap.ui.define([
             fnAggiornaStatoConferma();
             if (!sClausolaID) return;
             try {
-              const oResp = await fetch(oModel.getServiceUrl() + `ClausolaVersione?$filter=clausola_ID eq ${sClausolaID}&$orderby=numero desc`);
+              const oResp = await fetch(oModel.getServiceUrl() + `ClausolaVersione?$filter=clausola_ID eq ${sClausolaID}&$select=ID,numero,testo&$orderby=numero desc`);
               const oJson = await oResp.json();
               const aVersioni = oJson.value || [];
               aVersioni.forEach((v, i) => oSelVersione.addItem(new sap.ui.core.Item({ key: v.ID, text: `Versione ${v.numero}` })));
