@@ -17,7 +17,6 @@
     "multer": "^2",
     "openai": "^6.48.0",
     "pdfjs-dist": "^3",
-    "puppeteer": "^24.43.1",
     "puppeteer-core": "^24.43.1",
     "xlsx": "^0.18"
   },
@@ -27,7 +26,8 @@
     "axios": "^1",
     "form-data": "^4",
     "jest": "^30",
-    "mbt": "^1.2.49"
+    "mbt": "^1.2.49",
+    "puppeteer": "^24.43.1"
   },
   "engines": {
     "node": ">=20"
