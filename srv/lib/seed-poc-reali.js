@@ -52,12 +52,6 @@ const CONTRATTI_DIR = path.join(POC_DIR, '03. Contratti da analizzare', 'a. Cont
 // OCR in pipeline).
 const CONTRATTI_REALI = [
   {
-    filename: '4200018545_4700000044_SAP_Accordo Condizioni Contrattualia 4700000044 BCC SL.pdf',
-    intestatarioFinale: 'Appian Software International GmbH',
-    statoFinale: 'FIRMATO',
-    responsabile: 'mario.rossi@contrattiattivi.it'
-  },
-  {
     filename: '4200098689 PEGASO 2000 SRL_.pdf',
     intestatarioFinale: 'Pegaso 2000 S.r.l.',
     statoFinale: 'IN_REVISIONE',

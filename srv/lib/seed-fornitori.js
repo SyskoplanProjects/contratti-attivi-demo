@@ -63,6 +63,17 @@ function clean(row) {
   };
 }
 
+// Fornitori dei contratti reali POC (seed-poc-reali.js) assenti dal CSV infoprovider: nome
+// esatto uguale a CONTRATTI_REALI[].intestatarioFinale per matchare senza ambiguità (vedi
+// backfill-dashboard-vendor.js). Nessun dato di arricchimento inventato: solo idSapFornitore
+// (placeholder, non un vero ID SAP) e nomeFornitore, resto lasciato null.
+// Nomios Italy S.p.A. e Deda Credit S.r.l. NON sono qui: esistono già nel CSV (rispettivamente
+// "NOMIOS ITALY SPA" e "Deda Credit Srl"), il match falliva solo per punteggiatura/forma
+// societaria, risolto da normalizzaNome in backfill-dashboard-vendor.js.
+const FORNITORI_POC = [
+  { idSapFornitore: 'POC-0002', nomeFornitore: 'Pegaso 2000 S.r.l.' }
+];
+
 async function seed(cds) {
   const csv = fs.readFileSync(CSV_PATH, 'utf-8');
   const rows = parseCsv(csv).slice(1);
@@ -73,9 +84,9 @@ async function seed(cds) {
     r.codiceFiscale && r.dataAttivazione !== null && r.numAddetti !== null &&
     r.cgsScore && r.fatturatoTot !== null && r.annoFatturatoTot &&
     r.protesti && r.pregiudizievoli && r.scoreVendorRating;
-  const entries = rows.map(clean).filter(hasAllFields);
+  const entries = rows.map(clean).filter(hasAllFields).concat(FORNITORI_POC);
   await cds.ql.INSERT.into(Fornitore).entries(entries);
-  console.log(`Fornitori importati: ${entries.length}`);
+  console.log(`Fornitori importati: ${entries.length} (incl. ${FORNITORI_POC.length} POC)`);
   return entries.length;
 }
 

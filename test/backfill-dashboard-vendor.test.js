@@ -32,4 +32,20 @@ describe('backfill dashboard vendor', () => {
     const c3 = await SELECT.one.from(Contratto).where({ intestatario: 'APPIAN SOFTWARE INTERNATIONAL' });
     expect(c3.fornitore_ID).toBe(fID);
   });
+
+  it('matcha forme societarie diverse (Srl vs S.r.l.)', async () => {
+    const { Contratto, Fornitore, Template, TemplateVersion } = cds.entities('com.reply.contrattiattivi');
+    const fID = cds.utils.uuid();
+    await INSERT.into(Fornitore).entries({ ID: fID, idSapFornitore: 'S2', nomeFornitore: 'Deda Credit Srl' });
+    const tID = cds.utils.uuid();
+    await INSERT.into(Template).entries({ ID: tID, nome: 'T2' });
+    const vID = cds.utils.uuid();
+    await INSERT.into(TemplateVersion).entries({ ID: vID, template_ID: tID, numero: 0, dataCreazione: new Date().toISOString() });
+    await INSERT.into(Contratto).entries({ ID: cds.utils.uuid(), intestatario: 'Deda Credit S.r.l.', template_ID: tID, templateVersion_ID: vID });
+
+    const r = await backfill(cds);
+    expect(r.matchati).toBe(1);
+    const c = await SELECT.one.from(Contratto).where({ intestatario: 'Deda Credit S.r.l.' });
+    expect(c.fornitore_ID).toBe(fID);
+  });
 });

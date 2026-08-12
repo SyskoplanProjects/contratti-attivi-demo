@@ -4,10 +4,23 @@ const { prossimoCodiceContratto } = require('./codice-contratto');
 
 const NS = 'com.reply.contrattiattivi';
 
+// Forme societarie ignorate nel match: "Deda Credit Srl" (CSV fornitori) vs "Deda Credit S.r.l."
+// (intestatario da contratto reale) sono la stessa azienda ma non matchano per punteggiatura.
+const FORME_SOCIETARIE = ['srl', 'spa', 'sa', 'gmbh', 'ltd', 'llc', 'inc', 'plc', 'nv', 'bv'];
+
+function normalizzaNome(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[.,]/g, '')
+    .split(/\s+/)
+    .filter(w => w && !FORME_SOCIETARIE.includes(w))
+    .join(' ')
+    .trim();
+}
+
 function matchFornitore(nomeFornitore, intestatario) {
-  if (!nomeFornitore || !intestatario) return false;
-  const a = String(nomeFornitore).trim().toLowerCase();
-  const b = String(intestatario).trim().toLowerCase();
+  const a = normalizzaNome(nomeFornitore);
+  const b = normalizzaNome(intestatario);
   if (!a || !b) return false;
   return a === b || b.indexOf(a) !== -1 || a.indexOf(b) !== -1;
 }
