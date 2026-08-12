@@ -29,7 +29,11 @@ function matchFornitore(nomeFornitore, intestatario) {
 async function backfill(cds) {
   const { Fornitore, Contratto } = cds.entities(NS);
   const fornitori = await SELECT.from(Fornitore);
-  const senzaFor = await SELECT.from(Contratto).where({ fornitore_ID: null });
+  const fornitoriIds = new Set(fornitori.map(f => f.ID));
+  // fornitore_ID orfano (punta a un Fornitore cancellato/reseedato) va rematchato come i NULL,
+  // altrimenti resta silenziosamente rotto: la query originale filtrava solo IS NULL.
+  const tuttiContratti = await SELECT.from(Contratto).columns('ID', 'intestatario', 'fornitore_ID');
+  const senzaFor = tuttiContratti.filter(c => !c.fornitore_ID || !fornitoriIds.has(c.fornitore_ID));
   let matchati = 0;
   for (const c of senzaFor) {
     const f = fornitori.find(x => matchFornitore(x.nomeFornitore, c.intestatario));
