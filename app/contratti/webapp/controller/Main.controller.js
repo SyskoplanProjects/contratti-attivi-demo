@@ -42,7 +42,7 @@ sap.ui.define([
       try {
         const oModel = this.getOwnerComponent().getModel();
         const contaFiltrato = async (sFiltro) => {
-          const oBinding = oModel.bindList("/Contratto", { $filter: sFiltro, $count: true });
+          const oBinding = oModel.bindList("/Contratto", null, null, null, { $filter: sFiltro, $count: true });
           await oBinding.requestContexts(0, 0);
           return oBinding.getHeaderContext().requestProperty("$count");
         };

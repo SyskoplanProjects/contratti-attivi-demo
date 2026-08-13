@@ -663,7 +663,7 @@ sap.ui.define([
 
     onApprovaRevisione: async function () {
       const oModel = this.getOwnerComponent().getModel();
-      const revisioni = await oModel.bindList("/Revisione", null, null, null, null, { $filter: `contratto_ID eq ${this._contrattoID} and stato ne 'APPROVATA' and stato ne 'RIFIUTATA'` }).requestContexts(0, 1);
+      const revisioni = await oModel.bindList("/Revisione", null, null, null, { $filter: `contratto_ID eq ${this._contrattoID} and stato ne 'APPROVATA' and stato ne 'RIFIUTATA'` }).requestContexts(0, 1);
       if (!revisioni.length) { MessageBox.error("Nessuna revisione attiva."); return; }
       const revisioneID = revisioni[0].getProperty("ID");
       try {
@@ -677,7 +677,7 @@ sap.ui.define([
 
     onRifiutaRevisione: async function () {
       const oModel = this.getOwnerComponent().getModel();
-      const revisioni = await oModel.bindList("/Revisione", null, null, null, null, { $filter: `contratto_ID eq ${this._contrattoID} and stato ne 'APPROVATA' and stato ne 'RIFIUTATA'` }).requestContexts(0, 1);
+      const revisioni = await oModel.bindList("/Revisione", null, null, null, { $filter: `contratto_ID eq ${this._contrattoID} and stato ne 'APPROVATA' and stato ne 'RIFIUTATA'` }).requestContexts(0, 1);
       if (!revisioni.length) { MessageBox.error("Nessuna revisione attiva."); return; }
       const revisioneID = revisioni[0].getProperty("ID");
       try {

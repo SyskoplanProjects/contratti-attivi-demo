@@ -29,11 +29,15 @@ sap.ui.define([
         this.getView().setModel(new JSONModel({ totaleContrattiAnno: 0, importoTotaleAnno: 0 }), "cockpit");
         return;
       }
-      var oContrattiBinding = oModel.bindList("/Contratto", {
+      // bindList(sPath, oContext, aSorters, aFilters, mParameters): i parametri vanno al 5°
+      // posto, non al 2°. Passarli come 2° argomento li fa finire in oContext e vengono
+      // ignorati (mParameters resta {}) — la query parte SENZA $filter/$select, scaricando
+      // ogni riga per intero (blob testoOriginale/contenutoOriginale inclusi, multi-KB l'uno).
+      var oContrattiBinding = oModel.bindList("/Contratto", null, null, null, {
         $filter: "stato ne 'ARCHIVIATO'",
         $select: "ID,codice,fornitore_ID,stato,importo,categoria,esitoVerifica,dataStipula,dataScadenza,intestatario,responsabile,oggetto"
       }).requestContexts(0, 2000);
-      var oFornitoriBinding = oModel.bindList("/Fornitore", {
+      var oFornitoriBinding = oModel.bindList("/Fornitore", null, null, null, {
         $select: "ID,idSapFornitore,nomeFornitore,codiceAteco,rischioEmissioni,codiceFiscale,dataAttivazione,numAddetti,cgsScore,fatturatoTot,annoFatturatoTot,protesti,pregiudizievoli,scoreVendorRating"
       }).requestContexts(0, 2000);
       Promise.all([
@@ -353,7 +357,7 @@ sap.ui.define([
       if (!oFornitore || !oFornitore.ID) return;
       if (!oFornitore.numeroContratti) return;
       var oModel = this.getOwnerComponent().getModel();
-      oModel.bindList("/Contratto", {
+      oModel.bindList("/Contratto", null, null, null, {
         $filter: "fornitore_ID eq '" + String(oFornitore.ID).replace(/'/g, "''") + "' and stato ne 'ARCHIVIATO'",
         $select: "ID,codice,intestatario,responsabile,oggetto,categoria,stato,importo,dataStipula,dataScadenza"
       }).requestContexts(0, 2000)
