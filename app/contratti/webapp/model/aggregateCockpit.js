@@ -75,10 +75,25 @@
     return a === b || b.indexOf(a) !== -1 || a.indexOf(b) !== -1;
   }
 
+  // O(n) match via fornitore_ID (caso comune) + fuzzy solo sui contratti orfani (caso raro),
+  // invece di O(fornitori x contratti) fuzzy su tutto: con dataset grandi il nested loop
+  // con confronto stringa ad ogni cella era il vero collo di bottiglia della dashboard.
   function buildTopFornitoriNumero(contratti, fornitori) {
+    var countByID = {};
+    var senzaFornitoreID = [];
+    contratti.forEach(function (c) {
+      if (c.fornitore_ID) {
+        countByID[c.fornitore_ID] = (countByID[c.fornitore_ID] || 0) + 1;
+      } else {
+        senzaFornitoreID.push(c);
+      }
+    });
     return fornitori
       .map(function (f) {
-        var n = contratti.filter(function (c) { return matchFornitoreNome(f.nomeFornitore, c.intestatario); }).length;
+        var n = countByID[f.ID] || 0;
+        if (senzaFornitoreID.length) {
+          n += senzaFornitoreID.filter(function (c) { return matchFornitoreNome(f.nomeFornitore, c.intestatario); }).length;
+        }
         return { nome: f.nomeFornitore, value: n };
       })
       .filter(function (r) { return r.value > 0; })
