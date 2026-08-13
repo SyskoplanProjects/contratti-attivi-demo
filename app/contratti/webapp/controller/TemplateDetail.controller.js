@@ -38,6 +38,13 @@ sap.ui.define([
 
     _onRouteMatched: function (oEvent) {
       const sId = decodeURIComponent(oEvent.getParameter("arguments").id);
+      // ID da route (controllabile dall'utente in URL) finisce senza apici in $filter qui
+      // sotto e in onAfterRendering: un letterale Edm.Guid richiede niente apici, ma senza
+      // validazione un ID malformato diventerebbe iniezione diretta nel $filter OData.
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sId)) {
+        MessageBox.error("ID template non valido.");
+        return;
+      }
       this._templateID = sId;
       // _caricaCommenti dipende solo da this._templateID (già noto qui), non dal risultato
       // di _caricaTemplate: prima erano incatenate in sequenza senza motivo, un round-trip
