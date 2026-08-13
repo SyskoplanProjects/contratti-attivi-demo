@@ -56,35 +56,33 @@ sap.ui.define([
         // sempre 400 ("Edm.Guid not compatible to Edm.Boolean"), indipendente da $select/$expand
         // (riprodotto anche con la query originale, pre-esistente al giro di ottimizzazione di
         // oggi). Mai fallito su sqlite, che non applica lo stesso controllo di tipo sul filtro.
+        // template($expand=versioni) fuso qui dentro invece di un secondo fetch sequenziale
+        // dopo aver letto template_ID: su BTP ogni round-trip in più verso HANA pesa, e questo
+        // dato non serve altro che un giro di lettura in più se richiesto separatamente.
         const sUrl = oOwnerModel.getServiceUrl()
           + `Contratto(${this._contrattoID})?$select=${sContrattoSelect}`
-          + `&$expand=clausole($expand=clausolaVersione($select=${sClausolaVersioneSelect}),clausola)`;
+          + `&$expand=clausole($expand=clausolaVersione($select=${sClausolaVersioneSelect}),clausola),`
+          + `template($select=ID;$expand=versioni($select=ID,numero))`;
         const oResp = await fetch(sUrl);
         if (oResp.status === 404) { MessageBox.error("Nessun contratto trovato"); return; }
         if (!oResp.ok) { MessageBox.error("HTTP " + oResp.status); return; }
         const oContratto = await oResp.json();
         this.getView().getModel("contesto").setData(oContratto);
-        await this._segnalaClausoleVecchie(oContratto);
+        this._segnalaClausoleVecchie(oContratto);
       } catch (e) {
         MessageBox.error("Errore caricamento: " + (e.message || String(e)));
       }
     },
 
     // Segnala se il template ha una versione più recente di quella usata dal contratto.
-    _segnalaClausoleVecchie: async function (oContratto) {
-      const oModel = this.getOwnerComponent().getModel();
+    // Dati già disponibili da _caricaContesto (template espanso nella stessa query), nessun fetch.
+    _segnalaClausoleVecchie: function (oContratto) {
       const oContestoModel = this.getView().getModel("contesto");
-
-      try {
-        const oResp = await fetch(oModel.getServiceUrl() + `Template(${oContratto.template_ID})?$expand=versioni`);
-        if (oResp.ok) {
-          const oTemplate = await oResp.json();
-          const iMax = (oTemplate.versioni || []).reduce((m, v) => Math.max(m, v.numero), 0);
-          const oVersioneUsata = (oTemplate.versioni || []).find(v => v.ID === oContratto.templateVersion_ID);
-          oContestoModel.setProperty("/templateVersioneCorrente", iMax);
-          oContestoModel.setProperty("/templateVersioneUsata", oVersioneUsata ? oVersioneUsata.numero : null);
-        }
-      } catch (e) { /* non bloccante */ }
+      const aVersioni = (oContratto.template && oContratto.template.versioni) || [];
+      const iMax = aVersioni.reduce((m, v) => Math.max(m, v.numero), 0);
+      const oVersioneUsata = aVersioni.find(v => v.ID === oContratto.templateVersion_ID);
+      oContestoModel.setProperty("/templateVersioneCorrente", iMax);
+      oContestoModel.setProperty("/templateVersioneUsata", oVersioneUsata ? oVersioneUsata.numero : null);
     },
 
     onNavBack: function () {

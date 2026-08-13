@@ -37,7 +37,11 @@ sap.ui.define([
     _onRouteMatched: function (oEvent) {
       const sId = decodeURIComponent(oEvent.getParameter("arguments").id);
       this._templateID = sId;
+      // _caricaCommenti dipende solo da this._templateID (già noto qui), non dal risultato
+      // di _caricaTemplate: prima erano incatenate in sequenza senza motivo, un round-trip
+      // pagato due volte invece che in parallelo.
       this._caricaTemplate();
+      this._caricaCommenti();
     },
 
     _caricaTemplate: async function () {
@@ -47,7 +51,6 @@ sap.ui.define([
       }).getBoundContext();
       const oData = await oContext.requestObject();
       this.getView().setModel(new JSONModel(oData), "contesto");
-      this._caricaCommenti();
     },
 
     _caricaCommenti: async function () {

@@ -23,8 +23,8 @@ modules:
       buildpack: nodejs_buildpack
       readiness-health-check-type: http
       readiness-health-check-http-endpoint: /health
-      disk-quota: 2048M
-      memory: 2048M
+      disk-quota: 4096M
+      memory: 4096M
       env:
         ASSISTANT_ID: asst_qKcpS1M1zGJFHSr1c0ELGUXG
     build-parameters:
@@ -52,8 +52,8 @@ modules:
     path: app
     parameters:
       keep-existing-routes: true
-      disk-quota: 2048M
-      memory: 2048M
+      disk-quota: 4096M
+      memory: 4096M
     requires:
       - name: srv-api
         group: destinations

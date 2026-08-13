@@ -38,8 +38,7 @@
         "settings": {
           "synchronizationMode": "None",
           "operationMode": "Server",
-          "autoExpandSelect": true,
-          "groupId": "$direct"
+          "autoExpandSelect": true
         }
       }
     },

@@ -35,15 +35,25 @@ sap.ui.define([
       window.location.href = "/cockpit/webapp/index.html";
     },
 
+    // Prima scaricava fino a 999 righe intere solo per contarle client-side, ad ogni
+    // ritorno su Main (pagina hub, richiamata ad ogni navigazione). $count:true con
+    // $top:0 ottiene lo stesso numero senza scaricare nessuna riga.
     _loadStat: async function () {
       try {
         const oModel = this.getOwnerComponent().getModel();
-        const all = await oModel.bindList("/Contratto", { $filter: "stato ne 'ARCHIVIATO'", $select: "stato" }).requestContexts(0, 999);
-        const bozza = all.filter(c => c.getProperty("stato") === "BOZZA").length;
-        const inRev = all.filter(c => c.getProperty("stato") === "IN_REVISIONE").length;
-        const approvato = all.filter(c => c.getProperty("stato") === "APPROVATO").length;
+        const contaFiltrato = async (sFiltro) => {
+          const oBinding = oModel.bindList("/Contratto", { $filter: sFiltro, $count: true });
+          await oBinding.requestContexts(0, 0);
+          return oBinding.getHeaderContext().requestProperty("$count");
+        };
+        const [totale, bozza, inRev, approvato] = await Promise.all([
+          contaFiltrato("stato ne 'ARCHIVIATO'"),
+          contaFiltrato("stato eq 'BOZZA'"),
+          contaFiltrato("stato eq 'IN_REVISIONE'"),
+          contaFiltrato("stato eq 'APPROVATO'")
+        ]);
         this.getView().setModel(new sap.ui.model.json.JSONModel({
-          totale: all.length, bozza, inRevisione: inRev, approvato
+          totale, bozza, inRevisione: inRev, approvato
         }), "stat");
       } catch (e) { /* silent */ }
     },

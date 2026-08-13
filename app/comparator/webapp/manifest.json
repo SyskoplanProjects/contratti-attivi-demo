@@ -33,8 +33,7 @@
         "settings": {
           "synchronizationMode": "None",
           "operationMode": "Server",
-          "autoExpandSelect": true,
-          "groupId": "$direct"
+          "autoExpandSelect": true
         }
       },
       "comparator": {
@@ -42,8 +41,7 @@
         "settings": {
           "synchronizationMode": "None",
           "operationMode": "Server",
-          "autoExpandSelect": true,
-          "groupId": "$direct"
+          "autoExpandSelect": true
         }
       }
     },
