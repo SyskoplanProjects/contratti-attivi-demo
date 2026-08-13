@@ -357,8 +357,14 @@ sap.ui.define([
       if (!oFornitore || !oFornitore.ID) return;
       if (!oFornitore.numeroContratti) return;
       var oModel = this.getOwnerComponent().getModel();
+      // Edm.Guid nel $filter va senza apici (letterale GUID puro, non stringa): su HANA
+      // "fornitore_ID eq '<guid>'" da' 400 "Edm.Guid is not compatible to Edm.String" -
+      // mai capitato finche' il bug di firma bindList (vedi commit precedente) teneva
+      // questo $filter disattivato di fatto.
+      var sFornitoreID = String(oFornitore.ID);
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sFornitoreID)) return;
       oModel.bindList("/Contratto", null, null, null, {
-        $filter: "fornitore_ID eq '" + String(oFornitore.ID).replace(/'/g, "''") + "' and stato ne 'ARCHIVIATO'",
+        $filter: "fornitore_ID eq " + sFornitoreID + " and stato ne 'ARCHIVIATO'",
         $select: "ID,codice,intestatario,responsabile,oggetto,categoria,stato,importo,dataStipula,dataScadenza"
       }).requestContexts(0, 2000)
         .then(function (aCtx) {

@@ -22,7 +22,9 @@ sap.ui.define([
       const templateID = oContestoModel.getProperty("/ID");
       if (!templateID) return;
       const oModel = this.getOwnerComponent().getModel();
-      fetch(oModel.getServiceUrl() + `AlertModificaTemplate?$filter=template_ID eq '${templateID}' and risolto eq false&$expand=contrattiCoinvolti`)
+      // Edm.Guid nel $filter senza apici: letterale GUID, non stringa (su HANA "eq '<guid>'"
+      // da' 400 "Edm.Guid is not compatible to Edm.String").
+      fetch(oModel.getServiceUrl() + `AlertModificaTemplate?$filter=template_ID eq ${templateID} and risolto eq false&$expand=contrattiCoinvolti`)
         .then(function (r) { return r.json(); })
         .then(function (data) {
           const aAlerts = (data.value || []).map(function (a) {
@@ -56,7 +58,7 @@ sap.ui.define([
     _caricaCommenti: async function () {
       const oModel = this.getOwnerComponent().getModel();
       try {
-        const oResp = await fetch(oModel.getServiceUrl() + `TemplateCommento?$filter=template_ID eq '${this._templateID}'&$orderby=createdAt desc`);
+        const oResp = await fetch(oModel.getServiceUrl() + `TemplateCommento?$filter=template_ID eq ${this._templateID}&$orderby=createdAt desc`);
         const oJson = await oResp.json();
         this.getView().setModel(new JSONModel({ value: oJson.value || [] }), "commenti");
       } catch (e) { /* commenti non bloccanti per la pagina */ }
