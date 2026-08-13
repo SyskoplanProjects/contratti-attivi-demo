@@ -42,6 +42,10 @@ sap.ui.define([
       ]).then(function (results) {
         var contratti = (results[0] || []).map(function (c) { return c.getObject(); });
         var fornitori = (results[1] || []).map(function (f) { return f.getObject(); });
+        // $top fisso a 2000: se il fetch lo satura, la dashboard tronca dati senza avviso.
+        // Log esplicito invece di lasciar sparire righe in silenzio quando il dataset cresce.
+        if (contratti.length === 2000) console.warn("Dashboard: limite 2000 contratti raggiunto, dati potrebbero essere troncati");
+        if (fornitori.length === 2000) console.warn("Dashboard: limite 2000 fornitori raggiunto, dati potrebbero essere troncati");
         if (!contratti.length && fornitori.length) {
           contratti = that._sintetizzaContratti(fornitori);
         }
