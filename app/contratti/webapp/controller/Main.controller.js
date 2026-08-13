@@ -26,36 +26,48 @@ sap.ui.define([
       var oTable = this.byId("contrattiTable");
       if (oTable) {
         var oBinding = oTable.getBinding("items");
-        if (oBinding) oBinding.refresh();
+        // isInitial(): true finché il primo caricamento non è completato. Tornando da
+        // altre pagine (router interno) i dati sono già validi: il refresh forzato ad
+        // ogni pattern match era un ri-fetch inutile verso il server.
+        if (oBinding && oBinding.isInitial()) oBinding.refresh();
       }
-      this._loadStat();
+      // Statistiche caricate una sola volta (e ritentate solo in caso di errore): gli
+      // aggiornamenti dopo create/delete avvengono già in onCopiaContratto/onEliminaContratto.
+      if (!this._bStatLoaded) {
+        this._loadStat();
+      }
     },
 
     onNavBack: function () {
       window.location.href = "/cockpit/webapp/index.html";
     },
 
-    // Prima scaricava fino a 999 righe intere solo per contarle client-side, ad ogni
-    // ritorno su Main (pagina hub, richiamata ad ogni navigazione). $count:true con
-    // $top:0 ottiene lo stesso numero senza scaricare nessuna riga.
+    // Una sola richiesta con $select=stato (payload minimo, nessun blob) e conteggio
+    // client-side: le 4 query $count separate erano 4 round trip verso HANA ad ogni
+    // ritorno su Main, dove la latenza di rete domina il tempo di query.
     _loadStat: async function () {
+      this._bStatLoaded = true;
       try {
         const oModel = this.getOwnerComponent().getModel();
-        const contaFiltrato = async (sFiltro) => {
-          const oBinding = oModel.bindList("/Contratto", null, null, null, { $filter: sFiltro, $count: true });
-          await oBinding.requestContexts(0, 0);
-          return oBinding.getHeaderContext().requestProperty("$count");
-        };
-        const [totale, bozza, inRev, approvato] = await Promise.all([
-          contaFiltrato("stato ne 'ARCHIVIATO'"),
-          contaFiltrato("stato eq 'BOZZA'"),
-          contaFiltrato("stato eq 'IN_REVISIONE'"),
-          contaFiltrato("stato eq 'APPROVATO'")
-        ]);
+        const oBinding = oModel.bindList("/Contratto", null, null, null, {
+          $filter: "stato ne 'ARCHIVIATO'",
+          $select: "stato"
+        });
+        const aCtx = await oBinding.requestContexts(0, 999);
+        let bozza = 0, inRev = 0, approvato = 0;
+        aCtx.forEach(function (c) {
+          const s = c.getProperty("stato");
+          if (s === "BOZZA") bozza++;
+          else if (s === "IN_REVISIONE") inRev++;
+          else if (s === "APPROVATO") approvato++;
+        });
         this.getView().setModel(new sap.ui.model.json.JSONModel({
-          totale, bozza, inRevisione: inRev, approvato
+          totale: aCtx.length, bozza, inRevisione: inRev, approvato
         }), "stat");
-      } catch (e) { /* silent */ }
+        this._bStatLoaded = true;
+      } catch (e) {
+        this._bStatLoaded = false;
+      }
     },
 
 

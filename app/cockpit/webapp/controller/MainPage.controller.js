@@ -163,19 +163,18 @@ sap.ui.define([
 
 		// Contratti Attivi non è un componente lazy del cockpit ma un'app CAP separata
 		// servita dallo stesso host: si naviga con l'URL reale, non con il router interno.
+		// window.open in nuova tab invece di location.href: evita il reload completo della
+		// pagina cockpit (e il re-bootstrap UI5) ogni volta che si apre una delle app.
 		onPressTemplateClausole: function () {
-			this.openBusyDialogLoadingView();
-			window.location.href = "/contratti/webapp/index.html#/clausole";
+			window.open("/contratti/webapp/index.html#/clausole", "_blank");
 		},
 
 		onPressContratti: function () {
-			this.openBusyDialogLoadingView();
-			window.location.href = "/contratti/webapp/index.html";
+			window.open("/contratti/webapp/index.html", "_blank");
 		},
 
 		onPressComparator: function () {
-			this.openBusyDialogLoadingView();
-			window.location.href = "/comparator/webapp/index.html";
+			window.open("/comparator/webapp/index.html", "_blank");
 		}
 
 	};

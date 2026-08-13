@@ -363,17 +363,47 @@ function (BaseController, MessageBox, WizardStep, JSONModel, Fragment, Element, 
       });
       oWizard.addStep(new WizardStep({ title: "Contratto: " + sFilename, content: [].concat(oContractContent) }));
 
+      // SAPUI5 sap.m.Wizard supporta minimo 3 e massimo 8 step. La struttura qui è
+      // 1 (contratto) + N (allegati) + 1 (riepilogo): con N>=7 lo step count superava 8
+      // e il Wizard andava in crash ("The Wizard is supposed to handle from 3 to 8 steps",
+      // poi TypeError nel render). Gli allegati vengono raggruppati in blocchi, ogni blocco
+      // è un singolo step con più frammenti impilati: N allegati -> al più 6 step allegati,
+      // totale sempre <= 8. Con zero allegati serve comunque uno step "Allegati" per non
+      // scendere sotto il minimo di 3 step.
+      var MAX_ALLEGATI_STEPS = 6;
+      var nAllegati = aAllegati.length;
       this._aAllegatoPreviews = [];
-      for (var i = 0; i < aAllegati.length; i++) {
-        var oContent = await Fragment.load({
-          name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizardAllegato",
-          controller: this, id: this.getView().getId() + "-allegato" + i
-        });
-        var aControls = [].concat(oContent);
-        aControls.forEach(function (oCtl) { oCtl.setBindingContext(this.getView().getModel("allegati").getContext("/value/" + i), "allegati"); }.bind(this));
-        var sAllegatoLabel = this._mTipologieLabel[aAllegati[i].tipo] || "Non classificato";
-        oWizard.addStep(new WizardStep({ title: "Allegato: " + aAllegati[i].filename + " [" + sAllegatoLabel + "]", content: aControls }));
-        this._aAllegatoPreviews[i] = Fragment.byId(this.getView().getId() + "-allegato" + i, "allegatoPdfPreview");
+      if (nAllegati === 0) {
+        oWizard.addStep(new WizardStep({
+          title: "Allegati",
+          content: new sap.m.Text({ text: "Nessun allegato caricato con il documento." })
+        }));
+      } else {
+        var iChunk = nAllegati <= MAX_ALLEGATI_STEPS ? 1 : Math.ceil(nAllegati / MAX_ALLEGATI_STEPS);
+        var nGruppi = Math.ceil(nAllegati / iChunk);
+        for (var g = 0; g < nGruppi; g++) {
+          var aGruppo = [];
+          var aNomi = [];
+          var iDa = g * iChunk, iA = Math.min((g + 1) * iChunk, nAllegati);
+          for (var i = iDa; i < iA; i++) {
+            var oContent = await Fragment.load({
+              name: "com.reply.contrattiattivi.comparator.fragment.MetadataWizardAllegato",
+              controller: this, id: this.getView().getId() + "-allegato" + i
+            });
+            var aControls = [].concat(oContent);
+            aControls.forEach(function (oCtl) {
+              oCtl.setBindingContext(this.getView().getModel("allegati").getContext("/value/" + i), "allegati");
+            }.bind(this));
+            aGruppo = aGruppo.concat(aControls);
+            aNomi.push(aAllegati[i].filename);
+            this._aAllegatoPreviews[i] = Fragment.byId(this.getView().getId() + "-allegato" + i, "allegatoPdfPreview");
+          }
+          var sAllegatoLabel = this._mTipologieLabel[aAllegati[iDa].tipo] || "Non classificato";
+          var sTitolo = iChunk === 1
+            ? "Allegato: " + aAllegati[iDa].filename + " [" + sAllegatoLabel + "]"
+            : "Allegati (" + (iDa + 1) + "-" + iA + "): " + aNomi.join(", ");
+          oWizard.addStep(new WizardStep({ title: sTitolo, content: aGruppo }));
+        }
       }
 
       var oFinalContent = await Fragment.load({
