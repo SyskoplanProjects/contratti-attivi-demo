@@ -28,7 +28,7 @@ function _media(vettori) {
 // pool completo (nessuna regressione per i dati non ancora migrati).
 async function _shortlist(embeddingMedio, tx, n, annoContratto) {
   const { Template, TemplateVersion } = cds.entities('com.reply.contrattiattivi');
-  let templates = await tx.run(SELECT.from(Template));
+  let templates = await tx.run(SELECT.from(Template).where({ generatoDaDigitalizzazione: false }));
   if (!templates.length) return [];
   if (annoContratto) {
     const stessaEpoca = templates.filter(t => t.annoRiferimento === annoContratto);
@@ -64,7 +64,7 @@ async function _shortlist(embeddingMedio, tx, n, annoContratto) {
 // invece del solo best match (RF-1.x).
 async function trovaRiferimento(clausoleEstratte, tx, annoContratto) {
   const { Template } = cds.entities('com.reply.contrattiattivi');
-  const tuttiTemplate = await tx.run(SELECT.from(Template));
+  const tuttiTemplate = await tx.run(SELECT.from(Template).where({ generatoDaDigitalizzazione: false }));
   if (!tuttiTemplate.length || !clausoleEstratte.length) return null;
 
   // Embeddings API non disponibile: propaga l'errore (comportamento invariato rispetto a
