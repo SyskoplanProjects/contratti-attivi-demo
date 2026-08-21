@@ -4,8 +4,9 @@ sap.ui.define([
   "sap/m/MessageToast",
   "sap/ui/model/Filter",
   "sap/ui/model/FilterOperator",
+  "sap/ui/model/json/JSONModel",
   "../formatter"
-], function (BaseController, MessageBox, MessageToast, Filter, FilterOperator, formatter) {
+], function (BaseController, MessageBox, MessageToast, Filter, FilterOperator, JSONModel, formatter) {
   "use strict";
 
   return BaseController.extend("com.reply.contrattiattivi.app.controller.Clausole", {
@@ -13,6 +14,27 @@ sap.ui.define([
 
     onInit: function () {
       this._initChatState();
+      this._caricaFiltroTemplate();
+    },
+
+    // Picklist del filtro "Template": include sia i template veri sia i template "ombra"
+    // generati da confirmCoverage per un singolo contratto digitalizzato (a differenza di
+    // getTemplates, che li esclude) — qui servono entrambi perché l'utente deve poter
+    // isolare anche le clausole di un contratto già digitalizzato, non solo dei template di
+    // riferimento riusabili. L'etichetta "Template - " / "Contratto - " li distingue in UI.
+    _caricaFiltroTemplate: async function () {
+      const oModel = this.getOwnerComponent().getModel();
+      try {
+        const oResp = await fetch(oModel.getServiceUrl() + "Template?$select=ID,nome,generatoDaDigitalizzazione&$orderby=nome");
+        const oJson = await oResp.json();
+        const aTemplate = oJson.value || [];
+        const aItems = [{ ID: "", label: "-- tutti --" }].concat(
+          aTemplate.map(function (t) {
+            return { ID: t.ID, label: (t.generatoDaDigitalizzazione ? "Contratto - " : "Template - ") + t.nome };
+          })
+        );
+        this.getView().setModel(new JSONModel({ value: aItems }), "templatePicker");
+      } catch (e) { /* il filtro Template resta vuoto, il resto della pagina funziona comunque */ }
     },
 
     onNavBack: function () {
@@ -446,6 +468,13 @@ sap.ui.define([
         aFilters.push(new Filter({ path: "titolo", operator: FilterOperator.Contains, value1: sTitolo, caseSensitive: false }));
       }
 
+      // GUID: eq va passato senza apici (Edm.Guid, non Edm.String) — il binding OData v4
+      // serializza già correttamente il valore in base al tipo da metadata.
+      var sTemplateID = this.byId("filterTemplate").getSelectedKey();
+      if (sTemplateID) {
+        aFilters.push(new Filter({ path: "template_ID", operator: FilterOperator.EQ, value1: sTemplateID }));
+      }
+
       var sOrigine = this.byId("filterOrigine").getValue().trim().toLowerCase();
       var sIDClausola = this.byId("filterIDClausola").getValue().trim().toLowerCase();
       var oBinding = this.byId("tabellaAnagraficaClausole").getBinding("items");
@@ -477,6 +506,7 @@ sap.ui.define([
       this.byId("filterCodice").setValue("");
       this.byId("filterTitolo").setValue("");
       this.byId("filterOrigine").setValue("");
+      this.byId("filterTemplate").setSelectedKey("");
       this.onFilter();
     }
   });

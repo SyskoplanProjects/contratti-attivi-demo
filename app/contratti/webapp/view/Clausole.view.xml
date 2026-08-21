@@ -40,6 +40,13 @@
             <SearchField id="filterOrigine" placeholder="Filtra..." width="18rem" search="onFilter" liveChange="onFilter" />
           </VBox>
           <VBox class="sapUiTinyMarginEnd">
+            <Label text="Template" />
+            <Select id="filterTemplate" width="16rem" forceSelection="false" change="onFilter"
+              items="{templatePicker>/value}">
+              <core:Item key="{templatePicker>ID}" text="{templatePicker>label}" />
+            </Select>
+          </VBox>
+          <VBox class="sapUiTinyMarginEnd">
             <Label text="" />
             <Button icon="sap-icon://reset" text="Reset filtri" press="onResetFiltri" tooltip="Reset filtri" class="app-btn app-btn-neutral" />
           </VBox>
